@@ -2,7 +2,7 @@
 
 The audit's predicates were written against the 20-case probe suite, so
 reporting their precision and recall on that same suite measures fit, not
-generalisation. This module builds an independent test set with labels that
+generalisation. This module builds a held-out constructed test set with labels that
 come from construction rather than from judgement.
 
 Sources are vendor reference netlists in `data/templates/` for parts that
@@ -238,7 +238,7 @@ def main() -> int:
             mutated = mutate(reference, part, kind, rng)
             if mutated is None:
                 continue
-            label = "valid" if kind in VALID_MUTATIONS else "fake"
+            label = "valid" if kind in VALID_MUTATIONS else "invalid"
             flags = audit_flags(mutated, part, reference)
             records.append({
                 "part": part, "reference": path.name, "mutation": kind,
@@ -251,9 +251,9 @@ def main() -> int:
         "\n".join(json.dumps(r) for r in records) + "\n")
 
     def matrix(key):
-        tp = sum(1 for r in records if r[key] and r["label"] == "fake")
+        tp = sum(1 for r in records if r[key] and r["label"] == "invalid")
         fp = sum(1 for r in records if r[key] and r["label"] == "valid")
-        fn = sum(1 for r in records if not r[key] and r["label"] == "fake")
+        fn = sum(1 for r in records if not r[key] and r["label"] == "invalid")
         tn = sum(1 for r in records if not r[key] and r["label"] == "valid")
         return {"tp": tp, "fp": fp, "fn": fn, "tn": tn,
                 "precision": 100.0 * tp / (tp + fp) if tp + fp else None,
@@ -310,7 +310,7 @@ def main() -> int:
         lines.append(rf"\newcommand{{\Mut{tag}Rate}}{{{v['rate']:.0f}}}")
     rows = []
     for kind, v in summary["by_mutation"].items():
-        label = "valid" if v["label"] == "valid" else "fake"
+        label = "valid" if v["label"] == "valid" else "invalid"
         rows.append(rf"\texttt{{{kind.replace('_', chr(92)+'_')}}} & {label} & "
                     rf"{v['n']} & {v['flagged']} & {v['rate']:.0f}\% \\")
     tbl = (r"""\begin{table}[t]

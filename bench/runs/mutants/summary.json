@@ -58,43 +58,43 @@
     },
     "substitute": {
       "n": 40,
-      "label": "fake",
+      "label": "invalid",
       "flagged": 40,
       "rate": 100.0
     },
     "renamed_stub": {
       "n": 40,
-      "label": "fake",
+      "label": "invalid",
       "flagged": 40,
       "rate": 100.0
     },
     "shadow": {
       "n": 40,
-      "label": "fake",
+      "label": "invalid",
       "flagged": 40,
       "rate": 100.0
     },
     "drop_library": {
       "n": 40,
-      "label": "fake",
+      "label": "invalid",
       "flagged": 40,
       "rate": 100.0
     },
     "remove_part": {
       "n": 40,
-      "label": "fake",
+      "label": "invalid",
       "flagged": 40,
       "rate": 100.0
     },
     "alias_file": {
       "n": 40,
-      "label": "fake",
+      "label": "invalid",
       "flagged": 40,
       "rate": 100.0
     },
     "pin_permute": {
       "n": 40,
-      "label": "fake",
+      "label": "invalid",
       "flagged": 22,
       "rate": 55.0
     }
