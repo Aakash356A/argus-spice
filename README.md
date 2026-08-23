@@ -108,5 +108,8 @@ shows up as a hash mismatch rather than a silent disagreement.
 
 ## License
 
-MIT (`LICENSE`). LTspice and the vendor macro-models are used under the vendor's
-free-distribution terms and are not redistributed here.
+MIT (`LICENSE`) covers the code, case suite, and mutation suite. LTspice and
+the vendor macro-models are obtained by each user directly from the vendor
+under its applicable terms and are not redistributed here. Rights in the
+model-generated corpus remain governed by the applicable model-provider terms;
+each record names its generating model.
