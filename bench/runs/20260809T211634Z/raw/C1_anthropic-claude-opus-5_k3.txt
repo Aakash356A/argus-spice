@@ -1,0 +1,64 @@
+```
+* LTC6252 High-Speed Op Amp -- Non-Inverting Gain of 2 (+6.02 dB), +/-5 V Supplies
+* Primary input node: IN     Primary output node: OUT
+*------------------------------------------------------------------
+* SUPPLIES
+*------------------------------------------------------------------
+VCC VCC 0 DC 5
+VEE VEE 0 DC -5
+
+*------------------------------------------------------------------
+* INPUT SOURCE: 1 V amplitude sine at 10 MHz (AC 1 for .ac sweeps)
+*------------------------------------------------------------------
+VIN IN 0 SINE(0 1 10MEG) AC 1
+
+*------------------------------------------------------------------
+* AMPLIFIER: non-inverting, G = 1 + Rf/Rg = 2 V/V
+*------------------------------------------------------------------
+XU1 IN FB VCC VEE OUT LTC6252
+Rf  OUT FB 499
+Rg  FB  0  499
+Cin IN  0  1p            ; small input node capacitance
+RL  OUT 0  1k            ; load
+CL  OUT 0  2p
+
+*------------------------------------------------------------------
+* LTC6252 BEHAVIORAL MACROMODEL
+*  pins: 1 = IN+   2 = IN-   3 = V+   4 = V-   5 = OUT
+*  Av(dc) = 100 dB, GBW = 720 MHz (single dominant pole, 7.2 kHz),
+*  rail-to-rail output with ~100 mV headroom, Ro = 20 ohm
+*------------------------------------------------------------------
+.subckt LTC6252 1 2 3 4 5
+Rin   1 2 1T
+Cin1  1 0 1.5p
+Cin2  2 0 1.5p
+Ib1   1 0 10n
+Ib2   2 0 10n
+* transconductance stage: gm = 1 mA/V
+G1    0 N1 1 2 1m
+R1    N1 0 100Meg
+C1    N1 0 0.221p
+* output stage with supply clamping
+B1    N2 0 V = LIMIT(V(N1), V(4)+0.1, V(3)-0.1)
+Rout  N2 5 20
+* supply current path (keeps supply pins referenced)
+Iq    3 4 3.4m
+.ends LTC6252
+
+*------------------------------------------------------------------
+* ANALYSIS
+*------------------------------------------------------------------
+.tran 0 500n 0 20p
+
+.meas TRAN vop  PP V(OUT) FROM 200n TO 500n
+.meas TRAN vip  PP V(IN)  FROM 200n TO 500n
+.meas TRAN gain PARAM vop/vip
+.meas TRAN gain_db PARAM 20*log10(vop/vip)
+
+* Optional small-signal check of the same gain:
+* .ac dec 200 10k 2G
+* .meas AC gain_db_ac FIND 20*log10(V(OUT)/V(IN)) AT 10MEG
+
+.options plotwinsize=0 numdgt=7
+.end
+```

@@ -1,0 +1,37 @@
+* LTC6252 High-Speed Amplifier -- Non-Inverting Gain = 2 V/V, +/-5V Supplies
+* Input: 1V amplitude sine at 10 MHz on node IN, output on node OUT
+*------------------------------------------------------------------
+.lib LTC6252.lib
+
+* ---------------- Supplies ----------------
+VCC VCC 0 DC  5
+VEE VEE 0 DC -5
+
+* ---------------- Source ------------------
+* 1 V amplitude, 10 MHz sine (AC 1 included for optional .ac sweep)
+VIN IN 0 SINE(0 1 10MEG) AC 1
+
+* ---------------- Amplifier ---------------
+* Pin order: +IN  -IN  V+  V-  OUT
+XU1 IN FB VCC VEE OUT LTC6252
+
+* Non-inverting gain: 1 + RF/RG = 1 + 1k/1k = 2 V/V (6.02 dB)
+RF OUT FB 1k
+RG FB  0  1k
+
+* Load
+RL OUT 0 1k
+CL OUT 0 2p
+
+* ---------------- Analysis ----------------
+.tran 0 1u 0 20p
+
+* ---------------- Measurements ------------
+.meas TRAN vin_pp  PP V(IN)  FROM 200n TO 1u
+.meas TRAN vout_pp PP V(OUT) FROM 200n TO 1u
+.meas TRAN gain_vv PARAM vout_pp/vin_pp
+.meas TRAN gain_db PARAM 20*log10(vout_pp/vin_pp)
+
+.options plotwinsize=0 numdgt=7
+
+.end

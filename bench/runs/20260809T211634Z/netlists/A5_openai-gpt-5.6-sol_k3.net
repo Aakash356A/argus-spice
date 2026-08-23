@@ -1,0 +1,16 @@
+* LT6654-1.25 precision voltage reference with input/output bypassing
+V1 IN 0 DC 5
+CIN IN 0 1u
+XU1 IN OUT 0 LT6654_1V25
+COUT OUT 0 1u
+RLOAD OUT 0 100k
+
+.subckt LT6654_1V25 VIN VOUT GND
+RIN VIN GND 2.5Meg
+BREF NREF GND V=IF(V(VIN,GND)>2.5,1.25,0)
+ROUT NREF VOUT 0.2
+.ends LT6654_1V25
+
+.tran 0 10m 0 10u
+.meas TRAN vout_dc AVG V(OUT) FROM 8m TO 10m
+.end

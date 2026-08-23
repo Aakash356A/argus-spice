@@ -1,0 +1,6 @@
+* LT6106 pin order: OUT, V-, +IN, -IN, V+
+XU1 OUT 0 IN NINV IN LT6106
+
+.tran 0 10m 0 10u
+
+.end

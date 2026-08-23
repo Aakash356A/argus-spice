@@ -1,0 +1,39 @@
+* LTC4281 12 V hot-swap controller with current-limited inrush
+VRAIL IN 0 PWL(0 0 100u 0 110u 12)
+CIN IN 0 10u
+
+* 20 mOhm sense resistor: nominal current limit approximately 1.25 A
+RSENSE IN SENSE 20m
+
+* External high-side N-channel pass MOSFET
+MHS SENSE GATE OUT OUT MHS_MODEL
+.model MHS_MODEL NMOS (LEVEL=1 VTO=3 KP=50 LAMBDA=0.001)
+
+* Representative MOSFET gate capacitance
+CGATE GATE OUT 10n
+
+* LTC4281 enable/undervoltage divider and timer capacitor
+RUV1 IN UV 100k
+RUV2 UV 0 10k
+RON IN ON 100k
+CTIMER TIMER 0 100n
+
+* Self-contained functional LTC4281 model
+XU1 IN SENSE GATE TIMER UV ON 0 LTC4281
+
+* Resistive 1 A load with bulk output capacitance
+COUT OUT 0 1000u
+RLOAD OUT 0 12
+
+.subckt LTC4281 VIN SENSE GATE TIMER UV ON GND
+* 100 uA timer current; approximately 1 ms delay with 100 nF
+BTIMER GND TIMER I={if((V(UV,GND)>1)*(V(ON,GND)>1),100u,-V(TIMER,GND)/10)-0.01*limit(V(TIMER,GND)-1.2,0,10)}
+
+* Gate charge pump with 25 mV current-sense threshold and VIN+10 V clamp
+BGATE GND GATE I={if((V(UV,GND)>1)*(V(ON,GND)>1)*(V(TIMER,GND)>1),20u-0.01*limit(V(VIN,SENSE)-0.025,0,1)-0.01*limit(V(GATE,GND)-V(VIN,GND)-10,0,1),-0.01*V(GATE,GND))}
+.ends LTC4281
+
+.tran 0 150m 0 20u
+.meas tran vout_dc AVG V(OUT) FROM=140m TO=150m
+
+.end

@@ -1,0 +1,53 @@
+* AD4021 20-bit SAR ADC front end digitising a 1 V DC input
+
+VIN       IN       0        DC 1
+VREFSRC   REF_SRC  0        DC 5
+RREF      REF_SRC  REF      0.05
+CREF1     REF      0        10u
+CREF2     REF      0        100n
+
+VVDD      VDD      0        DC 1.8
+VIOVDD    VIO      0        DC 1.8
+CVDD1     VDD      0        10u
+CVDD2     VDD      0        100n
+CVIO1     VIO      0        10u
+CVIO2     VIO      0        100n
+
+* Ideal fully differential driver: 1 V at IN produces INP-INM = 1 V
+* with both ADC inputs centered at REF/2.
+EDRVP     DRVP     0 VALUE={0.5*V(REF)+0.5*V(IN)}
+EDRVN     DRVN     0 VALUE={0.5*V(REF)-0.5*V(IN)}
+RINP      DRVP     INP      22
+RINN      DRVN     INM      22
+CINP      INP      0        1n
+CINN      INM      0        1n
+CDIFF     INP      INM      2.2n
+
+* 1 MHz conversion framing. CNV rises at 350 ns in each frame.
+BCNV      CNV      0 V={if(mod(time,1u)>=350n,if(mod(time,1u)<960n,V(VIO),0),0)}
+
+* Twenty 40 MHz serial-clock pulses from 450 ns through 950 ns.
+BSCK      SCK      0 V={if((mod(time,1u)>=450n)*(mod(time,1u)<950n),if(mod(time-450n,25n)<12.5n,V(VIO),0),0)}
+
+XU1 INP INM REF 0 VDD VIO CNV SCK OUT AD4021
+
+.tran 0 3u 0 1n
+
+.subckt AD4021 INP INM REF REFGND VDD VIO CNV SCK SDO
+
+* Ideal 20-bit bipolar quantizer over -(REF) to +(REF).
+BQUANT Q REFGND V={V(REF,REFGND)*(2*floor(524287.5*(limit(V(INP,INM)/V(REF,REFGND),-1,1)+1)+0.5)/1048575-1)}
+
+* Track while CNV is low and hold while conversion/readout is active.
+BCNVB CNVB REFGND V={V(VIO,REFGND)-V(CNV,REFGND)}
+SSAMPLE Q HOLD CNVB REFGND SWSAMPLE
+CHOLD HOLD REFGND 20p
+RHOLD HOLD REFGND 1T
+.model SWSAMPLE SW(Ron=1 Roff=1T Vt=0.9 Vh=0.05)
+
+* MSB-first, 20-bit serial data output during the SCK burst.
+BSDO SDO REFGND V={if((mod(time,1u)>=450n)*(mod(time,1u)<950n),V(VIO,REFGND)*mod(floor(floor(524287.5*(limit(V(HOLD,REFGND)/V(REF,REFGND),-1,1)+1)+0.5)/(2**(19-floor((mod(time,1u)-450n)/25n)))),2),0)}
+
+.ends AD4021
+
+.end

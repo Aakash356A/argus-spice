@@ -1,0 +1,19 @@
+* ADP7118 1.8 V LDO from 3.3 V, 50 mA load
+.lib ADP7102.lib
+
+V1 IN 0 3.3
+CIN IN 0 2.2u
+
+VEN EN 0 3.3
+XU1 IN OUT EN ADJ 0 ADP7102
+
+RSET1 OUT ADJ 10k
+RSET2 ADJ 0 20k
+
+COUT OUT 0 2.2u
+RLOAD OUT 0 36
+
+.tran 0 10m 0 1u
+.meas tran vout_dc AVG V(OUT) FROM 9m TO 10m
+
+.end

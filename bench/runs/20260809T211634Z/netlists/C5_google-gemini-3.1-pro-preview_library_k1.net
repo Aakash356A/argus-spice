@@ -1,0 +1,43 @@
+* LTC4281 Hot Swap Controller
+.lib LTC4281.sub
+
+* Input Power Supply
+V1 IN 0 12
+
+* Sense Resistor (5 mOhm for ~5A limit)
+R_sense IN N_SENSEN 0.005
+
+* External N-Channel MOSFET
+M1 N_SENSEN N_GATE OUT OUT N_MOS
+.model N_MOS VDMOS(Rg=2 Vto=2 Rd=5m Rs=1m Rb=5m Kp=60 Cgdmax=1n Cgdmin=0.5n Cgs=2n Cjo=1n Is=1p mtype=n)
+
+* UV and ON Pin Dividers (Set for ~10V turn-on)
+R_UV1 IN N_UV 86.6k
+R_UV2 N_UV 0 12.1k
+R_ON1 IN N_ON 86.6k
+R_ON2 N_ON 0 12.1k
+
+* Timing and Bypass Capacitors
+C_TIMER N_TIMER 0 0.1u
+C_INTVCC N_INTVCC 0 1u
+C_VDD33 N_VDD33 0 1u
+
+* Digital Pull-Up Resistors
+R_PU1 N_VDD33 N_FAULTB 10k
+R_PU2 N_VDD33 N_PGB 10k
+R_PU3 N_VDD33 N_INTB 10k
+R_PU4 N_VDD33 N_SCL 10k
+R_PU5 N_VDD33 N_SDAI 10k
+
+* Load
+R_load OUT 0 10
+C_load OUT 0 470u
+
+* LTC4281 Subcircuit Instantiation
+* Subcircuit Pin Order: VDD SENSEP SENSEN GATE SOURCE OUT UV OV ON TIMER FAULTB PGB INTB SCL SDAI SDAO ADR0 ADR1 ADR2 GND INTVCC VDD33 EE_VDD
+X1 IN IN N_SENSEN N_GATE OUT OUT N_UV 0 N_ON N_TIMER N_FAULTB N_PGB N_INTB N_SCL N_SDAI N_SDAO 0 0 0 0 N_INTVCC N_VDD33 N_VDD33 LTC4281
+
+* Analysis Directive
+.tran 0.2
+
+.end

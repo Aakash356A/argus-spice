@@ -1,0 +1,10 @@
+* ADA4177 Inverting Amplifier
+V1 VDD 0 15
+V2 VSS 0 -15
+Vin IN 0 SINE(0 50m 1k) AC 1
+R1 IN N001 1k
+R2 N001 OUT 10k
+X1 0 N001 VDD VSS OUT ADA4177
+.tran 10m
+.ac dec 10 10 100k
+.end

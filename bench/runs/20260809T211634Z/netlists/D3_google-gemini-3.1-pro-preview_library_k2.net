@@ -1,0 +1,29 @@
+* AD8237 Instrumentation Amplifier 10V/V
+.lib AD8237.lib
+
+* Power Supplies
+Vcc VCC 0 DC 5
+Vref REF_NODE 0 DC 2.5
+
+* Input Signal: 20 mV amplitude sine at 1 kHz, biased at 2.5V
+Vin IN 0 SINE(2.5 0.02 1k) AC 0.02
+
+* AD8237 Subcircuit
+* Pinout: -IN +IN BW -VS REF FB OUT +VS
+X1 REF_NODE IN VCC 0 REF_NODE FB OUT VCC AD8237
+
+* Gain Setting Resistors (G = 1 + R2/R1 = 10 -> R2 = 9 * R1)
+R1 FB REF_NODE 1k
+R2 OUT FB 9k
+
+* Load Resistor
+RL OUT 0 100k
+
+* Analysis Directives
+.ac list 1k
+.tran 0 5m
+
+* Measurements
+.meas ac gain_db MAX 20*log10(mag(V(OUT)/V(IN)))
+
+.end

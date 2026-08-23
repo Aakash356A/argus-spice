@@ -1,0 +1,55 @@
+* ADG5248F 8:1 analog multiplexer - channel 1 selected
+
+VDD_SRC VDD 0 15
+VSS_SRC VSS 0 -15
+
+VIN IN 0 SINE(0 0.5 1k)
+
+* Channel 1 select: EN=1, A2:A0=000
+VEN EN 0 5
+VA0 A0 0 0
+VA1 A1 0 0
+VA2 A2 0 0
+
+XU1 IN 0 0 0 0 0 0 0 OUT A0 A1 A2 EN VDD VSS ADG5248F
+
+RLOAD OUT 0 100k
+CLOAD OUT 0 20p
+
+.tran 0 5m 2m 1u
+.meas tran VIN_PP PP V(IN) FROM 2m TO 5m
+.meas tran VOUT_PP PP V(OUT) FROM 2m TO 5m
+.meas tran GAIN_DB PARAM 20*log(VOUT_PP/VIN_PP)
+
+.options plotwinsize=0
+
+.subckt ADG5248F S1 S2 S3 S4 S5 S6 S7 S8 D A0 A1 A2 EN VDD VSS
+
+BSEL1 SEL1 0 V=5*if(V(EN)>2,1,0)*if(V(A2)<2,1,0)*if(V(A1)<2,1,0)*if(V(A0)<2,1,0)
+BSEL2 SEL2 0 V=5*if(V(EN)>2,1,0)*if(V(A2)<2,1,0)*if(V(A1)<2,1,0)*if(V(A0)>2,1,0)
+BSEL3 SEL3 0 V=5*if(V(EN)>2,1,0)*if(V(A2)<2,1,0)*if(V(A1)>2,1,0)*if(V(A0)<2,1,0)
+BSEL4 SEL4 0 V=5*if(V(EN)>2,1,0)*if(V(A2)<2,1,0)*if(V(A1)>2,1,0)*if(V(A0)>2,1,0)
+BSEL5 SEL5 0 V=5*if(V(EN)>2,1,0)*if(V(A2)>2,1,0)*if(V(A1)<2,1,0)*if(V(A0)<2,1,0)
+BSEL6 SEL6 0 V=5*if(V(EN)>2,1,0)*if(V(A2)>2,1,0)*if(V(A1)<2,1,0)*if(V(A0)>2,1,0)
+BSEL7 SEL7 0 V=5*if(V(EN)>2,1,0)*if(V(A2)>2,1,0)*if(V(A1)>2,1,0)*if(V(A0)<2,1,0)
+BSEL8 SEL8 0 V=5*if(V(EN)>2,1,0)*if(V(A2)>2,1,0)*if(V(A1)>2,1,0)*if(V(A0)>2,1,0)
+
+SW1 S1 D SEL1 0 SWMUX
+SW2 S2 D SEL2 0 SWMUX
+SW3 S3 D SEL3 0 SWMUX
+SW4 S4 D SEL4 0 SWMUX
+SW5 S5 D SEL5 0 SWMUX
+SW6 S6 D SEL6 0 SWMUX
+SW7 S7 D SEL7 0 SWMUX
+SW8 S8 D SEL8 0 SWMUX
+
+DOUT_HI D VDD DCLAMP
+DOUT_LO VSS D DCLAMP
+RBIAS D 0 1T
+
+.model SWMUX SW(Ron=5 Roff=1T Vt=2.5 Vh=0.1)
+.model DCLAMP D(Is=1f Rs=10 N=1)
+
+.ends ADG5248F
+
+.end

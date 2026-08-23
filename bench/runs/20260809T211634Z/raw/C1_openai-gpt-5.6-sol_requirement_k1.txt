@@ -1,0 +1,19 @@
+* LTC6252 high-speed noninverting amplifier, gain = 2 V/V
+.include LTC6252.sub
+
+VCC VPLUS 0 5
+VEE VMINUS 0 -5
+VIN IN 0 SINE(0 1 10Meg) AC 1
+
+XU1 IN NFB VPLUS VMINUS OUT LTC6252
+
+RF OUT NFB 1k
+RG NFB 0 1k
+RL OUT 0 10k
+
+.ac dec 100 1Meg 100Meg
+.tran 0 1u 200n 200p
+
+.meas AC gain_db FIND VDB(OUT) AT=10Meg
+
+.end

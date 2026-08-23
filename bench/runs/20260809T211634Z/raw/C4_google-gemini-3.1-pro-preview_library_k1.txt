@@ -1,0 +1,33 @@
+```spice
+* AD4021 ADC Front End
+.lib AD4021.sub
+
+* Instantiate the AD4021 ADC macro-model
+* Typical pin order: IN+ IN- REF VDD VIO GND CNV SDI SCK SDO
+X1 IN IN_M REF VDD VIO 0 CNV SDI SCK OUT AD4021
+
+* Analog Inputs: 1V DC differential input
+VIN IN 0 1V
+VINM IN_M 0 0V
+
+* Power Supplies and Reference
+VREF REF 0 5V
+VVDD VDD 0 1.8V
+VVIO VIO 0 1.8V
+
+* Digital Control and Clocks
+* CNV: 1 MSPS conversion clock (1us period, 100ns high time for conversion phase)
+VCNV CNV 0 PULSE(0 1.8V 0 1ns 1ns 100ns 1us)
+
+* SCK: 50 MHz serial clock to read out the 20-bit data 
+* (Starts at 150ns, after the 100ns conversion time has completed)
+VSCK SCK 0 PULSE(0 1.8V 150ns 1ns 1ns 10ns 20ns)
+
+* SDI: Tied low (standard 3-wire CS mode)
+VSDI SDI 0 0V
+
+* Transient analysis to capture several conversion cycles
+.tran 5us
+
+.end
+```

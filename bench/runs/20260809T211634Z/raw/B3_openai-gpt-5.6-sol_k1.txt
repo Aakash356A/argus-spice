@@ -1,0 +1,28 @@
+* LTC6078 unity-gain voltage follower, 5 V single supply
+VCC VCC 0 5
+VIN IN 0 SINE(2.5 0.1 1k)
+CDEC VCC 0 100n
+
+XU1 IN OUT VCC 0 OUT LTC6078
+RLOAD OUT 0 10k
+
+* Self-contained LTC6078 functional macromodel
+* Pins: noninverting inverting V+ V- output
+.subckt LTC6078 NIN NINV VDD VSS VOUT
+RINP NIN VSS 1T
+RINN NINV VSS 1T
+GERR VSS NINT NIN NINV 1m
+RGAIN NINT VSS 100Meg
+CDOM NINT VSS 212p
+BDRV NDRV VSS V=limit(V(NINT,VSS),5m,V(VDD,VSS)-5m)
+ROUT NDRV VOUT 20
+COUT VOUT VSS 5p
+.ends LTC6078
+
+.options plotwinsize=0
+.tran 0 10m 0 1u
+.meas tran VIN_PP PP V(IN) FROM 5m TO 10m
+.meas tran VOUT_PP PP V(OUT) FROM 5m TO 10m
+.meas tran gain_db PARAM 20*log10(VOUT_PP/VIN_PP)
+
+.end

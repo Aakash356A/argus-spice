@@ -1,0 +1,27 @@
+* LT3094 Negative LDO Regulator -7V to -5V
+.lib LT3094.sub
+
+* Power Supply
+V1 IN 0 -7
+
+* Load (10mA light load)
+Rload OUT 0 500
+
+* Input and Output Capacitors
+Cin IN 0 10u
+Cout OUT 0 10u
+
+* SET Pin Configuration (100uA * 50k = 5V drop -> -5V output)
+Rset SET 0 50k
+Cset SET 0 10p
+
+* LT3094 Subcircuit Instantiation
+* Pin Order: IN EN/UVLO PG ILIM VIOC PGFB SET GND OUTS OUT
+* Unused optional pins (PG, ILIM, VIOC, PGFB) are safely tied to IN.
+* EN/UVLO tied to 0 (GND) to enable the part (GND is +7V relative to IN).
+X1 IN 0 IN IN IN IN SET 0 OUT OUT LT3094
+
+* Analysis Directive
+.tran 10m
+
+.end

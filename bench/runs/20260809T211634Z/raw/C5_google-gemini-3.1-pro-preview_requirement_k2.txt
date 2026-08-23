@@ -1,0 +1,52 @@
+* LTC4281 Hot Swap Controller Simulation
+.lib LTC.lib
+
+* Input Supply (ramps up to ensure clean power-on reset)
+V1 IN 0 PWL(0 0 1m 12)
+
+* UV/OV and ON Resistor Divider
+* Sets UV rising at ~10.1V and OV rising at ~15.1V
+R1 IN N_UV 88.7k
+R2 N_UV N_OV 4.12k
+R3 N_OV 0 8.25k
+
+* Sense Resistor (10mOhm sets current limit to 2.5A)
+Rs IN N_SENSEN 10m
+
+* N-Channel MOSFET
+M1 N_SENSEN N_GATE OUT OUT N_MOS
+.model N_MOS VDMOS(Rg=1 Vto=2 Rd=5m Rs=1m Rb=5m Kp=50 Cgdmax=2n Cgdmin=1n Cgs=5n Cjo=2n Is=10p)
+
+* Gate Slew Rate Capacitor (limits inrush current)
+C_GATE N_GATE OUT 2.2n
+
+* Foldback Divider (releases foldback when OUT reaches ~12V)
+R4 OUT N_FB 88.7k
+R5 N_FB 0 10.2k
+
+* Timing and Bypass Capacitors
+C_TIMER N_TIMER 0 10n
+C_INTVCC N_INTVCC 0 1u
+C_EECC N_EECC 0 1u
+
+* Output Load (1A nominal load at 12V)
+Rload OUT 0 12
+Cload OUT 0 100u
+
+* Pull-ups and Dummy Resistors for I2C and GPIO
+R_FAULTB N_INTVCC N_FAULTB 10k
+R_ALERTB N_INTVCC N_ALERTB 10k
+R_SDAI N_INTVCC N_SDAI 10k
+R_SCL N_INTVCC N_SCL 10k
+R_SDAO N_SDAO 0 1Meg
+R_GPIO1 N_GPIO1 0 1Meg
+R_GPIO2 N_GPIO2 0 1Meg
+R_GPIO3 N_GPIO3 0 1Meg
+
+* LTC4281 Instantiation
+* Pin order: VDD SENSEP SENSEN GATE OUT FB OV UV TIMER FAULTB INTVCC ON SDAI SDAO SCL ALERTB ADIN GPIO1 GPIO2 GPIO3 EECC GND
+X1 IN IN N_SENSEN N_GATE OUT N_FB N_OV N_UV N_TIMER N_FAULTB N_INTVCC N_UV N_SDAI N_SDAO N_SCL N_ALERTB 0 N_GPIO1 N_GPIO2 N_GPIO3 N_EECC 0 LTC4281
+
+* Analysis Directive
+.tran 0 500m
+.end

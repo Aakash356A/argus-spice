@@ -1,0 +1,41 @@
+```
+* ADG711 Quad SPST Analog Switch - single channel pass-through
+* 2 V DC input -> 10 k load, 5 V single supply, switch commanded ON
+*
+* NOTE: ADG711 is the genuine vendor macromodel (no user-defined equivalent).
+.include ADG711.cir
+*
+* Subcircuit pin order follows the 16-lead ADG711 pinout:
+* 1:IN1 2:IN2 3:D2 4:S2 5:GND 6:VSS 7:S3 8:D3 9:IN3 10:IN4 11:D4 12:S4 13:VDD 14:D1 15:S1 16:VL
+*
+X1 CTRL1 CTRL2 D2 S2 0 VSS S3 D3 CTRL3 CTRL4 D4 S4 VDD OUT IN VL ADG711
+
+*--- Supplies ---
+VDD   VDD 0 DC 5
+VSS   VSS 0 DC 0
+VL    VL  0 DC 5
+
+*--- Digital control: ADG711 switches are ON for logic LOW ---
+VCTRL1 CTRL1 0 DC 0
+VCTRL2 CTRL2 0 DC 5
+VCTRL3 CTRL3 0 DC 5
+VCTRL4 CTRL4 0 DC 5
+
+*--- Signal path ---
+VIN   IN  0 DC 2
+RL    OUT 0 10k
+
+*--- Terminate unused channels (avoid floating nodes) ---
+RS2 S2 0 1G
+RD2 D2 0 1G
+RS3 S3 0 1G
+RD3 D3 0 1G
+RS4 S4 0 1G
+RD4 D4 0 1G
+
+*--- Analysis ---
+.tran 10u 2m 0 10u
+.meas TRAN vout_dc AVG V(OUT) FROM=1.5m TO=2m
+
+.end
+```

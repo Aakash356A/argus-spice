@@ -1,0 +1,12 @@
+* ADA4177 Inverting Amplifier
+V1 IN 0 SINE(0 50m 1k) AC 1
+V2 VCC 0 15
+V3 VEE 0 -15
+R1 IN IN_MINUS 1k
+R2 IN_MINUS OUT 10k
+X1 0 IN_MINUS VCC VEE OUT ADA4177
+
+.tran 5m
+.ac dec 10 100 10k
+.lib ADA4177.lib
+.end

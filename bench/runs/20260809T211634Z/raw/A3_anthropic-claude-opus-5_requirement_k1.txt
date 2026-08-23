@@ -1,0 +1,43 @@
+```
+* LT3094 Negative LDO: -7V input to -5.0V output, light resistive load
+* ---------------------------------------------------------------
+* Genuine Analog Devices LT3094 macromodel is instantiated below.
+* Pin order of the LT3094 subcircuit (LTspice lib/sub/LT3094.sub):
+*   IN  OUT  SET  ILIM  PGFB  PG  OUTS  GND
+* ---------------------------------------------------------------
+
+.include LT3094.sub
+
+* ---------------- Source (negative rail, short ramp for clean startup)
+V1 IN 0 PWL(0 0 200u -7)
+
+* ---------------- Input / output capacitors
+Cin  IN  0 10u
+Cout OUT 0 10u
+
+* ---------------- LT3094 negative low dropout regulator
+XU1 IN OUT SET ILIM PGFB PG OUTS 0 LT3094
+
+* SET pin programs the output: VOUT = -100uA * RSET = -100u * 50k = -5.0V
+RSET SET 0 50k
+
+* ILIM tied to IN for the internal (maximum) current limit
+RILIM ILIM IN 0.001
+
+* Output sense tied to the load point (Kelvin sense)
+ROUTS OUTS OUT 0.001
+
+* Power-good monitoring not used: disable feedback, keep PG node terminated
+RPGFB PGFB 0 1
+RPG   PG   0 1Meg
+
+* ---------------- Light resistive load: -5V / 1k = 5 mA
+RL OUT 0 1k
+
+* ---------------- Analysis
+.tran 0 5m 0 2u
+.meas TRAN vout_dc AVG V(OUT) FROM=4m TO=5m
+
+.options plotwinsize=0
+.end
+```

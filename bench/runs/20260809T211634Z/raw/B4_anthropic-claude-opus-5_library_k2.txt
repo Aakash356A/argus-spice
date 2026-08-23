@@ -1,0 +1,48 @@
+```
+* AD8551 Non-Inverting Amplifier, Gain = 100 V/V (40 dB), Single +5 V Supply
+* Input: 10 mV amplitude, 1 kHz sine, AC-coupled and biased at mid-supply
+*----------------------------------------------------------------------
+
+.lib ADI.lib
+
+*--- Supplies -----------------------------------------------------------
+VCC   VCC   0   DC 5
+
+*--- Signal source (primary input node = IN) ---------------------------
+VIN   IN    0   SINE(0 10m 1k 0 0 0) AC 1
+
+*--- Input AC coupling and mid-supply bias for the non-inverting input --
+CIN   IN    INP  10u
+RB1   VCC   INP  10k
+RB2   INP   0    10k
+
+*--- Mid-supply reference for the gain-setting network (low-Z at 1 kHz) -
+RD1   VCC   VREF 10k
+RD2   VREF  0    10k
+CD    VREF  0    100u
+
+*--- AD8551 op amp:  X<name> IN+ IN- V+ V- OUT AD8551 ------------------
+XU1   INP   INN  VCC  0   OUT  AD8551
+
+*--- Gain network: Av = 1 + RF/R1 = 1 + 99k/1k = 100 V/V (40 dB) -------
+R1    INN   VREF 1k
+RF    OUT   INN  99k
+
+*--- Load ---------------------------------------------------------------
+RL    OUT   0    10k
+
+*--- Analysis -----------------------------------------------------------
+.tran 0 10m 0 1u
+* .ac dec 100 1 10meg      ; alternative small-signal gain sweep
+
+*--- Measurements -------------------------------------------------------
+.meas TRAN vout_pp  PP V(OUT) FROM 5m TO 10m
+.meas TRAN vin_pp   PP V(IN)  FROM 5m TO 10m
+.meas TRAN gain_vv  PARAM vout_pp/vin_pp
+.meas TRAN gain_db  PARAM 20*log10(vout_pp/vin_pp)
+.meas TRAN vout_dc  AVG V(OUT) FROM 5m TO 10m
+
+.options plotwinsize=0 numdgt=7
+
+.end
+```

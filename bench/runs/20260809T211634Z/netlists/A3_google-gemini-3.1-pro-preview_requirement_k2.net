@@ -1,0 +1,10 @@
+* LT3094 Negative LDO -5V Output
+V1 0 IN 7
+C_IN 0 IN 10u
+C_OUT 0 OUT 10u
+R_SET SET 0 50k
+R_LOAD 0 OUT 1k
+R_PG PG 0 100k
+X1 IN 0 PG IN OUT SET 0 OUT OUT LT3094
+.tran 5m
+.end

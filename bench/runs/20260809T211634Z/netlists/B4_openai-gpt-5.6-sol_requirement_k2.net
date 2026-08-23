@@ -1,0 +1,16 @@
+* AD8551 non-inverting amplifier, gain = 100 V/V, single 5 V supply
+.include AD8551.cir
+
+VCC VCC 0 5
+VREF VREF 0 2.5
+VIN IN 0 SINE(2.5 10m 1k) AC 10m
+
+RFB OUT NFB 99k
+RG NFB VREF 1k
+
+XU1 IN NFB VCC 0 OUT AD8551
+
+.ac dec 100 10 100k
+.tran 0 10m 5m 2u
+
+.end

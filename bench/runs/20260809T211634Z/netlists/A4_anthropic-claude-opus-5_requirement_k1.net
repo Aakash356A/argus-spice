@@ -1,0 +1,45 @@
+* =====================================================================
+* ADR1399H -- Ultrahigh Precision 7.05 V Heated Buried Zener Reference
+* Basic shunt-mode reference: 15 V supply, series bias resistor,
+* output bypass capacitor and a light resistive load.
+* =====================================================================
+
+* ---- Genuine ADI device model (do not redefine) ----
+.include ADR1399H.cir
+
+* ---------------------------------------------------------------------
+* Supply
+* ---------------------------------------------------------------------
+V1 IN 0 DC 15
+
+* ---------------------------------------------------------------------
+* Zener bias resistor:  Iz = (15 V - 7.05 V) / 7.87k ~= 1.01 mA
+* (datasheet recommended operating current ~1 mA)
+* ---------------------------------------------------------------------
+R1 IN OUT 7.87k
+
+* ---------------------------------------------------------------------
+* ADR1399H  (TO-46 pin order: 1 = HEATER+, 2 = ANODE(-VZ),
+*                             3 = CATHODE(+VZ), 4 = HEATER-)
+* Heater is powered directly from the 15 V rail.
+* ---------------------------------------------------------------------
+X1 IN 0 OUT 0 ADR1399H
+
+* ---------------------------------------------------------------------
+* Output bypass capacitor and light load (~70 uA)
+* ---------------------------------------------------------------------
+C1 OUT 0 1u
+RL OUT 0 100k
+
+* ---------------------------------------------------------------------
+* Analysis: run long enough for the internal heater/oven and the
+* output network to settle, then average the settled output.
+* ---------------------------------------------------------------------
+.tran 0 2 1.5 100u
+
+.meas TRAN vout_dc AVG V(OUT) FROM=1.9 TO=2.0
+.meas TRAN iz_bias AVG I(R1) FROM=1.9 TO=2.0
+
+.options plotwinsize=0 reltol=1e-4 gmin=1e-13 method=gear
+
+.end

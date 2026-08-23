@@ -1,0 +1,15 @@
+* LTC6078 Unity-Gain Voltage Follower
+.lib LTC.lib
+
+V1 VDD 0 5V
+V2 IN 0 SINE(2.5 0.1 1k)
+
+X1 IN OUT VDD 0 OUT LTC6078
+R1 OUT 0 10k
+
+.tran 0 10m 5m 1u
+.meas TRAN vin_pp PP V(IN)
+.meas TRAN vout_pp PP V(OUT)
+.meas TRAN gain_db PARAM 20*log10(vout_pp/vin_pp)
+
+.end

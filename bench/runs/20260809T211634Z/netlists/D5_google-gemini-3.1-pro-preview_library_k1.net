@@ -1,0 +1,36 @@
+* Precision reference subsystem using ADR1399H and LTC6078
+* Load required libraries
+.lib ADR1399H.sub
+.lib LTC6078.sub
+
+* Primary Input Supply (15V)
+V1 IN 0 15
+
+* ADR1399H Zener Bias
+* 2.67k resistor from 15V provides ~3mA bias current to the Zener
+R1 IN Z_plus 2.67k
+* ADR1399H Connections: Zener+, Zener-, Heater+, Heater-
+* Heater is powered directly from the 15V input supply
+X1 Z_plus 0 IN 0 ADR1399H
+
+* Op-Amp Power Supplies
+* The LTC6078 is a 5V max precision op-amp. To safely buffer a 7.05V reference, 
+* we generate a floating 5V supply that perfectly tracks the Zener voltage.
+* This ensures the op-amp sees exactly 5V across its supply pins and operates 
+* with the input perfectly centered in its common-mode range.
+E1 VCC_OP_base 0 Z_plus 0 1
+V2 VCC_OP VCC_OP_base 2.5
+E2 VEE_OP_base 0 Z_plus 0 1
+V3 VEE_OP_base VEE_OP 2.5
+
+* LTC6078 Unity-Gain Buffer
+* Pin order: IN+, IN-, V+, V-, OUT
+X2 Z_plus OUT VCC_OP VEE_OP OUT LTC6078
+
+* Load (1 kOhm)
+Rload OUT 0 1k
+
+* Analysis Directive (Transient analysis to allow DC operating point to settle)
+.tran 10m
+
+.end

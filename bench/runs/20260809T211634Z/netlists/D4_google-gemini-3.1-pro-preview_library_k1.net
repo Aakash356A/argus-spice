@@ -1,0 +1,27 @@
+* LT6106 High-Side Current Sense Amplifier
+.lib LTC7.lib
+
+* 12V Power Supply (Primary Input)
+V1 IN 0 12
+
+* Load Current (100 mA)
+I1 LOAD 0 100m
+
+* Shunt Resistor (0.1 ohm)
+* Vsense = 100 mA * 0.1 ohm = 10 mV
+Rsense IN LOAD 0.1
+
+* Gain Setting Resistors
+* Gain = Rout / Rin = 10k / 100 = 100
+* Target Vout = Vsense * Gain = 10 mV * 100 = 1.0 V
+Rin IN IN_PLUS 100
+Rout OUT 0 10k
+
+* LT6106 Instance
+* Standard LTspice subcircuit pinout: IN+ IN- V+ V- OUT
+X1 IN_PLUS LOAD IN 0 OUT LT6106
+
+* Analysis Directive
+.tran 2m
+
+.end

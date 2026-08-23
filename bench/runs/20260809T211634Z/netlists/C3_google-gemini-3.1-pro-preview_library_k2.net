@@ -1,0 +1,63 @@
+* LT8710 Synchronous SEPIC Converter 24V to 12V
+* Primary input and output nodes
+V1 IN 0 24
+C1 IN 0 10u Rser=0.005
+C3 OUT 0 47u Rser=0.005
+Rload OUT 0 12
+
+* SEPIC Power Stage
+L1 IN SW1 33u Rser=0.05
+C2 SW1 SW2 4.7u Rser=0.005
+L2 SW2 0 33u Rser=0.05
+
+* Main Switch (N-Channel)
+M1 SW1 N_BG CS_node CS_node N_MOS
+Rsense CS_node 0 0.015
+
+* Synchronous Rectifier (P-Channel)
+M2 SW2 N_TG OUT OUT P_MOS
+
+* Controller LT8710 Support Components
+* EN/FBIN Divider (Enables the part, threshold ~1.3V)
+R_EN1 IN N_EN 100k
+R_EN2 N_EN 0 10k
+
+* Oscillator Frequency (113k programs ~300kHz)
+R_RT N_RT 0 113k
+
+* Soft-Start Capacitor
+C_SS N_SS 0 0.01u
+
+* Error Amplifier Compensation
+R_VC N_VC N_VC_C 10k
+C_VC N_VC_C 0 2.2n
+
+* Output Voltage Feedback Divider (Target 12V, VFB = 1.213V)
+R_FB1 OUT N_FBX 88.93k
+R_FB2 N_FBX 0 10k
+
+* INTVCC and VIN Bypassing
+C_INTVCC N_INTVCC 0 4.7u
+C_VIN IN 0 1u
+
+* Dummy resistors for unused open-drain/monitor pins
+R_NC1 NC_IMON 0 1G
+R_NC2 NC_GATE 0 1G
+R_NC3 NC_FLAG 0 1G
+
+* LT8710 Subcircuit Call
+* Pin Order:
+* 1:EN/FBIN  2:RT  3:SS  4:VC  5:FBX  6:IMON  7:ISN  8:ISP  9:CS  10:SYNC
+* 11:INTVCC  12:GATE  13:BG  14:TG  15:SWEN  16:MODE  17:GND  18:VIN  19:EXTVCC  20:FLAG  21:EP(GND)
+X1 N_EN N_RT N_SS N_VC N_FBX NC_IMON OUT OUT CS_node 0 N_INTVCC NC_GATE N_BG N_TG N_INTVCC N_INTVCC 0 IN 0 NC_FLAG 0 LT8710
+
+* MOSFET Models
+.model N_MOS VDMOS(Rg=1 Vto=2 Rd=10m Rs=10m Rb=10m Kp=50 Cgdmax=1n Cgdmin=0.5n Cgs=1n Cjo=1n Is=1p)
+.model P_MOS VDMOS(pchan Rg=1 Vto=-2 Rd=10m Rs=10m Rb=10m Kp=50 Cgdmax=1n Cgdmin=0.5n Cgs=1n Cjo=1n Is=1p)
+
+* Include the vendor macro-model
+.lib LT8710.sub
+
+* Simulation Directive
+.tran 0 10m
+.end

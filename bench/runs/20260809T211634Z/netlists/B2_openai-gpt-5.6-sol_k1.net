@@ -1,0 +1,21 @@
+VCC VCC 0 15
+VEE VEE 0 -15
+VIN IN 0 SINE(0 50m 1k) AC 50m
+
+RIN IN NINV 10k
+RFB OUT NINV 100k
+XU1 0 NINV VCC VEE OUT ADA4177
+
+.tran 0 5m 0 1u
+.ac dec 100 10 1Meg
+.meas AC gain_db FIND db(V(OUT)/V(IN)) AT=1k
+.options plotwinsize=0
+
+.subckt ADA4177 NP NM VCC VEE OUT
+EERR NERR 0 NP NM 1e6
+RDOM NERR NDOM 1k
+CDOM NDOM 0 45.47u
+BOUT OUT 0 V=limit(V(NDOM),V(VEE)+0.1,V(VCC)-0.1)
+.ends ADA4177
+
+.end

@@ -1,0 +1,12 @@
+* Precision 1.25 V voltage reference using LT6654
+V1 IN 0 5
+C1 IN 0 1u
+C2 OUT 0 1u
+R1 OUT 0 10k
+
+* LT6654AHS6-1.25 pinout (TSOT-23-6): 
+* 1:GND, 2:GND, 3:GND, 4:OUT, 5:GND, 6:IN
+X1 0 0 0 OUT 0 IN LT6654AHS6-1.25
+
+.tran 2m
+.end

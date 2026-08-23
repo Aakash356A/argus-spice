@@ -1,0 +1,49 @@
+* LTC4281 12 V hot-swap controller application
+VVIN IN 0 PWL(0 0 100u 0 110u 12)
+
+* Kelvin current-sense resistor; 25 mV controller limit gives 2.5 A
+RSENSE IN SENSE 10m
+
+* LTC4281 enable divider and fault-timer capacitor
+RON_TOP IN ON 100k
+RON_BOT ON 0 20k
+CTIMER TIMER 0 33n
+
+* Controller and external pass MOSFET
+XU1 IN SENSE GATE OUT TIMER ON LTC4281
+M_PASS SENSE GATE OUT OUT NHOT
+CGATE GATE 0 22n
+
+* Resistive 1 A load and bulk output capacitance
+COUT OUT 0 1000u
+RLOAD OUT 0 12
+
+.model NHOT NMOS(Level=1 VTO=3 KP=50 LAMBDA=1m RD=5m RS=5m)
+
+* Functional LTC4281 hot-swap controller model
+* Pins: VIN VSENSE GATE VOUT TIMER ON
+.subckt LTC4281 VIN VSENSE GATE VOUT TIMER ON
+
+* 10 uA fault-timer charging current and reset discharge
+B_TIMER 0 TIMER I=if(V(ON)>1.2,10u,-min(V(TIMER)/1k,1m))
+B_TCLAMP TIMER 0 I=if(V(TIMER)>2,(V(TIMER)-2)/10,0)
+
+* 20 uA gate charge pump enabled after TIMER reaches 1.2 V
+B_GATE_CHARGE 0 GATE I=if(V(TIMER)>1.2,20u,0)
+B_GATE_OFF GATE 0 I=if(V(TIMER)<1.2,V(GATE)/100,0)
+
+* 25 mV current-limit loop
+B_CURRENT_LIMIT GATE 0 I=if(V(VIN)-V(VSENSE)>25m, \
++ min(100m,5*(V(VIN)-V(VSENSE)-25m)),0)
+
+* Gate-to-source overvoltage clamp
+D_GATE_CLAMP VOUT GATE DZG
+.model DZG D(IS=1n RS=5 BV=12 IBV=10u)
+
+R_VOUT_SENSE VOUT 0 1G
+.ends LTC4281
+
+.options plotwinsize=0
+.tran 0 60m 0 10u startup
+.meas tran vout_dc AVG V(OUT) FROM=50m TO=60m
+.end

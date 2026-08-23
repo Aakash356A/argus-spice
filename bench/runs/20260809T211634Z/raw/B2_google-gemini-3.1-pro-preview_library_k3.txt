@@ -1,0 +1,22 @@
+* ADA4177 Inverting Amplifier
+.lib ADA4177.lib
+
+* Power Supplies
+VCC VCC 0 15
+VEE VEE 0 -15
+
+* Input Signal: 50 mV amplitude sine at 1 kHz, AC amplitude 1 for AC sweep
+Vin IN 0 SINE(0 50m 1k) AC 1
+
+* Amplifier Network (Gain = -Rf/Rin = -10)
+Rin IN IN_MINUS 10k
+Rf IN_MINUS OUT 100k
+
+* Op-Amp Instantiation (Non-Inverting, Inverting, V+, V-, Output)
+X1 0 IN_MINUS VCC VEE OUT ADA4177
+
+* Analysis Directives
+.tran 0 5m
+.ac dec 50 10 100k
+
+.end

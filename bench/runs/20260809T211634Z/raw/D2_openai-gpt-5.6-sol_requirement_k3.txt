@@ -1,0 +1,17 @@
+* ADG711 analog switch: 2 V DC input, 5 V supply, 10 kOhm load
+.include "ADG711.cir"
+
+VDD     VDD   0     5
+VIN     IN    0     2
+VCTRL   CTRL  0     5
+
+* ADG711 pin order: IN(control), D, S, VDD, GND
+XU1     CTRL  OUT   IN   VDD  0  ADG711
+
+RLOAD   OUT   0     10k
+CDEC    VDD   0     100n
+
+.tran 0 1m 0 1u
+.meas tran vout_dc AVG V(OUT) FROM=0.9m TO=1m
+
+.end

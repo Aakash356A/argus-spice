@@ -1,0 +1,36 @@
+```
+* ADA4177 Inverting Amplifier, Gain = -10 V/V (20 dB)
+* Vin = 50 mV amplitude sine @ 1 kHz, supplies = +/-15 V
+*------------------------------------------------------------
+
+* ---- Input signal source ----
+V1 IN 0 SINE(0 50m 1k) AC 1
+
+* ---- Gain-setting network: Av = -R2/R1 = -10k/1k = -10 ----
+R1 IN SUMJ 1k
+R2 SUMJ OUT 10k
+
+* ---- Amplifier (genuine ADI model, pin order: +IN -IN V+ V- OUT) ----
+XU1 0 SUMJ VCC VEE OUT ADA4177
+
+* ---- Supplies ----
+VCC VCC 0 DC 15
+VEE VEE 0 DC -15
+
+* ---- Light load ----
+RL OUT 0 10k
+
+* ---- Model library (ADI ADA4177 SPICE macromodel) ----
+.include ADA4177.cir
+
+* ---- Analysis: 5 ms transient covers 5 cycles of 1 kHz ----
+.tran 0 5m 0 1u
+
+* ---- Measurements ----
+.meas TRAN vinpp PP V(IN) FROM=1m TO=5m
+.meas TRAN voutpp PP V(OUT) FROM=1m TO=5m
+.meas TRAN gain_db PARAM 20*LOG10(voutpp/vinpp)
+
+.options plotwinsize=0
+.end
+```

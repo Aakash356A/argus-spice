@@ -1,0 +1,24 @@
+* LT3045-1 ULTRALOW NOISE LDO REGULATOR STAGE
+* 5V INPUT -> 3.3V OUTPUT @ 100mA RESISTIVE LOAD
+*******************************************************************
+* MAIN CIRCUIT
+*******************************************************************
+VIN   IN  0   DC 5
+CIN   IN  0   10u                  ; input capacitor
+XU1   IN OUT SET ILIM PG IN 0 LT3045-1
+RSET  SET 0   33k                  ; VOUT = 100uA * RSET = 3.3V
+CSET  SET 0   10n                  ; reference noise filter / soft-start
+RILIM ILIM 0  20k                  ; programmable current limit resistor
+COUT  OUT 0   10u                  ; output capacitor
+RLOAD OUT 0   33                   ; 3.3V / 33ohm = 100mA load
+
+*******************************************************************
+* BEHAVIORAL MODEL OF LT3045-1 (functional: reference, error amp,
+* pass element, dropout limit, enable, quiescent current)
+* PINS: IN OUT SET ILIM PG EN GND
+*******************************************************************
+.subckt LT3045-1 IN OUT SET ILIM PG EN GND
+* 100uA precision reference current sourced out of the SET pin
+ISET   IN SET 100u
+* error amplifier (gain 1000, output clamped between GND and IN)
+BAMP   A GND V = if(V(EN,GND)>1.0

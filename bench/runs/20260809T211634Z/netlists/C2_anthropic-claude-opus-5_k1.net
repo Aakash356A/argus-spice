@@ -1,0 +1,99 @@
+* ADG5248F 8:1 Analog Multiplexer -- Channel 1 to COM (D), +/-15 V supplies
+* Behavioral macromodel (Ron ~ 160 ohm, TTL/CMOS-compatible logic thresholds)
+*
+* ---------------- Signal source (1 kHz, 500 mV amplitude sine) --------------
+V1  IN 0 SINE(0 0.5 1k)
+*
+* ---------------- Supplies --------------------------------------------------
+VDD VDD 0 DC  15
+VSS VSS 0 DC -15
+VL  VL  0 DC  5          ; logic supply rail for address / enable drive
+*
+* ---------------- Address / Enable: select channel S1 (A2 A1 A0 = 000, EN=1)-
+VA0 A0 0 DC 0
+VA1 A1 0 DC 0
+VA2 A2 0 DC 0
+VEN EN 0 DC 5
+*
+* ---------------- Multiplexer instance -------------------------------------
+XMUX IN S2 S3 S4 S5 S6 S7 S8 OUT A0 A1 A2 EN VDD VSS ADG5248F
+*
+* Unused source channels terminated to ground
+R2 S2 0 1k
+R3 S3 0 1k
+R4 S4 0 1k
+R5 S5 0 1k
+R6 S6 0 1k
+R7 S7 0 1k
+R8 S8 0 1k
+*
+* ---------------- Output load (high-Z, e.g. ADC/buffer input) --------------
+RL OUT 0 1Meg
+CL OUT 0 10p
+*
+* ===========================================================================
+.subckt ADG5248F S1 S2 S3 S4 S5 S6 S7 S8 D A0 A1 A2 EN VDD VSS
+*
+* --- digital input conditioning (2.0 V threshold) ---
+Ba0 a0d 0 V = if(V(A0) > 2.0, 1, 0)
+Ba1 a1d 0 V = if(V(A1) > 2.0, 1, 0)
+Ba2 a2d 0 V = if(V(A2) > 2.0, 1, 0)
+Ben end 0 V = if(V(EN) > 2.0, 1, 0)
+Rd1 a0d 0 1G
+Rd2 a1d 0 1G
+Rd3 a2d 0 1G
+Rd4 end 0 1G
+*
+* --- 3-to-8 address decode (active-high channel control) ---
+Bc1 c1 0 V = V(end)*(1-V(a0d))*(1-V(a1d))*(1-V(a2d))
+Bc2 c2 0 V = V(end)*(  V(a0d))*(1-V(a1d))*(1-V(a2d))
+Bc3 c3 0 V = V(end)*(1-V(a0d))*(  V(a1d))*(1-V(a2d))
+Bc4 c4 0 V = V(end)*(  V(a0d))*(  V(a1d))*(1-V(a2d))
+Bc5 c5 0 V = V(end)*(1-V(a0d))*(1-V(a1d))*(  V(a2d))
+Bc6 c6 0 V = V(end)*(  V(a0d))*(1-V(a1d))*(  V(a2d))
+Bc7 c7 0 V = V(end)*(1-V(a0d))*(  V(a1d))*(  V(a2d))
+Bc8 c8 0 V = V(end)*(  V(a0d))*(  V(a1d))*(  V(a2d))
+Rc1 c1 0 1G
+Rc2 c2 0 1G
+Rc3 c3 0 1G
+Rc4 c4 0 1G
+Rc5 c5 0 1G
+Rc6 c6 0 1G
+Rc7 c7 0 1G
+Rc8 c8 0 1G
+*
+* --- channel switches (series Ron incl. fault-protection FET) ---
+SW1 S1 D c1 0 SWMOD
+SW2 S2 D c2 0 SWMOD
+SW3 S3 D c3 0 SWMOD
+SW4 S4 D c4 0 SWMOD
+SW5 S5 D c5 0 SWMOD
+SW6 S6 D c6 0 SWMOD
+SW7 S7 D c7 0 SWMOD
+SW8 S8 D c8 0 SWMOD
+.model SWMOD SW(Ron=160 Roff=1T Vt=0.5 Vh=0)
+*
+* --- parasitic capacitances ---
+Cs1 S1 0 5p
+Cs2 S2 0 5p
+Cs3 S3 0 5p
+Cs4 S4 0 5p
+Cs5 S5 0 5p
+Cs6 S6 0 5p
+Cs7 S7 0 5p
+Cs8 S8 0 5p
+Cd  D  0 20p
+*
+* --- supply pins referenced (no loading) ---
+Rvdd VDD 0 1G
+Rvss VSS 0 1G
+.ends ADG5248F
+* ===========================================================================
+*
+.tran 0 5m 0 1u
+*
+.meas TRAN vip PP V(IN)  FROM 1m TO 5m
+.meas TRAN vop PP V(OUT) FROM 1m TO 5m
+.meas TRAN gain_db PARAM 20*log10(vop/vip)
+*
+.end

@@ -1,0 +1,94 @@
+* ADG5248F 8:1 Analog Multiplexer -- Channel 1 to Common Output (D)
+* Behavioral (macro) model: Ron switch matrix + address decoder, +/-15 V supplies
+* 1 kHz / 500 mV sine applied to S1 (node IN), output taken at D (node OUT)
+*------------------------------------------------------------------------------
+
+*** Supplies ***
+VDD   VDD   0   DC  15
+VSS   VSS   0   DC -15
+
+*** Logic / channel-select lines: A2 A1 A0 = 0 0 0, EN = high  -> S1 selected ***
+VEN   EN    0   DC 5
+VA0   A0    0   DC 0
+VA1   A1    0   DC 0
+VA2   A2    0   DC 0
+
+*** Signal source on channel 1 ***
+VIN   IN    0   SINE(0 0.5 1k 0 0 0)  AC 1
+
+*** Multiplexer ***
+XMUX  IN S2 S3 S4 S5 S6 S7 S8 OUT A0 A1 A2 EN VDD VSS ADG5248F
+
+*** Unused channel inputs tied to ground ***
+R2 S2 0 100
+R3 S3 0 100
+R4 S4 0 100
+R5 S5 0 100
+R6 S6 0 100
+R7 S7 0 100
+R8 S8 0 100
+
+*** Output load (high impedance buffer input) ***
+RL  OUT 0 100k
+CL  OUT 0 10p
+
+*------------------------------------------------------------------------------
+* Behavioral model of ADG5248F
+*   - Ron ~ 160 ohm (typ, +/-15 V dual supply)
+*   - Roff = 1 Gohm, off/on capacitance approximated
+*   - 3-bit binary decoder with active-high EN
+*------------------------------------------------------------------------------
+.subckt ADG5248F S1 S2 S3 S4 S5 S6 S7 S8 D A0 A1 A2 EN VDD VSS
+
+* --- address decoder (logic threshold ~1.4 V, output 0/5 V) ---
+BC1 C1 0 V = 5*(V(EN)>1.4)*(V(A0)<1.4)*(V(A1)<1.4)*(V(A2)<1.4)
+BC2 C2 0 V = 5*(V(EN)>1.4)*(V(A0)>1.4)*(V(A1)<1.4)*(V(A2)<1.4)
+BC3 C3 0 V = 5*(V(EN)>1.4)*(V(A0)<1.4)*(V(A1)>1.4)*(V(A2)<1.4)
+BC4 C4 0 V = 5*(V(EN)>1.4)*(V(A0)>1.4)*(V(A1)>1.4)*(V(A2)<1.4)
+BC5 C5 0 V = 5*(V(EN)>1.4)*(V(A0)<1.4)*(V(A1)<1.4)*(V(A2)>1.4)
+BC6 C6 0 V = 5*(V(EN)>1.4)*(V(A0)>1.4)*(V(A1)<1.4)*(V(A2)>1.4)
+BC7 C7 0 V = 5*(V(EN)>1.4)*(V(A0)<1.4)*(V(A1)>1.4)*(V(A2)>1.4)
+BC8 C8 0 V = 5*(V(EN)>1.4)*(V(A0)>1.4)*(V(A1)>1.4)*(V(A2)>1.4)
+
+* --- switch matrix ---
+SW1 S1 D C1 0 SWMOD
+SW2 S2 D C2 0 SWMOD
+SW3 S3 D C3 0 SWMOD
+SW4 S4 D C4 0 SWMOD
+SW5 S5 D C5 0 SWMOD
+SW6 S6 D C6 0 SWMOD
+SW7 S7 D C7 0 SWMOD
+SW8 S8 D C8 0 SWMOD
+.model SWMOD SW(Ron=160 Roff=1G Vt=2.5 Vh=0.2)
+
+* --- parasitics ---
+CS1 S1 0 4p
+CS2 S2 0 4p
+CS3 S3 0 4p
+CS4 S4 0 4p
+CS5 S5 0 4p
+CS6 S6 0 4p
+CS7 S7 0 4p
+CS8 S8 0 4p
+CD  D  0 12p
+
+* --- supply pin loading / fault-protection clamp to rails ---
+RVDD VDD 0 1G
+RVSS VSS 0 1G
+DCLP D  VDD DCLAMP
+DCLN VSS D  DCLAMP
+.model DCLAMP D(Is=1e-15 N=1 Rs=10 Cjo=1p)
+
+.ends ADG5248F
+
+*------------------------------------------------------------------------------
+*** Analysis ***
+.tran 0 5m 0 1u
+
+*** Gain measurement (target 0 dB) ***
+.meas TRAN vinpp  PP V(IN)  FROM 1m TO 5m
+.meas TRAN voutpp PP V(OUT) FROM 1m TO 5m
+.meas TRAN gain_db PARAM 20*log10(voutpp/vinpp)
+
+.options plotwinsize=0
+.end

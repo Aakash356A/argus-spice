@@ -1,0 +1,23 @@
+MAX44245 Non-Inverting Amplifier, Gain = 20 V/V
+.subckt MAX44245 INP INN VP VN OUT
+EAMP OUT 0 INP INN 1e6
+RINP INP 0 1T
+RINN INN 0 1T
+RVP VP 0 1T
+RVN VN 0 1T
+.ends MAX44245
+
+VCC VCC 0 15
+VEE VEE 0 -15
+VIN IN 0 SINE(0 50m 1k) AC 50m
+
+RG FB 0 1k
+RF OUT FB 19k
+XU1 IN FB VCC VEE OUT MAX44245
+
+.ac lin 1 1k 1k
+.tran 0 5m 0 1u
+.meas AC gain_db FIND db(V(OUT)/V(IN)) AT=1k
+
+.options plotwinsize=0
+.end

@@ -1,0 +1,31 @@
+* LT1720 Comparator: 5V supply, 1.65V resistor-divider threshold,
+* pull-up resistor on the output, input held above the threshold.
+* Output is expected to sit LOW (~0 V) because IN drives the inverting input.
+
+*-------------------- Supplies --------------------
+VCC   VCC 0  DC 5
+*-------------------- Input signal ----------------
+VIN   IN  0  DC 3.0          ; 3.0 V  >  1.65 V threshold
+
+*-------------------- 1.65 V threshold divider ----
+R1    VCC REF 33.5k
+R2    REF 0   16.5k
+CBYP  REF 0   100n           ; reference bypass
+
+*-------------------- Comparator ------------------
+* Pin order: +IN  -IN  V+  V-  OUT
+XU1   REF IN VCC 0 OUT LT1720
+
+*-------------------- Output pull-up / load -------
+RPU   VCC OUT 1k
+CL    OUT 0   10p
+
+*-------------------- Models ----------------------
+.lib LTC.lib
+
+*-------------------- Analysis --------------------
+.tran 0 500u 0 100n
+.meas TRAN vout_dc AVG V(OUT) FROM=400u TO=500u
+.meas TRAN vthresh AVG V(REF) FROM=400u TO=500u
+
+.end

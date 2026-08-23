@@ -1,0 +1,32 @@
+* ADR1399H Precision Voltage Reference Circuit
+* 15V Supply to 7.05V Shunt Reference
+
+* Input Supply
+V1 IN 0 15
+
+* Bias Resistor for the Zener (Targeting ~3mA Zener current)
+* (15V - 7.05V) / 2.67kOhm ≈ 2.98mA
+R1 IN OUT 2.67k
+
+* ADR1399H Subcircuit Instantiation
+* Standard pinout for LM399/ADR1399 models: Zener+ Zener- Heater+ Heater-
+X1 OUT 0 IN 0 ADR1399H
+
+* Output Bypass Capacitor
+C1 OUT 0 1u
+
+* Light Load (100kOhm draws ~70.5µA)
+Rload OUT 0 100k
+
+* Library Include
+.lib ADR1399H.sub
+
+* Analysis Directive
+* Run a transient analysis long enough to settle any thermal model dynamics
+.tran 100m
+
+* Measurement Directive
+* Measure the settled DC output voltage
+.measure tran vout_dc avg V(OUT) from 50m to 100m
+
+.end

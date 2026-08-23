@@ -1,0 +1,20 @@
+* ADR1399H Precision Voltage Reference
+V1 IN 0 15
+R1 IN OUT 2.4k
+
+* ADR1399 Subcircuit: Cathode, Anode, Heater+, Heater-
+X1 OUT 0 IN 0 ADR1399
+
+* Output bypass capacitor and light load
+C1 OUT 0 10u
+Rload OUT 0 100k
+
+* The ADR1399 model includes thermal warm-up characteristics.
+* We run the simulation for 6 seconds and only save the last 1 second 
+* to ensure the heater has reached steady-state thermal equilibrium.
+.tran 0 6 5
+
+* Measure the settled DC output voltage
+.meas tran vout_dc AVG V(OUT)
+
+.end

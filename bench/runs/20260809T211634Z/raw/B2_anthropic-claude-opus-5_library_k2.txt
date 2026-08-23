@@ -1,0 +1,38 @@
+```
+* ADA4177 Inverting Amplifier, Gain = -10 V/V, +/-15 V supplies
+* Vin = 50 mV amplitude sine @ 1 kHz
+
+.lib ADA4177.lib
+
+*** Supplies ***
+VCC VP 0 DC 15
+VEE VN 0 DC -15
+
+*** Input source: 50 mV amplitude, 1 kHz sine (AC=1 for optional .ac run) ***
+VIN IN 0 SINE(0 50m 1k 0 0 0) AC 1
+
+*** Gain-setting resistors: Av = -Rf/Rin = -10k/1k = -10 ***
+RIN  IN   SUMJ 1k
+RF   SUMJ OUT  10k
+
+*** Non-inverting input biased to ground through balance resistor ***
+RB   0    NINV 909
+
+*** Op amp: X<name> +IN -IN V+ V- OUT ADA4177 ***
+XU1 NINV SUMJ VP VN OUT ADA4177
+
+*** Light load ***
+RL OUT 0 10k
+
+*** Analysis: 20 cycles of 1 kHz, fine step ***
+.tran 0 20m 0 1u
+
+*** Measurements: output/input peak-to-peak and closed-loop gain in dB ***
+.meas TRAN vin_pp  PP V(IN)  FROM 5m TO 20m
+.meas TRAN vout_pp PP V(OUT) FROM 5m TO 20m
+.meas TRAN gain    PARAM vout_pp/vin_pp
+.meas TRAN gain_db PARAM 20*log10(vout_pp/vin_pp)
+
+.options plotwinsize=0
+.end
+```

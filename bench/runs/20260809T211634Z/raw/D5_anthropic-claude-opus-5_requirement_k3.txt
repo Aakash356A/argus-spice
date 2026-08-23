@@ -1,0 +1,44 @@
+```
+* Precision 7.05V Reference Subsystem
+* ADR1399H buried-Zener reference (heated) + LTC6078 unity-gain buffer
+* Primary input node: IN     Primary output node: OUT
+*------------------------------------------------------------------
+
+*** Supply ***
+V1 IN 0 DC 15
+
+*** Reference bias network ***
+* Zener operating current ~ (15 - 7.05) / 3.9k  ~ 2 mA
+R1 IN VZ 3.9k
+
+*** Genuine ADR1399H reference macromodel ***
+* Node order: CATHODE  ANODE  HEATER+  HEATER-
+XREF VZ 0 IN 0 ADR1399H
+
+* Light noise filtering on the reference node (high-Z, buffer follows)
+CF VZ 0 1u
+
+*** LTC6078 unity-gain buffer (low impedance VREF output) ***
+* Node order: IN+  IN-  V+  V-  OUT
+XU1 VZ OUT IN 0 OUT LTC6078
+RISO OUT OUT 0.001
+
+*** 1 k load on the buffered reference output ***
+RL OUT 0 1k
+
+*------------------------------------------------------------------
+*** Models / libraries ***
+.include ADR1399H.lib
+.lib LTC6078.lib
+
+*** Analysis ***
+.options plotwinsize=0 numdgt=7 gmin=1e-12 abstol=1e-12 reltol=1e-4
+.tran 0 100m 0 10u startup
+
+*** Measurement of settled DC output ***
+.meas TRAN vout_dc AVG V(OUT) FROM 90m TO 100m
+.meas TRAN vref_raw AVG V(VZ) FROM 90m TO 100m
+.meas TRAN iload AVG I(RL) FROM 90m TO 100m
+
+.end
+```

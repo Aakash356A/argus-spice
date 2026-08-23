@@ -1,0 +1,25 @@
+* LTC6252 High-Speed Amplifier Gain of 2
+.lib LTC6252.lib
+
+* Power Supplies
+VCC VCC 0 5
+VEE VEE 0 -5
+
+* Input Signal: 1V amplitude sine at 10 MHz, AC 1 for AC analysis
+V1 IN 0 SINE(0 1 10Meg) AC 1
+
+* Feedback Network for Non-Inverting Gain of +2 V/V
+R1 OUT VN 499
+R2 VN 0 499
+
+* Amplifier Instantiation (Standard 5-pin opamp configuration)
+X1 IN VN VCC VEE OUT LTC6252
+
+* Analysis Directives
+.tran 0 1u
+.ac dec 10 1Meg 100Meg
+
+* Measurement for exact gain in dB at 10 MHz
+.meas ac gain_db FIND 20*log10(mag(V(OUT)/V(IN))) AT 10Meg
+
+.end

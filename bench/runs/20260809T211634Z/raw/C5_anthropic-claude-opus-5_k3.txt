@@ -1,0 +1,64 @@
+```
+* ============================================================
+* LTC4281 12V Hot-Swap Controller - application-level netlist
+* Behavioral model of the LTC4281 gate amplifier / charge pump
+* driving an external N-channel pass FET, with sense resistor,
+* dV/dt gate timing cap, UV/OV divider and fault timer cap.
+* Primary nodes: IN (12V rail input)  OUT (load side)
+* ============================================================
+
+* ---------------- 12 V supply / hot plug event ---------------
+VSUP IN 0 PWL(0 0 1m 12 200m 12)
+CIN  IN 0 10u
+RIN  IN 0 1Meg
+
+* ---------------- Current sense resistor (5 mOhm) ------------
+RSENSE IN SRC 5m
+
+* ---------------- External N-channel pass MOSFET -------------
+M1 SRC GATE OUT NMOSPWR
+.model NMOSPWR VDMOS(nchan Vto=2.7 Kp=40 Lambda=0.01
++ Rd=4m Rs=1m Rg=2 Cgs=2n Cgd=200p Cjo=800p Is=1e-12)
+
+* ---------------- LTC4281 GATE pin network -------------------
+* CGATE sets the inrush dV/dt:  dV/dt = Igate / Cgate
+*   20uA / 22nF = 0.91 V/ms  ->  Iinrush = Cout*dV/dt = 91mA
+CGATE GATE 0 22n
+RGS   GATE OUT 1Meg
+
+* Internal 20uA gate charge pump, enabled by UV comparator.
+* Sinks current (turns FET off) while the rail is below UVLO.
+BGATE 0 GATE I=if( (V(UV)>1.2) & (V(OV)<1.5), 20u, -100u )
+
+* Charge-pump clamp:  Vgate(max) = VIN + 10V
+BCP CP 0 V=V(IN)+10
+DCP GATE CP DCLAMP
+* Gate low clamp (prevents unbounded negative gate during OFF)
+DGL 0 GATE DCLAMP
+.model DCLAMP D(Is=1e-14 N=1 Rs=1 Cjo=1p)
+
+* ---------------- UV / OV programming divider ---------------
+* UV trip: VIN*13k/113k = 1.2V  ->  turn-on near 10.4 V
+RUV1 IN UV 100k
+RUV2 UV 0  13k
+* OV trip network (1.2V threshold at ~15.5V input)
+ROV1 IN OV 100k
+ROV2 OV 0  8.45k
+
+* ---------------- Fault (circuit breaker) timer cap ---------
+CTMR TMR 0 100n
+RTMR TMR 0 10Meg
+
+* ---------------- Load side ---------------------------------
+COUT  OUT 0 100u
+RLOAD OUT 0 6
+
+* ---------------- Analysis ----------------------------------
+.tran 0 60m 0 10u
+.meas TRAN vout_dc AVG V(OUT) FROM 55m TO 60m
+.meas TRAN iinrush MAX I(COUT) FROM 0 TO 40m
+.meas TRAN vgate_final AVG V(GATE) FROM 55m TO 60m
+
+.options plotwinsize=0 reltol=1e-4
+.end
+```

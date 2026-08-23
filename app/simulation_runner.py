@@ -90,11 +90,23 @@ def find_model(fullname):
 
 def replace_lib_paths(net_text):
     """
-    Replace each .lib line's path with absolute path to the found file.
-    Handles quoted and unquoted paths.
+    Replace each .lib/.inc/.include line's path with the absolute path to the
+    found file. Handles quoted and unquoted paths.
+
+    .lib and .inc/.include are different SPICE directives with different file
+    resolution: .lib triggers a library-directory search, while .include
+    requires a path resolvable from the netlist's own location. A generator
+    that names the correct vendor file but writes `.include` instead of `.lib`
+    was, before this fix, indistinguishable from one that never found the file
+    at all -- both produced "Could not open include file" and were recorded as
+    NO_SIM, which conflates a directive-syntax slip with a failure to name the
+    real part. Both directives are rewritten here for the same reason
+    ensure_title_line() lives at this chokepoint: every simulation path funnels
+    through this function, so fixing it once fixes it everywhere.
     """
-    # Matches: .lib <path>   where <path> may be "quoted path" or bare
-    pattern = re.compile(r'(^\s*\.lib\s+)(?P<path>"[^"]+"|\S+)', re.IGNORECASE | re.MULTILINE)
+    # Matches: .lib/.inc/.include <path>   where <path> may be "quoted" or bare
+    pattern = re.compile(r'(^\s*\.(?:lib|inc(?:lude)?)\s+)(?P<path>"[^"]+"|\S+)',
+                          re.IGNORECASE | re.MULTILINE)
 
     def repl(m):
         prefix = m.group(1)
@@ -109,6 +121,26 @@ def replace_lib_paths(net_text):
         return m.group(0)
 
     return pattern.sub(repl, net_text)
+
+
+def ensure_title_line(net_text: str) -> str:
+    """Guarantee the netlist's first physical line is a title/comment.
+
+    SPICE convention is unconditional: line 1 of every netlist is the title
+    and is never parsed as a circuit element or directive, whatever it
+    contains. A netlist written without an explicit title then loses its
+    first real line silently -- a swallowed voltage source reads back as an
+    unpowered, all-zero output; a swallowed `.lib` line reads back as an
+    unresolved subcircuit -- while the simulator still reports success, since
+    a missing title is not an error. Insert a synthetic one only when the
+    first line isn't already a comment, so a netlist that already leads with
+    one is untouched.
+    """
+    stripped = net_text.lstrip("\n")
+    first_line = stripped.split("\n", 1)[0].strip()
+    if first_line.startswith("*"):
+        return net_text
+    return "* (auto-inserted title; SPICE discards line 1 unconditionally)\n" + net_text
 
 
 
@@ -330,10 +362,15 @@ class SimulationRunner:
         try:
             logger.debug(f"Reading netlist {netlist_path} for .lib rewrite...")
             original_text = netlist_path.read_text(encoding="utf-8", errors="ignore")
-            
+
             # Call your new function
-            fixed_text = replace_lib_paths(original_text) 
-            
+            fixed_text = replace_lib_paths(original_text)
+            # Every caller writes netlist text that may or may not carry an
+            # explicit title comment; guarantee one here, once, rather than at
+            # each call site (sim_harness.run_spice, the MCP tools' list_traces,
+            # and anything future that hands this function a Path).
+            fixed_text = ensure_title_line(fixed_text)
+
             if original_text != fixed_text:
                 netlist_path.write_text(fixed_text, encoding="utf-8")
                 logger.info(".lib paths rewritten with absolute paths.")

@@ -1,0 +1,33 @@
+```
+* LT1720 Comparator: 1.65 V threshold from resistor divider, pull-up output
+* Input held above threshold -> output LOW (~0 V)
+
+.include LT1720.sub
+
+* ---------------- Supply ----------------
+VCC  VCC  0  DC 5
+
+* ------------ Threshold divider (5 V -> 1.65 V) ------------
+R1   VCC  THR  6.7k
+R2   THR  0    3.3k
+CBYP THR  0    100n
+
+* ------------ Input signal (held above the 1.65 V threshold) ------------
+VIN  IN   0   DC 3.0
+
+* ------------ Comparator ------------
+* LT1720 pin order: +IN  -IN  V+  V-  OUT
+* IN drives the inverting input so that IN > THR forces OUT low.
+XU1  THR  IN  VCC  0  OUT  LT1720
+
+* ------------ Open-drain style pull-up on the output ------------
+RPU  VCC  OUT  1k
+CL   OUT  0    10p
+
+* ------------ Analysis ------------
+.tran 10u 2m 0 1u
+.meas TRAN vout_dc AVG V(OUT) FROM=1.5m TO=2m
+
+.backanno
+.end
+```

@@ -1,0 +1,61 @@
+* LT6654-1.25 Precision 1.25V Series Voltage Reference from 5V Supply
+* ---------------------------------------------------------------
+* Primary input node : IN
+* Primary output node: OUT
+* ---------------------------------------------------------------
+
+* ---------- Supply ----------
+VIN   IN 0 DC 5
+RSRC  IN INF 0.1          ; small source/trace resistance
+
+* ---------- Input bypass ----------
+CIN   INF 0 1u
+CIN2  INF 0 0.1u
+
+* ---------- Reference device ----------
+XU1   INF 0 OUT LT6654-1.25
+
+* ---------- Output bypass / load ----------
+COUT  OUT 0 1u
+CBYP  OUT 0 0.1u
+RLOAD OUT 0 10k
+
+* ===============================================================
+* Behavioral macromodel of the LT6654-1.25
+*   Pins: VIN  GND  VOUT
+*   Vout = 1.250 V, dropout-limited, ~0.03 ohm closed-loop Zout,
+*   ~350 uA quiescent current, finite bandwidth / soft turn-on.
+* ===============================================================
+.subckt LT6654-1.25 VIN GND VOUT
+
+* Ideal bandgap target, clamped by available headroom (dropout ~ 0.4V)
+BTGT  NTGT GND V = min(1.25, max(0, V(VIN,GND)-0.4))
+
+* Bandwidth limit / turn-on time constant of the internal amplifier
+RBW   NTGT NFLT 10k
+CBW   NFLT GND 2n
+
+* Output buffer with finite output impedance and current limit
+BBUF  NBUF GND V = V(NFLT,GND)
+RO    NBUF VOUT 0.03
+
+* Quiescent supply current
+IQ    VIN GND 350u
+
+* Supply-referred current return (load current comes from VIN)
+FLD   VIN GND VALUE={I(RO)}
+
+.ends LT6654-1.25
+
+* ---------------------------------------------------------------
+* Analysis: transient run so the settled DC output can be measured
+* ---------------------------------------------------------------
+.tran 0 5m 0 1u
+
+.meas TRAN vout_dc AVG V(OUT) FROM 4m TO 5m
+.meas TRAN vout_final FIND V(OUT) AT 5m
+.meas TRAN iin_avg AVG I(VIN) FROM 4m TO 5m
+
+.options plotwinsize=0 numdgt=7
+
+.end

@@ -1,0 +1,40 @@
+* AD8237 Zero-Drift Instrumentation Amplifier -- Gain = 10 V/V (20 dB)
+* Single 5 V supply, REF at mid-supply (2.5 V)
+* 20 mV amplitude differential sine at 1 kHz applied to IN
+*
+* ---- Genuine ADI model for the AD8237 (do not redefine) ----
+.include AD8237.cir
+*
+* AD8237 subcircuit node order:
+*   1 = +IN   2 = -IN   3 = +VS   4 = -VS   5 = REF   6 = FB   7 = OUT
+*
+X1 IN INM VCC 0 REF FB OUT AD8237
+*
+* ---- Supplies ----
+VCC   VCC 0 DC 5
+VREF  REF 0 DC 2.5          ; mid-supply reference (low-impedance source)
+*
+* ---- Input drive: 20 mV amplitude differential sine, 1 kHz, CM = 2.5 V ----
+VIN   IN  0 SINE(2.5 20m 1k) AC 1
+VINM  INM 0 DC 2.5
+*
+* ---- Gain-setting feedback network: G = 1 + R2/R1 = 1 + 9k/1k = 10 ----
+R1 FB  REF 1k
+R2 OUT FB  9k
+*
+* ---- Load ----
+RL OUT REF 10k
+CL OUT REF 100p
+*
+* ---- Analyses ----
+.tran 0 5m 0 1u
+.ac dec 101 10 100k
+*
+.meas TRAN vmax  MAX V(OUT,REF) FROM=1m TO=5m
+.meas TRAN vmin  MIN V(OUT,REF) FROM=1m TO=5m
+.meas TRAN vamp  PARAM (vmax-vmin)/2
+.meas TRAN gain_db PARAM 20*log10(((vmax-vmin)/2)/20m)
+.meas AC   gain_ac_db MAX vdb(OUT) FROM=100 TO=10k
+*
+.options plotwinsize=0 numdgt=7
+.end

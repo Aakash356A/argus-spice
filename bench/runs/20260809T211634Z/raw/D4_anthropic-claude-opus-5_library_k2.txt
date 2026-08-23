@@ -1,0 +1,26 @@
+```
+* LT6106 High-Side Current Sense Amplifier
+* 12 V rail, 0.1 ohm shunt, ~100 mA load  ->  Vsense = 10 mV
+* Gain = ROUT/RIN = 10k/100 = 100  ->  VOUT = 1.0 V
+*
+* ---------------- Supply / load path ----------------
+V1   IN 0 12                  ; 12 V monitored rail (primary input node = IN)
+RSNS IN LOAD 0.1              ; high-side shunt resistor
+RLD  LOAD 0 120               ; load: 12 V / 120 ohm ~= 100 mA
+*
+* ---------------- Sense amplifier -------------------
+* Pin order of vendor macro-model: +IN  -IN  OUT  V-
+RIN  LOAD NIN 100             ; gain-setting input resistor (I_IN = Vsense/RIN = 100uA)
+X1   IN NIN OUT 0 LT6106      ; +IN on supply side of shunt, -IN via RIN to load side
+ROUT OUT 0 10k                ; gain-setting output resistor (100uA * 10k = 1 V)
+COUT OUT 0 100p               ; small output filter / measurement load
+*
+* ---------------- Model library ---------------------
+.lib LTC7.lib
+*
+* ---------------- Analysis --------------------------
+.tran 0 5m 0 1u
+.meas TRAN vout_dc AVG V(OUT) FROM=4m TO=5m
+.meas TRAN isense AVG I(RSNS) FROM=4m TO=5m
+.end
+```

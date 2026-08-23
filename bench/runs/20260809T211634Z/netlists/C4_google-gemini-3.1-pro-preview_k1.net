@@ -1,0 +1,37 @@
+* AD4021 ADC Front End Netlist
+V_IN IN 0 1
+
+* Power Supplies and Reference
+V_VDD VDD 0 1.8
+V_VIO VIO 0 1.8
+V_REF REF 0 5
+
+* Input Signal Conditioning (Single-ended to Differential, VCM = 2.5V)
+* The AD4021 is a fully differential SAR ADC requiring a common-mode voltage of VREF/2.
+V_CM CM 0 2.5
+E_IN_P IN_P CM IN 0 0.5
+E_IN_N CM IN_N IN 0 0.5
+
+* Digital Control Signals
+* SDI tied to GND for standard single-device operation
+R_SDI SDI 0 1
+
+* CNV: Initiates conversion. Goes high at 100ns, stays high for 350ns (t_CONV max is 320ns).
+* Goes low at 450ns to enable SDO output for 3-wire mode.
+V_CNV CNV 0 PULSE(0 1.8 100n 1n 1n 350n 1u)
+
+* SCK: Clocks out data. Starts at 500ns, 50MHz (20ns period).
+V_SCK SCK 0 PULSE(0 1.8 500n 1n 1n 10n 20n)
+
+* AD4021 Subcircuit Call 
+* Standard ADI macro model pin order matches the 10-lead MSOP/LFCSP package: 
+* 1:REF, 2:VDD, 3:IN+, 4:IN-, 5:GND, 6:SDI, 7:SCK, 8:SDO, 9:VIO, 10:CNV
+X1 REF VDD IN_P IN_N 0 SDI SCK OUT VIO CNV AD4021
+
+* Load on OUT to prevent floating node warnings
+R_OUT OUT 0 1Meg
+
+* Analysis Directive
+.tran 1.5u
+
+.end

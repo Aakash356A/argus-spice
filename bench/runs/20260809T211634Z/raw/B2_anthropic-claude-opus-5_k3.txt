@@ -1,0 +1,53 @@
+```
+* ADA4177 Inverting Amplifier, Gain = -10 V/V, +/-15 V Supplies
+* Vin = 50 mV amplitude sine @ 1 kHz
+*
+*---------------- Supplies ----------------
+VCC VCC 0 DC 15
+VEE VEE 0 DC -15
+*
+*---------------- Signal source ----------------
+V1 IN 0 SINE(0 50m 1k) AC 1
+*
+*---------------- Gain network (Rf/Rin = 10k/1k = 10) ----------------
+R1 IN  N1  1k
+R2 N1  OUT 10k
+*
+*---------------- Amplifier ----------------
+* Pin order: +IN  -IN  V+  V-  OUT
+XU1 0 N1 VCC VEE OUT ADA4177
+*
+* Light load
+RL OUT 0 10k
+*
+*=========================================================
+* Behavioral macromodel of ADA4177 precision op amp
+*   Aol = 120 dB, GBW ~ 3.5 MHz (single pole @ 3.5 Hz),
+*   input bias/offset negligible, output swings to within
+*   ~1.2 V of the rails, Rout = 15 ohm
+*=========================================================
+.subckt ADA4177 1 2 99 50 45
+* differential input (very high impedance)
+Rin   1 2 1T
+Rcm1  1 0 1T
+Rcm2  2 0 1T
+* open-loop gain stage with dominant pole
+Eg    3 0 1 2 1E6
+Rp    3 4 1k
+Cp    4 0 45.5u
+* output stage with supply-referenced clamping
+Eout  5 0 VALUE={LIMIT(V(4), V(50)+1.2, V(99)-1.2)}
+Rout  5 45 15
+.ends ADA4177
+*
+*---------------- Analyses ----------------
+.tran 0 5m 0 1u
+.ac dec 100 1 10Meg
+*
+.measure ac gain_db MAX db(V(OUT)/V(IN))
+.measure tran vpp PP V(OUT) FROM=1m TO=5m
+.measure tran gain_db_tran PARAM=20*log10(vpp/0.1)
+*
+.options plotwinsize=0 numdgt=8
+.end
+```

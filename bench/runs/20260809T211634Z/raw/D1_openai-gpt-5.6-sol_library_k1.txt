@@ -1,0 +1,21 @@
+LT1720 Comparator with Open-Drain Output
+.lib LT1720.sub
+
+VCC VCC 0 5
+VIN IN 0 2.0
+
+RTH_TOP VCC THRESH 20.30303k
+RTH_BOT THRESH 0 10k
+
+XU1 IN THRESH VCC 0 COMP_OUT LT1720
+
+RPU VCC OUT 10k
+MOUT OUT COMP_OUT 0 0 MOPEN
+.model MOPEN NMOS (VTO=0.8 KP=0.1 RD=0.05 RS=0.05)
+
+CDEC VCC 0 100n
+
+.tran 0 10u 0 10n
+.meas tran vout_dc AVG V(OUT) FROM 9u TO 10u
+
+.end

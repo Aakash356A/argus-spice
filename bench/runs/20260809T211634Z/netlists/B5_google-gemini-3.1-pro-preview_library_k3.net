@@ -1,0 +1,23 @@
+* MAX44245 Non-Inverting Amplifier
+VIN IN 0 SINE(0 50m 1k) AC 1
+VCC VCC 0 15
+VEE VEE 0 -15
+
+* Feedback network for a gain of 20 V/V (1 + 19k/1k)
+R1 V_neg 0 1k
+R2 OUT V_neg 19k
+
+* Op-Amp instantiation (assuming standard 5-pin order: IN+ IN- V+ V- OUT)
+X1 IN V_neg VCC VEE OUT MAX44245
+
+* Library inclusion
+.lib MAX44245.lib
+
+* Analysis directives
+.tran 0 5m 0 1u
+.ac dec 10 100 10k
+
+* Measurement for the gain in dB at 1 kHz
+.meas AC gain_db FIND 20*log10(mag(V(OUT))) AT 1k
+
+.end

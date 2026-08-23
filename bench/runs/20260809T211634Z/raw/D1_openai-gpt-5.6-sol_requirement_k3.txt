@@ -1,0 +1,16 @@
+* LT1720 comparator, 5 V supply, 1.65 V threshold
+.include LT1720.sub
+
+VCC VCC 0 5
+VIN IN 0 2.0
+
+RTH_TOP VCC THRESH 67k
+RTH_BOT THRESH 0 33k
+
+XU1 THRESH IN VCC 0 OUT LT1720
+RPULLUP VCC OUT 10k
+
+.tran 0 2u 0 1n
+.meas tran vout_dc AVG V(OUT) FROM 1.5u TO 2u
+
+.end

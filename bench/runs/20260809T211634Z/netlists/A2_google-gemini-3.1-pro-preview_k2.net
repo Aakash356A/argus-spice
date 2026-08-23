@@ -1,0 +1,20 @@
+* ADP7118 1.8V Regulator
+V1 IN 0 3.3
+C1 IN 0 2.2u
+C2 OUT 0 2.2u
+
+* Resistor divider for 1.8V output (Vref = 1.2V)
+* Vout = 1.2V * (1 + R1/R2) => 1.8V = 1.2V * (1 + 5k/10k)
+R1 OUT SENSE 5k
+R2 SENSE 0 10k
+
+* 50mA load at 1.8V (R = V/I = 1.8/0.05 = 36 ohms)
+Rload OUT 0 36
+
+* ADP7118 LDO Subcircuit (IN, EN, GND, SENSE, OUT)
+* EN is tied to IN for automatic startup
+X1 IN IN 0 SENSE OUT ADP7118
+
+.lib ADI.lib
+.tran 10m
+.end

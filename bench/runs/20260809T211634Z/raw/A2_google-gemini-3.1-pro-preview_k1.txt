@@ -1,0 +1,31 @@
+* ADP7118 1.8V Low-Dropout Regulator Circuit
+* Stepping down from 3.3V to 1.8V, delivering 50mA
+
+* Input power and Enable tied together
+V1 IN 0 3.3
+V2 EN 0 3.3
+
+* Input and Output Decoupling Capacitors (2.2uF recommended)
+C1 IN 0 2.2u
+C2 OUT 0 2.2u
+
+* Soft-Start Capacitor
+C3 SS 0 100p
+
+* Feedback Network for 1.8V Output
+* VOUT = VREF * (1 + R1/R2) where VREF is 1.2V
+* 1.8V = 1.2V * (1 + 5k/10k)
+R1 OUT SENSE 5k
+R2 SENSE 0 10k
+
+* 50mA Resistive Load (1.8V / 36 Ohms = 50mA)
+Rload OUT 0 36
+
+* ADP7118 Subcircuit Instance
+* Pin Order: VIN, EN, GND, SS, SENSE, VOUT
+X1 IN EN 0 SS SENSE OUT ADP7118
+
+* Transient analysis to allow output to settle to DC steady-state
+.tran 5m
+
+.end

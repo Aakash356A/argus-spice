@@ -1,0 +1,22 @@
+* LTC6252 High-Speed Amplifier configured for a gain of 2 V/V
+Vin IN 0 SINE(0 1 10Meg)
+VCC VCC 0 5
+VEE VEE 0 -5
+
+* LTC6252 Op-Amp Instance (IN+, IN-, V+, V-, OUT)
+X1 IN V_minus VCC VEE OUT LTC6252
+
+* Non-inverting feedback network (Gain = 1 + Rf/Rg = 2)
+Rf OUT V_minus 499
+Rg V_minus 0 499
+
+* Transient analysis: run to 2us, saving data from 1.5us to 2us (5 cycles at 10MHz)
+* Maximum time step set to 1ns for high resolution
+.tran 0 2u 1.5u 1n
+
+* Measure peak-to-peak voltages and calculate gain in dB
+.meas tran out_pp PP V(OUT)
+.meas tran in_pp PP V(IN)
+.meas tran gain_db PARAM 20*log10(out_pp/in_pp)
+
+.end

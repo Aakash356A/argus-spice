@@ -1,0 +1,28 @@
+```spice
+* ADR1399H Precision Voltage Reference Circuit
+* The ADR1399 is a 7.05V precision shunt reference with a built-in heater.
+* The heater is powered directly from the 15V supply.
+* The Zener is biased at approximately 3mA via R1.
+
+* Primary input supply
+V1 IN 0 15
+
+* Bias resistor for the Zener ( (15V - 7.05V) / 3mA ≈ 2.67kΩ )
+R1 IN OUT 2.67k
+
+* ADR1399 Subcircuit Instantiation
+* Standard LTspice pin order: Heater+, Heater-, Zener+, Zener-
+X1 IN 0 OUT 0 ADR1399
+
+* Output bypass capacitor for noise reduction
+C1 OUT 0 1u
+
+* Light load (100kΩ draws ~70µA)
+R2 OUT 0 100k
+
+* Transient analysis to allow the heater and reference to settle
+* Runs for 2 seconds, saving data only for the last 1 second to measure the settled DC output.
+.tran 0 2 1
+
+.end
+```

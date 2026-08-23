@@ -1,0 +1,27 @@
+* LT6106 High-Side Current Sense Amplifier
+
+* 12V Power Rail
+V1 V_RAIL 0 12
+
+* 100mA Load Current
+I1 IN 0 100m
+
+* 0.1 Ohm Shunt Resistor
+* IN is the primary input node (load side of the shunt)
+Rsense V_RAIL IN 0.1
+
+* Gain-setting resistors
+* Gain = Rout / Rin = 10k / 100 = 100
+* Vsense = 100mA * 0.1 ohm = 10mV
+* Vout = 10mV * 100 = 1.0V
+Rin IN IN_MINUS 100
+Rout OUT 0 10k
+
+* LT6106 Subcircuit
+* Pin order: +IN -IN V+ V- OUT
+X1 V_RAIL IN_MINUS V_RAIL 0 OUT LT6106
+
+* Analysis directive for DC/settled output
+.tran 2m
+
+.end

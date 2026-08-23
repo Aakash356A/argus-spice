@@ -1,0 +1,42 @@
+* LTC4281 12V hot-swap controller with external sense resistor and N-MOSFET
+
+VINPUT IN 0 PULSE(0 12 1m 10u 10u 1 2)
+
+* 25mV / 5A current-sense resistor
+RSENSE IN SNS 5m
+
+* External high-side pass MOSFET
+MPASS SNS GATE OUT OUT N_PASS
+.model N_PASS NMOS(VTO=2.5 KP=50 LAMBDA=0.002 RD=2m RS=2m CGSO=1n CGDO=0.5n)
+
+* LTC4281 controller
+XU1 IN SNS OUT CGATE TIMER 0 LTC4281
+
+* Practical gate and startup timing components
+RGATE CGATE GATE 100
+CGATE GATE OUT 10n
+CTIMER TIMER 0 47n
+RTIMER TIMER 0 10Meg
+
+* 12 ohm resistive load draws approximately 1A at 12V
+COUT OUT 0 1000u IC=0
+RLOAD OUT 0 12
+
+* Behavioral LTC4281 functional model:
+* 8V UVLO, 10uA timer charging current, charge-pump gate drive,
+* and 25mV current-limit threshold.
+.subckt LTC4281 VIN SENSE SOURCE GATE TIMER GND
+BTIMER GND TIMER I={IF(V(VIN,GND)>8,10u,0)}
+DTCLAMP GND TIMER D_TIMER
+.model D_TIMER D(BV=3.3 IBV=1u RS=2)
+
+BDRIVE DRIVE GND V={IF(V(VIN,GND)>8,MAX(0,V(SOURCE,GND)+3*LIMIT(V(TIMER,GND),0,3.3)-200*MAX(0,V(VIN,SENSE)-0.025)),0)}
+ROUT DRIVE GATE 10
+RPD GATE GND 10Meg
+.ends LTC4281
+
+.tran 0 100m 0 10u
+.meas tran vout_dc AVG V(OUT) FROM 80m TO 100m
+
+.options plotwinsize=0
+.end

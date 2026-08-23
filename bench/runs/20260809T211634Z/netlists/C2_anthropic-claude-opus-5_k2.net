@@ -1,0 +1,94 @@
+* ADG5248F 8:1 Fault-Protected Analog Multiplexer
+* Application: 1 kHz / 500 mV sine on channel 1 -> common D output (OUT)
+* Supplies: VDD = +15 V, VSS = -15 V, logic = +5 V, A2:A0 = 000 -> S1 selected
+*----------------------------------------------------------------------
+
+*----------------- Behavioral model of the ADG5248F --------------------
+* Ron ~ 160 ohm (typ, +/-15 V dual supply), Roff ~ 1 Gohm
+* 3-bit address decode (A2 A1 A0) with active-high EN
+.subckt ADG5248F S1 S2 S3 S4 S5 S6 S7 S8 D A0 A1 A2 EN VDD VSS GND
+
+* ---- address decoder: 5 V control node per channel ----
+Bc1 c1 0 V=5*(V(EN,GND)>2)*(V(A0,GND)<0.8)*(V(A1,GND)<0.8)*(V(A2,GND)<0.8)
+Bc2 c2 0 V=5*(V(EN,GND)>2)*(V(A0,GND)>2.0)*(V(A1,GND)<0.8)*(V(A2,GND)<0.8)
+Bc3 c3 0 V=5*(V(EN,GND)>2)*(V(A0,GND)<0.8)*(V(A1,GND)>2.0)*(V(A2,GND)<0.8)
+Bc4 c4 0 V=5*(V(EN,GND)>2)*(V(A0,GND)>2.0)*(V(A1,GND)>2.0)*(V(A2,GND)<0.8)
+Bc5 c5 0 V=5*(V(EN,GND)>2)*(V(A0,GND)<0.8)*(V(A1,GND)<0.8)*(V(A2,GND)>2.0)
+Bc6 c6 0 V=5*(V(EN,GND)>2)*(V(A0,GND)>2.0)*(V(A1,GND)<0.8)*(V(A2,GND)>2.0)
+Bc7 c7 0 V=5*(V(EN,GND)>2)*(V(A0,GND)<0.8)*(V(A1,GND)>2.0)*(V(A2,GND)>2.0)
+Bc8 c8 0 V=5*(V(EN,GND)>2)*(V(A0,GND)>2.0)*(V(A1,GND)>2.0)*(V(A2,GND)>2.0)
+
+* ---- channel switches (fault-protected series FET path) ----
+SW1 S1 D c1 GND ADGSW
+SW2 S2 D c2 GND ADGSW
+SW3 S3 D c3 GND ADGSW
+SW4 S4 D c4 GND ADGSW
+SW5 S5 D c5 GND ADGSW
+SW6 S6 D c6 GND ADGSW
+SW7 S7 D c7 GND ADGSW
+SW8 S8 D c8 GND ADGSW
+.model ADGSW SW(Ron=160 Roff=1G Vt=2.5 Vh=0.2)
+
+* ---- source / drain parasitic capacitance and leakage ----
+Cs1 S1 GND 3p
+Cs2 S2 GND 3p
+Cs3 S3 GND 3p
+Cs4 S4 GND 3p
+Cs5 S5 GND 3p
+Cs6 S6 GND 3p
+Cs7 S7 GND 3p
+Cs8 S8 GND 3p
+Cd  D  GND 12p
+Rlk D GND 1G
+
+* ---- fault-protection clamp of D to the supply rails ----
+Dcu D VDD DCLAMP
+Dcl VSS D DCLAMP
+.model DCLAMP D(Is=1e-15 N=1 Rs=1 Cjo=1p)
+
+* ---- supply pin quiescent current ----
+Iq VDD VSS 1u
+.ends ADG5248F
+
+*--------------------------- Supplies ---------------------------------
+VDD VDD 0 DC 15
+VSS VSS 0 DC -15
+
+*------------------- Logic control: select channel 1 -------------------
+* A2 A1 A0 = 0 0 0, EN = 5 V (enabled)
+VA0 A0 0 DC 0
+VA1 A1 0 DC 0
+VA2 A2 0 DC 0
+VEN EN 0 DC 5
+
+*--------------------------- Signal source -----------------------------
+VIN IN 0 SINE(0 0.5 1k 0 0 0) AC 1
+RS  IN N_S1 1
+
+*--------------------------- Multiplexer -------------------------------
+XU1 N_S1 N_S2 N_S3 N_S4 N_S5 N_S6 N_S7 N_S8 OUT A0 A1 A2 EN VDD VSS 0 ADG5248F
+
+* unused channels grounded
+R2 N_S2 0 50
+R3 N_S3 0 50
+R4 N_S4 0 50
+R5 N_S5 0 50
+R6 N_S6 0 50
+R7 N_S7 0 50
+R8 N_S8 0 50
+
+*------------------------- Output loading ------------------------------
+RL OUT 0 1Meg
+CL OUT 0 10p
+
+*--------------------------- Analysis ---------------------------------
+.tran 0 5m 0 1u
+* Gain measurement (channel 1 -> common D output)
+.meas TRAN vinpp  PP V(IN)  FROM 2m TO 5m
+.meas TRAN voutpp PP V(OUT) FROM 2m TO 5m
+.meas TRAN gain_db PARAM 20*log10(voutpp/vinpp)
+* Alternative small-signal check:
+* .ac dec 100 10 1Meg
+
+.options plotwinsize=0 reltol=1e-4
+.end

@@ -1,0 +1,21 @@
+* LTC6078 unity-gain follower, single 5 V supply
+.lib LTC5.lib
+
+VSUP VCC 0 5
+VIN IN 0 SINE(2.5 100m 1k) AC 1
+
+* LTC6078 pin order: OUTA -INA +INA V- +INB -INB OUTB V+
+XU1 OUT OUT IN 0 VREF UNUSED UNUSED VCC LTC6078
+
+* Bias for unused channel
+RBIAS1 VCC VREF 10k
+RBIAS2 VREF 0 10k
+CREF VREF 0 1u
+
+RLOAD OUT 0 10k
+CDEC VCC 0 100n
+
+.ac dec 100 10 100k
+.tran 0 10m 5m 1u
+
+.end

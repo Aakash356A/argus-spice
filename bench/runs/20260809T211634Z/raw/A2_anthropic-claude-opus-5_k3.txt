@@ -1,0 +1,46 @@
+```
+* ------------------------------------------------------------------
+* ADP7118 CMOS LDO Linear Regulator - Application Circuit
+* VIN = 3.3 V, VOUT = 1.8 V (fixed option), IOUT = 50 mA resistive
+* Behavioral device model (control loop + pass element + dropout)
+* ------------------------------------------------------------------
+
+VIN   IN  0   PWL(0 0 50u 3.3)          ; 3.3 V rail with short ramp
+VEN   EN  0   DC 3.3                    ; regulator enabled
+
+CIN   IN  0   1u                        ; input decoupling capacitor
+XU1   IN  OUT 0  EN  ADP7118            ; ADP7118-1.8 LDO
+COUT  OUT 0   1u                        ; output decoupling capacitor
+RESR  OUT NX  10m                       ; COUT ESR path (damping)
+CESR  NX  0   100n
+RLOAD OUT 0   36                        ; 1.8 V / 36 ohm = 50 mA load
+
+* ------------------------------------------------------------------
+.subckt ADP7118 IN OUT GND EN
+* ---- enable logic + 1.8 V internal reference with soft start ----
+BREF  REFI GND V = if(V(EN,GND) > 1.2, 1.8, 0)
+RSS   REFI REF 1k
+CSS   REF  GND 100n
+*
+* ---- error amplifier (gm stage) with dominant-pole compensation ----
+GEA   GND CTRL VALUE = {200u*(V(REF,GND) - V(OUT,GND))}
+RLK   CTRL GND 1G
+CC    CTRL CX  1u
+RZ    CX   GND 200
+*
+* ---- PMOS pass element: gate-controlled conductance, 50 mohm min Rds,
+*      reverse-current blocked, 600 mA current limit ----
+BPASS IN OUT I = min( limit(V(CTRL,GND),0,20)*max(V(IN,OUT),0), 0.6 )
+*
+* ---- quiescent (ground) current ----
+BIQ   IN GND I = if(V(EN,GND) > 1.2, 55u, 1u)
+.ends ADP7118
+* ------------------------------------------------------------------
+
+.tran 0 5m 0 1u
+.meas TRAN vout_dc  AVG V(OUT) FROM 4m TO 5m
+.meas TRAN iload    AVG I(RLOAD) FROM 4m TO 5m
+.meas TRAN vdrop    PARAM 3.3-1.8
+
+.end
+```

@@ -1,0 +1,36 @@
+```
+* LT6106 High-Side Current Sense Amplifier
+* 100 mA load current through a 0.1 ohm shunt on a 12 V rail
+* Gain = ROUT/RIN = 10k/100 = 100 V/V
+* Vsense = 100 mA * 0.1 ohm = 10 mV  ->  VOUT = 10 mV * 100 = 1.0 V
+
+.lib LTC7.lib
+
+*** Supply / monitored rail ***
+V1   IN   0   DC 12
+
+*** Sense resistor (high side) ***
+RSENSE IN LOAD 0.1
+
+*** Load: 119.9 ohm in series with 0.1 ohm shunt -> 12 V / 120 ohm = 100 mA ***
+RLOAD  LOAD 0  119.9
+
+*** LT6106 current sense amplifier
+*  Pin order: 1 = -IN, 2 = V-, 3 = OUT, 4 = V+, 5 = +IN
+XU1  INM  0  OUT  IN  IN  LT6106
+
+*** Gain-setting resistors ***
+* RIN sets the sense current: I_IN = Vsense/RIN = 10 mV/100 = 100 uA
+RIN   LOAD INM  100
+* ROUT converts the mirrored current to the output voltage: VOUT = I_IN * ROUT
+ROUT  OUT  0    10k
+* Optional output noise/bandwidth filter (real design)
+COUT  OUT  0    100p
+
+*** Analysis ***
+.tran 0 5m 0 1u
+.meas TRAN vout_dc AVG V(OUT) FROM=3m TO=5m
+.meas TRAN isense AVG I(RSENSE) FROM=3m TO=5m
+
+.end
+```

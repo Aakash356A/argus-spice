@@ -1,0 +1,16 @@
+* ADR1399H 7.05 V precision shunt reference
+V1 IN 0 15
+RBIAS IN OUT 3.32k
+XREF OUT 0 ADR1399H
+COUT OUT 0 10u
+RLOAD OUT 0 100k
+
+.subckt ADR1399H A K
+BCLAMP A K I=limit((V(A,K)-7.05)/0.1,0,20m)
+RLEAK A K 100Meg
+.ends ADR1399H
+
+.tran 0 100m 0 10u
+.meas tran VOUT_DC AVG V(OUT) FROM 90m TO 100m
+
+.end

@@ -1,0 +1,30 @@
+* ADP7118 3.3V to 1.8V LDO Regulator
+.lib ADP7102.lib
+
+* Input Voltage Source (3.3V)
+V1 IN 0 3.3
+
+* Input and Output Decoupling Capacitors
+Cin IN 0 2.2u
+Cout OUT 0 2.2u
+
+* Soft-Start Capacitor
+Css SS 0 1n
+
+* ADP7118 Subcircuit Instantiation
+* Typical ADI LDO Pinout: VIN EN GND SS ADJ VOUT
+X1 IN IN 0 SS ADJ OUT ADP7118
+
+* Feedback Network to set VOUT = 1.8V
+* ADP7118 has a 1.2V internal reference.
+* VOUT = 1.2V * (1 + R1/R2) = 1.2V * (1 + 5k/10k) = 1.8V
+R1 OUT ADJ 5k
+R2 ADJ 0 10k
+
+* 50mA Resistive Load at 1.8V (R = V/I = 1.8V / 0.05A = 36 Ohms)
+Rload OUT 0 36
+
+* Transient analysis to allow output to settle
+.tran 0 5m
+
+.end

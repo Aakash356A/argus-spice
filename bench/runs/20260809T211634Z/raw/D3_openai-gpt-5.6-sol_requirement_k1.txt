@@ -1,0 +1,29 @@
+* AD8237 instrumentation amplifier, G = 10 V/V, VS = 5 V
+.include AD8237.cir
+
+VCC VCC 0 5
+VREF REF 0 2.5
+
+* Balanced 20 mV-peak differential input at 1 kHz, VCM = 2.5 V
+VINP IN 0 SINE(2.5 10m 1k) AC 0.5
+VINN INN 0 SINE(2.5 10m 1k 0 0 180) AC 0.5 180
+
+* AD8237 pin order: FB, -IN, +IN, -VS, REF, OUT, +VS, RG
+XU1 FB INN IN 0 REF OUT VCC RG AD8237
+
+* Gain = 1 + RFB/RGAIN = 10
+RFB OUT FB 90k
+RGAIN RG REF 10k
+
+RLOAD OUT 0 100k
+
+.tran 0 5m 1m 1u
+.ac lin 1 1k 1k
+
+.meas AC gain_db FIND db(V(OUT)/V(IN,INN)) AT=1k
+.meas TRAN vout_pp PP V(OUT) FROM 2m TO 5m
+.meas TRAN vdiff_pp PP V(IN,INN) FROM 2m TO 5m
+.meas TRAN tran_gain_db PARAM 20*log10(vout_pp/vdiff_pp)
+
+.options plotwinsize=0
+.end

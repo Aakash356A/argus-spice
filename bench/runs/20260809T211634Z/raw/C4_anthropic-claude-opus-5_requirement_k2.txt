@@ -1,0 +1,51 @@
+```
+* =====================================================================
+* AD4021 - 20-bit, 1 MSPS precision SAR ADC front end
+* 1 V DC input, 5 V reference, 1.8 V VDD, 3.3 V VIO,
+* 1 MSPS conversion clock (CNV) and 50 MHz SPI read clock (SCK)
+* =====================================================================
+* Node conventions required by the test harness:
+*   IN  = primary analog input node
+*   OUT = ADC serial data output (SDO)
+* =====================================================================
+
+* ---- Genuine ADI device model (do not redefine) ----------------------
+.include AD4021.cir
+* Pin order of the ADI AD4021 LTspice subcircuit:
+*   IN+  IN-  REF  VDD  VIO  GND  CNV  SCK  SDI  SDO
+
+XU1 INP INN REF VDD VIO 0 CNV SCK SDI OUT AD4021
+
+* ---- Analog input: 1 V DC through the recommended RC kickback filter -
+V1  IN  0   DC 1
+R1  IN  INP 20
+C1  INP INN 1.8n
+RINN INN 0  0.01
+
+* ---- Reference: 5 V with local decoupling ---------------------------
+VREF REF 0 DC 5
+CREF REF 0 10u
+
+* ---- Supplies -------------------------------------------------------
+VDD1 VDD 0 DC 1.8
+CVDD VDD 0 100n
+VIO1 VIO 0 DC 3.3
+CVIO VIO 0 100n
+
+* ---- Conversion clock: 1 MSPS, 100 ns high CNV pulse ----------------
+VCNV CNV 0 PULSE(0 3.3 100n 2n 2n 100n 1u)
+
+* ---- SPI read clock: 50 MHz, gated on after t_CONV -----------------
+VSCK SCK 0 PULSE(0 3.3 500n 2n 2n 8n 20n)
+
+* ---- SDI held high: 3-wire CS mode, busy indicator disabled ---------
+VSDI SDI 0 DC 3.3
+
+* ---- Light load on the serial output --------------------------------
+CLOAD OUT 0 10p
+
+* ---- Analysis: several conversion cycles ----------------------------
+.tran 0 5u 0 2n
+
+.end
+```

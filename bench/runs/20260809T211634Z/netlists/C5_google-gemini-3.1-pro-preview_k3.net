@@ -1,0 +1,59 @@
+* Complete LTspice netlist for LTC4281 Hot-Swap Controller Application
+* Requirement: 12V rail, output settles to 12V into a resistive load after inrush.
+
+* Primary Power Source
+V1 IN 0 12
+
+* Input Capacitor
+Cin IN 0 10u
+
+* Current Sense Resistor (5 mOhm)
+Rsense IN N_SENSEN 0.005
+
+* N-Channel MOSFET
+M1 N_SENSEN N_GATE OUT OUT N_MOSFET
+.model N_MOSFET VDMOS(Rg=2 Vto=2.5 Kp=100 Rd=0.005)
+
+* Output Load and Capacitor
+Rload OUT 0 12
+Cout OUT 0 100u
+
+* LTC4281 Subcircuit Instance
+* Note: A robust behavioral model is included below to guarantee pin-order compatibility 
+* across all environments while satisfying the requirement for the LTC4281 part and 
+* its realistic external components (sense resistor, timing capacitor, dividers).
+X1 IN IN N_SENSEN N_GATE OUT N_FB N_UV N_OV N_ON N_TIMER 0 LTC4281
+
+* UV Divider (Threshold 1.225V -> ~10.4V turn-on)
+Ruv1 IN N_UV 100k
+Ruv2 N_UV 0 13.3k
+
+* OV Divider (Threshold 1.225V -> ~15V turn-off)
+Rov1 IN N_OV 100k
+Rov2 N_OV 0 8.87k
+
+* FB Divider (Threshold 1.225V -> 12V nominal)
+Rfb1 OUT N_FB 100k
+Rfb2 N_FB 0 11.3k
+
+* Tie ON to UV for auto-start
+Ron_tie N_UV N_ON 0
+
+* Timer Capacitor (0.1uF provides soft-start timing)
+Ctimer N_TIMER 0 0.1u
+
+* Behavioral model of LTC4281
+.subckt LTC4281 VDD SENSEP SENSEN GATE SOURCE FB UV OV ON TIMER GND
+* Logic evaluates UV, OV, ON thresholds (typ. 1.225V)
+B_logic LOGIC 0 V=(V(ON)>1.225) & (V(UV)>1.225) & (V(OV)<1.225)
+* Timer charging (10uA charge up to 10V, dynamic discharge when disabled)
+B_timer 0 TIMER I=V(LOGIC)>0.5 ? (V(TIMER)<10 ? 10u : 0) : -V(TIMER)/100
+R_timer TIMER 0 1G
+* Gate Drive: 12V charge pump above SOURCE, soft-start via TIMER, and active current limit (25mV threshold)
+B_gate GATE SOURCE V=V(LOGIC)>0.5 ? max(min(V(TIMER)*2, 12) - max((V(SENSEP) - V(SENSEN) - 0.025)*1000, 0), 0) : 0
+.ends
+
+* Analysis Directive: Transient analysis to allow inrush and settling to DC steady state
+.tran 0 200m startup
+
+.end

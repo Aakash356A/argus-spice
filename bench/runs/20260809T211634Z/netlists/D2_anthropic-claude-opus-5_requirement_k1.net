@@ -1,0 +1,33 @@
+* ADG711 QUAD SPST ANALOG SWITCH - 2 V DC PASS-THROUGH INTO 10 k LOAD, 5 V SINGLE SUPPLY
+*
+* Genuine ADI ADG711 macromodel is pulled in below - no local .subckt is defined.
+* Subcircuit pin order (per-channel S, D, IN, then supplies):
+*   S1 D1 IN1  S2 D2 IN2  S3 D3 IN3  S4 D4 IN4  VDD GND
+*
+.include ADG711.cir
+
+**** SUPPLIES AND SIGNALS ****
+VDD   VDD 0 DC 5                ; 5 V single supply
+VIN   IN  0 DC 2                ; 2 V DC analog input
+VC1   CTRL1 0 DC 0              ; ADG711 channels are normally closed: logic LOW = switch ON
+VC2   CTRL2 0 DC 5              ; complementary drive on the paralleled channel 2
+
+**** SWITCH: S1 -> D1 IS THE SIGNAL PATH (CH2 PARALLELED ACROSS IT) ****
+XU1 IN OUT CTRL1  IN OUT CTRL2  0 NC3 VDD  0 NC4 VDD  VDD 0 ADG711
+
+**** LOAD ****
+RL   OUT 0 10k                  ; 10 k load resistor
+
+**** KEEP UNUSED SWITCH DRAINS DEFINED FOR THE SOLVER ****
+RD3  NC3 0 1G
+RD4  NC4 0 1G
+
+**** DECOUPLING ****
+CVDD VDD 0 100n
+
+**** ANALYSIS ****
+.tran 0 1m 0 1u
+.meas TRAN vout_dc AVG V(OUT) FROM=500u TO=1m
+.options plotwinsize=0 gmin=1e-12 abstol=1e-12 reltol=1e-4
+
+.end

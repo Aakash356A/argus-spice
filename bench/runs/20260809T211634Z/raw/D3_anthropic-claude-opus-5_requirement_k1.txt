@@ -1,0 +1,56 @@
+```
+* AD8237 Instrumentation Amplifier - Gain = 10 V/V, Single 5 V Supply
+* Input: 20 mV amplitude differential sine at 1 kHz, REF = mid-supply (2.5 V)
+
+*--------------------------------------------------------------------
+* Genuine ADI SPICE macro-model for the AD8237 (do not redefine)
+*--------------------------------------------------------------------
+.include AD8237.cir
+
+*--------------------------------------------------------------------
+* Supplies
+*--------------------------------------------------------------------
+VSUP   VCC 0   DC 5
+CBYP1  VCC 0   100n
+CBYP2  VCC 0   1u
+
+* Mid-supply common-mode / reference rail (2.5 V)
+VCM    CM  0   DC 2.5
+CREF   CM  0   1u
+
+*--------------------------------------------------------------------
+* Differential input signal: 20 mV amplitude, 1 kHz
+* Node IN is the primary (driven) input; the other input sits at CM
+*--------------------------------------------------------------------
+VIN    IN  CM  SINE(0 20m 1k)
+
+*--------------------------------------------------------------------
+* AD8237 instantiation
+* Pin order: +IN  -IN  +VS  -VS  OUT  REF  FB
+*--------------------------------------------------------------------
+XU1    IN  CM  VCC  0   OUT  CM  FB   AD8237
+
+*--------------------------------------------------------------------
+* Gain-setting network:  G = 1 + R2/R1 = 1 + 90k/10k = 10 V/V (20 dB)
+*--------------------------------------------------------------------
+R1     CM  FB   10k
+R2     FB  OUT  90k
+
+* Light output load
+RL     OUT CM   100k
+
+*--------------------------------------------------------------------
+* Analysis
+*--------------------------------------------------------------------
+.tran 0 5m 0 1u
+
+.meas TRAN vomax  MAX V(OUT) FROM 1m TO 5m
+.meas TRAN vomin  MIN V(OUT) FROM 1m TO 5m
+.meas TRAN vopp   PARAM vomax-vomin
+.meas TRAN gain   PARAM (vomax-vomin)/40m
+.meas TRAN gain_db PARAM 20*log10((vomax-vomin)/40m)
+.meas TRAN vodc   AVG V(OUT) FROM 1m TO 5m
+
+.options plotwinsize=0 numdgt=7
+.end
+```

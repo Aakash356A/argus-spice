@@ -1,0 +1,10 @@
+* LT6106 High-Side Current Sense Amplifier
+V1 IN 0 12
+I1 Load 0 100m
+Rsense IN Load 0.1
+Rin Load IN_M 100
+Rout OUT 0 10k
+X1 IN IN_M IN 0 OUT LT6106
+
+.tran 1m
+.end

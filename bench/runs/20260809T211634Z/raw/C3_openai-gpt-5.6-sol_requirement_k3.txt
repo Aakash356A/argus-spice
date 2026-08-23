@@ -1,0 +1,70 @@
+* LT8710 synchronous 4-switch buck-boost converter
+* 24V input, 12V regulated output, 12 ohm resistive load
+
+.include LT8710.sub
+
+VINPUT IN 0 24
+CIN1 IN 0 100u
+CIN2 IN 0 1u
+
+* Input undervoltage/enable divider
+REN1 IN ENFB 56.2k
+REN2 ENFB 0 10k
+
+* LT8710 controller
+* Pin order: BG1 CSP CSN VIN EN/FBIN MODE INTVCC GND
+*            BG2 SW2 TG2 BOOST2 FB VC SS RT SYNC BOOST1 TG1 SW1
+XU1 BG1 CSP CSN IN ENFB MODE INTVCC 0 BG2 SW2 TG2 BST2 FB VC SS RT SYNC BST1 TG1 SW1 LT8710
+
+* Controller support components
+CINTVCC INTVCC 0 4.7u
+RMODE MODE INTVCC 10
+RSYNC SYNC 0 10
+RRT RT 0 100k
+CSS SS 0 100n
+
+* Loop compensation
+RVC VC VCOMP 15k
+CVC VCOMP 0 10n
+CHF VC 0 100p
+
+* Bootstrap networks
+DBST1 INTVCC BST1 DBOOT
+CBST1 BST1 SW1 100n
+DBST2 INTVCC BST2 DBOOT
+CBST2 BST2 SW2 100n
+
+* Input-side synchronous half bridge
+MHS1 IN TG1 SW1 SW1 NPOWER
+MLS1 SW1 BG1 0 0 NPOWER
+RGTG1 TG1 SW1 100k
+RGBG1 BG1 0 100k
+
+* Inductor-current sense and energy-transfer inductor
+RSENSE SW1 CSP 10m
+RCS CSP CSN 1m
+L1 CSN SW2 15u
+
+* Output-side synchronous half bridge
+MHS2 OUT TG2 SW2 SW2 NPOWER
+MLS2 SW2 BG2 0 0 NPOWER
+RGTG2 TG2 SW2 100k
+RGBG2 BG2 0 100k
+
+* Output feedback: approximately 12V for a 1.213V FB reference
+RFBTOP OUT FB 88.7k
+RFBBOT FB 0 10k
+
+* Output filter and resistive load
+COUT1 OUT 0 220u
+COUT2 OUT 0 10u
+RLOAD OUT 0 12
+
+.model DBOOT D(Is=10n Rs=0.1 N=1.05 Cjo=30p)
+.model NPOWER VDMOS(Vto=2.5 Kp=80 Rd=6m Rs=4m Rg=2 Cgdmax=1n Cgdmin=80p Cgs=1.5n Cjo=800p Is=1n)
+
+.options plotwinsize=0
+.tran 0 20m 0 50n startup
+.meas tran vout_dc AVG V(OUT) FROM=15m TO=20m
+
+.end

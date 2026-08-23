@@ -1,0 +1,19 @@
+* MAX44245 non-inverting amplifier, gain = 20 V/V
+.include "MAX44245.lib"
+
+VCC VCC 0 15
+VEE VEE 0 -15
+VIN IN 0 SINE(0 50m 1k) AC 50m
+
+RG NFB 0 1k
+RF OUT NFB 19k
+RL OUT 0 100k
+
+XU1 IN NFB VCC VEE OUT MAX44245
+
+.ac lin 1 1k 1k
+.tran 0 10m 5m 2u
+
+.meas ac gain_db FIND 20*log10(mag(V(OUT)/V(IN))) AT=1k
+
+.end

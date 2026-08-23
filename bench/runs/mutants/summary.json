@@ -1,0 +1,118 @@
+{
+  "parts": 40,
+  "part_list": [
+    "LTC1871-1",
+    "LT1186F",
+    "LTC3850-1",
+    "LT3023",
+    "ADG919",
+    "AD8604",
+    "LTC3873-5",
+    "LT1619",
+    "LTM8051",
+    "LTC6409",
+    "LTC6101",
+    "LTC2955-1",
+    "LTC3546",
+    "LTC1157",
+    "LT6000",
+    "ADG741",
+    "LT1782",
+    "LT3469",
+    "LTC693",
+    "LTM8025",
+    "LTC7001",
+    "LTM8029",
+    "LT3027",
+    "LTC3802",
+    "LTC3608",
+    "LT1977",
+    "LT1213",
+    "LT1008",
+    "AD549",
+    "LT1501-3.3",
+    "LTC3260",
+    "MAX1522",
+    "LT3493-3",
+    "LT1354",
+    "LT1357",
+    "LT3050-3.3",
+    "LT1521-3.3",
+    "LTC3542-1",
+    "LTC6081",
+    "LTC4419"
+  ],
+  "records": 360,
+  "by_mutation": {
+    "identity": {
+      "n": 40,
+      "label": "valid",
+      "flagged": 0,
+      "rate": 0.0
+    },
+    "wrapper": {
+      "n": 40,
+      "label": "valid",
+      "flagged": 0,
+      "rate": 0.0
+    },
+    "substitute": {
+      "n": 40,
+      "label": "fake",
+      "flagged": 40,
+      "rate": 100.0
+    },
+    "renamed_stub": {
+      "n": 40,
+      "label": "fake",
+      "flagged": 40,
+      "rate": 100.0
+    },
+    "shadow": {
+      "n": 40,
+      "label": "fake",
+      "flagged": 40,
+      "rate": 100.0
+    },
+    "drop_library": {
+      "n": 40,
+      "label": "fake",
+      "flagged": 40,
+      "rate": 100.0
+    },
+    "remove_part": {
+      "n": 40,
+      "label": "fake",
+      "flagged": 40,
+      "rate": 100.0
+    },
+    "alias_file": {
+      "n": 40,
+      "label": "fake",
+      "flagged": 40,
+      "rate": 100.0
+    },
+    "pin_permute": {
+      "n": 40,
+      "label": "fake",
+      "flagged": 22,
+      "rate": 55.0
+    }
+  },
+  "full": {
+    "tp": 262,
+    "fp": 0,
+    "fn": 18,
+    "tn": 80,
+    "precision": 100.0,
+    "recall": 93.57142857142857
+  },
+  "provenance_only": {
+    "tp": 240,
+    "fp": 0,
+    "fn": 40,
+    "tn": 80,
+    "precision": 100.0,
+    "recall": 85.71428571428571
+  }
+}

@@ -1,0 +1,10 @@
+* MAX44245 Non-inverting Amplifier
+Vin IN 0 SINE(0 50m 1k) AC 1
+Vcc V+ 0 15
+Vee V- 0 -15
+R1 IN_MINUS 0 1k
+R2 OUT IN_MINUS 19k
+X1 IN IN_MINUS V+ V- OUT MAX44245
+.tran 0 5m
+.ac dec 10 100 100k
+.end

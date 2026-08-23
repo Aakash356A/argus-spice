@@ -1,0 +1,23 @@
+* LT6654-1.25 Precision 1.25V Series Voltage Reference
+* 5V supply, input and output bypass capacitors
+*
+* ---------------- Supply ----------------
+VIN IN 0 DC 5
+*
+* ------------- Bypass caps --------------
+CIN  IN  0 1u        ; input bypass
+COUT OUT 0 1u        ; output bypass / load stabilization
+*
+* ------------- Optional load -----------
+RL OUT 0 10k
+*
+* --------- Reference (genuine LTC model) ---------
+* Pin order: VIN  VOUT  GND
+XREF IN OUT 0 LT6654-1.25
+.lib LT6654.lib
+*
+* --------------- Analysis ---------------
+.tran 0 5m 0 10u uic
+.meas TRAN vout_dc AVG V(OUT) FROM=4m TO=5m
+*
+.end

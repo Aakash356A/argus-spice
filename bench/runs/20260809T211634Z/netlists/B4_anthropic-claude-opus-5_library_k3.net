@@ -1,0 +1,40 @@
+* ------------------------------------------------------------------
+* AD8551 (zero-drift, rail-to-rail I/O) NON-INVERTING AMPLIFIER
+* Gain = 1 + RF/RG = 1 + 99k/1k = +100 V/V (40 dB)
+* Single +5 V supply, Vin = 10 mVpk sine @ 1 kHz on a 25 mV DC pedestal
+* so the amplified output sits at 2.5 V (mid-supply) +/- 1 V.
+* Vendor macromodel pin order: (+IN  -IN  V+  V-  OUT)
+* ------------------------------------------------------------------
+.lib ADI.lib
+
+* ---------------- Supply ----------------
+VCC   VCC 0 DC 5
+CBYP  VCC 0 1u
+
+* ---------------- Signal source ----------------
+* 25 mV DC bias -> 100 x 25 mV = 2.5 V output quiescent point
+VIN   IN  0 DC 25m AC 1 SINE(25m 10m 1k 0 0 0)
+
+* ---------------- Amplifier ----------------
+XU1   IN  NM  VCC  0  OUT  AD8551
+RF    OUT NM  99k
+RG    NM  0   1k
+
+* ---------------- Load ----------------
+RL    OUT 0   10k
+CL    OUT 0   10p
+
+* ---------------- Analysis ----------------
+.tran 0 10m 0 2u
+.options plotwinsize=0
+
+.meas TRAN vipp   PP  V(IN)  FROM=5m TO=10m
+.meas TRAN vopp   PP  V(OUT) FROM=5m TO=10m
+.meas TRAN gain_db PARAM 20*log10(vopp/vipp)
+.meas TRAN vout_dc AVG V(OUT) FROM=5m TO=10m
+
+* Optional small-signal check (comment out .tran above to use):
+* .ac dec 101 1 1meg
+* .meas AC gain_db_ac FIND 20*log10(mag(V(OUT)/V(IN))) AT 1k
+
+.end

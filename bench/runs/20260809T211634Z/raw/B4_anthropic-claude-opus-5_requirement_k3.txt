@@ -1,0 +1,34 @@
+```
+* AD8551 Non-Inverting Amplifier, Gain = 100 V/V (40 dB), Single +5 V Supply
+* Input: 10 mV amplitude, 1 kHz sine (biased at mid-supply)
+
+.include AD8551.cir
+
+* ---------------- Supplies ----------------
+VCC   VCC  0   DC 5
+VMID  VREF 0   DC 2.5          ; mid-supply reference for the gain network
+
+* ---------------- Input source ----------------
+* DC bias at mid-supply so the single-supply stage stays in its linear range
+VIN   IN   0   SINE(2.5 10m 1k 0 0 0) AC 1
+
+* ---------------- Amplifier ----------------
+* X1 pins: +IN  -IN  V+  V-  OUT
+X1  IN  NEG  VCC  0  OUT  AD8551
+
+* Gain setting network referenced to mid-supply: G = 1 + Rf/Rg = 1 + 99k/1k = 100
+RG   NEG  VREF  1k
+RF   OUT  NEG   99k
+
+* ---------------- Load ----------------
+RL   OUT  0     10k
+CL   OUT  0     20p
+
+* ---------------- Analysis ----------------
+.tran 0 10m 0 1u
+.ac dec 50 1 1Meg
+
+.options plotwinsize=0 numdgt=7
+
+.end
+```

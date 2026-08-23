@@ -1,0 +1,34 @@
+* LTC6078 Unity-Gain Voltage Follower, Single 5 V Supply
+* 1 kHz, 100 mVpk sine input, 10 k load
+* -----------------------------------------------------
+
+.include LTC6078.sub
+
+* ---------------- Supplies ----------------
+VCC VCC 0 DC 5
+* Mid-supply reference for single-supply biasing (2.5 V)
+* (created by the input source DC offset below)
+
+* ---------------- Input source ----------------
+* 2.5 V DC bias + 100 mV amplitude, 1 kHz sine ; AC=1 for .ac sweep
+V1 IN 0 SINE(2.5 0.1 1k 0 0 0) AC 1
+
+* ---------------- LTC6078 (pins: IN+ IN- V+ V- OUT) ----------------
+XU1 IN OUT VCC 0 OUT LTC6078
+
+* ---------------- Load ----------------
+RL OUT 0 10k
+
+* ---------------- Analyses ----------------
+.tran 0 5m 0 1u
+.ac dec 100 10 10Meg
+
+* ---------------- Measurements ----------------
+.meas TRAN vin_pp  PP V(IN)  FROM=2m TO=5m
+.meas TRAN vout_pp PP V(OUT) FROM=2m TO=5m
+.meas TRAN gain_db PARAM 20*log10(vout_pp/vin_pp)
+.meas AC   gain_ac_db FIND 20*log10(mag(V(OUT)/V(IN))) AT=1k
+
+.options plotwinsize=0 numdgt=7
+
+.end

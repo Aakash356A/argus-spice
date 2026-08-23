@@ -1,0 +1,36 @@
+* ADP7118 1.8V Low-Dropout Regulator
+* Input: 3.3V, Output: 1.8V, Load: 50mA
+
+* Input Voltage Source
+V1 IN 0 3.3
+
+* Input Decoupling Capacitor
+Cin IN 0 2.2u
+
+* ADP7118 LDO Instance
+* Pin order: IN EN GND SS BYP SENSE OUT
+X1 IN IN 0 SS BYP SENSE OUT ADP7118
+
+* Soft-Start and Bypass Capacitors
+Css SS 0 1n
+Cbyp BYP 0 1u
+
+* Feedback Divider for 1.8V Output
+* ADP7118 Adjustable Vref = 1.2V
+* Vout = 1.2V * (1 + R1/R2) => 1.8V = 1.2V * (1 + 10k/20k)
+R1 OUT SENSE 10k
+R2 SENSE 0 20k
+
+* Output Decoupling Capacitor
+Cout OUT 0 2.2u
+
+* 50mA Resistive Load (1.8V / 36 Ohms = 50mA)
+Rload OUT 0 36
+
+* Simulation Directive
+.tran 10m
+
+* Include ADI Component Library
+.lib ADI.lib
+
+.end

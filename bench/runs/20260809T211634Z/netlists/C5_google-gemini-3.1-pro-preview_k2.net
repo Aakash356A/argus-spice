@@ -1,0 +1,48 @@
+* LTC4281 Hot-Swap Controller Simulation
+
+* Input Voltage Source (12V with 1ms startup to simulate hot-plug)
+VIN IN 0 PWL(0 0 1m 12)
+
+* Sense Resistor (2mOhm for 12.5A current limit)
+R_sense IN N_SENSE_MINUS 0.002
+
+* Pass MOSFET
+M1 N_SENSE_MINUS GATE OUT N_MOS
+.model N_MOS VDMOS(Rg=2 Vto=2.5 Rd=5m Rs=1m Rb=5m Kp=60 Cgdmax=2n Cgdmin=1n Cgs=2n Cjo=2n Is=10p mfg=Generic Vds=40 Ron=10m Qg=30n)
+
+* LTC4281 Hot Swap Controller Instance
+* Pins: VDD SENSE+ SENSE- GATE SOURCE OUT FB PROFIL ON TIMER INTVCC FAULTB PG EEB GND ADIN SDAI SDAO SCL ALERTB GPIO1 GPIO2 GPIO3 VDD33 WP A0 A1 A2
+X1 IN IN N_SENSE_MINUS GATE OUT OUT N_FB 0 N_ON N_TIMER N_INTVCC N_FAULTB N_PG 0 0 0 N_SDAI N_SDAO N_SCL N_ALERTB N_GPIO1 N_GPIO2 N_GPIO3 N_VDD33 0 0 0 0 LTC4281
+
+* Timing and Bypass Capacitors
+C_TIMER N_TIMER 0 0.1u
+C_INTVCC N_INTVCC 0 1u
+C_VDD33 N_VDD33 0 1u
+
+* ON Pin Divider (Sets UVLO to ~10.5V)
+R_ON1 IN N_ON 100k
+R_ON2 N_ON 0 13k
+
+* FB Pin Divider (Sets Power Good / Foldback threshold to ~10.5V)
+R_FB1 OUT N_FB 100k
+R_FB2 N_FB 0 13k
+
+* Pull-up Resistors for Open-Drain Outputs to INTVCC
+R_PU_FAULT N_INTVCC N_FAULTB 100k
+R_PU_PG N_INTVCC N_PG 100k
+R_PU_ALERT N_INTVCC N_ALERTB 100k
+R_PU_SDAI N_INTVCC N_SDAI 100k
+R_PU_SDAO N_INTVCC N_SDAO 100k
+R_PU_SCL N_INTVCC N_SCL 100k
+R_PU_GPIO1 N_INTVCC N_GPIO1 100k
+R_PU_GPIO2 N_INTVCC N_GPIO2 100k
+R_PU_GPIO3 N_INTVCC N_GPIO3 100k
+
+* Load (12 Ohm resistive load + 1000uF bulk capacitance for inrush)
+R_LOAD OUT 0 12
+C_LOAD OUT 0 1000u
+
+* Transient Analysis (500ms to allow for internal ~100ms debounce and inrush settling)
+.tran 0 500m
+
+.end

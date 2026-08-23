@@ -1,0 +1,25 @@
+* LT6106 high-side current-sense amplifier
+* 100mA through 0.1-ohm shunt on a 12V rail
+* Gain = ROUT/RGAIN = 100k/1k = 100V/V
+* Expected V(OUT) = 0.1A * 0.1ohm * 100 = 1.0V
+
+VRAIL IN 0 12
+RSHUNT IN SENSE 0.1
+ILOAD SENSE 0 DC 100.01m
+
+RGAIN SENSE NIN 1k
+XU1 IN NIN OUT 0 LT6106
+ROUT OUT 0 100k
+
+.tran 0 10m 0 10u
+.meas tran vout_dc AVG V(OUT) FROM 9m TO 10m
+
+* Functional LT6106 macromodel
+* Pins: +IN, gain-resistor input, OUT, V-
+.subckt LT6106 PLUS RINPIN OUT VMINUS
+EBUF RINPIN VMINUS PLUS VMINUS 1
+FOUT OUT VMINUS EBUF 1
+RQ PLUS VMINUS 2.4Meg
+.ends LT6106
+
+.end

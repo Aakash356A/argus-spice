@@ -16,6 +16,12 @@ OPENROUTER_BASE_URL = os.getenv("LLM_BASE_URL", "https://openrouter.ai/api/v1")
 DEFAULT_OPENROUTER_MODEL = os.getenv("LLM_MODEL") or os.getenv("OPENROUTER_MODEL", "openai/gpt-5")
 OPENROUTER_API_KEY = os.getenv("LLM_API_KEY") or os.getenv("OPENROUTER_API_KEY")
 
+_DIRECT_CIRCUIT_REQUEST_RE = re.compile(
+    r"\b(?:give|design|generate|create|make|build|provide|need|want)\b.*"
+    r"\b(?:amplifier|circuit|netlist|filter|oscillator|converter|reference|driver|tia|transimpedance)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+
 
 class UnifiedAgent:
     def __init__(self):
@@ -227,6 +233,8 @@ Analyze the user's request and determine the best course of action.
 1. If the user asks for a SUBSYSTEM or CIRCUIT requiring MULTIPLE ICs (e.g., "voltage reference with buffer", "DAC with filter and amplifier"), you MUST identify ALL required ICs.
 2. Select appropriate ADI parts for each function. Prefer parts from the context list if available.
 3. For multi-IC requests, list each IC separately in the "ic_names" array.
+4. A direct request to give, design, generate, create, make, build, or provide a circuit/netlist is a generation request, never "chat". When secondary design constraints are omitted, make practical assumptions and state them briefly in "reply".
+5. If the requested gain-bandwidth combination needs multiple stages, use "generate_subsystem" and select the stages rather than asking a follow-up question. Use "chat" only for informational questions that do not ask for a circuit or netlist.
 
 Return a **JSON object** (no markdown) with these fields:
 
@@ -257,8 +265,9 @@ Return a **JSON object** (no markdown) with these fields:
         if "error" in plan:
             print(f"Plan Error: {plan['error']}")
             return {
-                "action": "chat", 
-                "reply": "I'm having trouble connecting to my brain. Please check your API key."
+                "action": "chat",
+                "reply": "I'm having trouble connecting to my brain. Please check your API key.",
+                "planner_failed": True,
             }
         
         # Validate all IC names
@@ -268,8 +277,30 @@ Return a **JSON object** (no markdown) with these fields:
         # Backwards compatibility: if old "ic_name" field used
         if "ic_name" in plan and not plan.get("ic_names"):
             plan["ic_names"] = [self._validate_ic_name(plan["ic_name"])]
-            
-        return plan
+
+        return self._normalize_intent_plan(user_query, plan)
+
+    @staticmethod
+    def _is_direct_circuit_request(user_query: str) -> bool:
+        return bool(_DIRECT_CIRCUIT_REQUEST_RE.search(user_query))
+
+    def _normalize_intent_plan(self, user_query: str, plan: Dict) -> Dict:
+        if (
+            plan.get("action") != "chat"
+            or plan.get("planner_failed")
+            or not self._is_direct_circuit_request(user_query)
+        ):
+            return plan
+
+        normalized = dict(plan)
+        normalized["action"] = "generate_from_request"
+        normalized["ic_names"] = []
+        normalized["reply"] = (
+            "The request is a circuit-generation task. I will generate a best-effort "
+            "LTspice netlist using practical assumptions for unspecified constraints. "
+            f"Planner note: {plan.get('reply', '').strip()}"
+        )
+        return normalized
 
     def _generate_single_netlist(self, ic_name: str) -> str:
         """Generate a netlist for a single IC.
@@ -298,6 +329,30 @@ Return a **JSON object** (no markdown) with these fields:
         if isinstance(resp, dict):
             raise Exception(resp.get("error", "LLM netlist generation failed"))
         return resp
+
+    def _generate_netlist_from_request(self, user_query: str, planner_note: str) -> str:
+        resp = self._call_general_llm(
+            "You are a SPICE netlist expert. Output ONLY valid, runnable LTspice "
+            "netlist text with no markdown or explanations.",
+            f"""Generate a complete, runnable LTspice netlist for this direct circuit request:
+{user_query}
+
+The planner gave this feasibility note:
+{planner_note}
+
+The user asked for a netlist, so do not ask follow-up questions. Make clearly stated,
+practical assumptions for unspecified coupling, impedances, supplies, and signal levels.
+If one amplifier cannot meet the requested gain-bandwidth product, implement an
+appropriate cascaded ADI-based design instead. Include sources, supplies, needed
+.lib directives, an analysis directive, and .end. Return only the netlist text.""",
+            json_mode=False,
+        )
+        if isinstance(resp, dict):
+            raise Exception(resp.get("error", "LLM netlist generation failed"))
+        netlist = str(resp).strip()
+        if "```" in netlist:
+            netlist = netlist.replace("```spice", "").replace("```net", "").replace("```", "").strip()
+        return netlist
 
     def _load_template_netlist(self, ic_name: str) -> str:
         """Return the curated application template for ic_name, if present."""
@@ -474,6 +529,16 @@ Start directly with netlist content. Ensure all requested components (capacitors
                 self.last_ic = "+".join(ic_names)
                 result_response["netlist"] = combined_netlist
                 result_response["Summary"] = f"Generated subsystem with {len(ic_names)} ICs: {', '.join(ic_names)}"
+
+            elif action == "generate_from_request":
+                raw_netlist = self._generate_netlist_from_request(
+                    user_query,
+                    plan.get("reply", ""),
+                )
+                self.last_netlist = raw_netlist
+                self.last_ic = None
+                result_response["netlist"] = raw_netlist
+                result_response["Summary"] = "Generated a best-effort netlist from the requested circuit specification."
 
             # ============== MODIFICATION ==============
             elif action == "modify":

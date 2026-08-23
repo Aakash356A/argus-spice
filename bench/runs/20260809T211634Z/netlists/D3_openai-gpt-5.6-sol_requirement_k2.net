@@ -1,0 +1,28 @@
+.include "AD8237.cir"
+
+VCC VCC 0 5
+RREF1 VCC VREF 10k
+RREF2 VREF 0 10k
+CREF VREF 0 10u
+CSUP VCC 0 100n
+
+VSIG IN VREF SINE(0 20m 1k) AC 1
+
+RGSET RG VREF 10k
+RFB OUT FB 90k
+
+XU1 RG VREF IN 0 VREF OUT VCC FB AD8237
+
+RLOAD OUT 0 100k
+CLOAD OUT 0 20p
+
+.tran 0 5m 1m 1u
+.ac dec 100 10 100k
+
+.meas tran vin_pp PP V(IN,VREF) FROM 1m TO 5m
+.meas tran vout_pp PP V(OUT,VREF) FROM 1m TO 5m
+.meas tran gain_db_tran PARAM 20*log10(vout_pp/vin_pp)
+.meas ac gain_db FIND VDB(OUT,VREF) AT=1k
+
+.options plotwinsize=0
+.end

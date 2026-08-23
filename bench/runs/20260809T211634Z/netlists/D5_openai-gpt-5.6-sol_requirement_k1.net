@@ -1,0 +1,24 @@
+* ADR1399H precision reference buffered by LTC6078
+.include "ADR1399H.lib"
+.include "LTC6078.lib"
+
+VINPUT IN 0 15
+RBIAS IN VREF 2k
+
+* ADR1399H pins: VREF, reference ground, heater ground, heater supply
+XREF VREF 0 0 IN ADR1399H
+
+* Floating 5 V supply keeps the LTC6078 within its supply rating
+VEE_SRC VEE 0 4.5
+VCC_SRC VCC VEE 5
+
+* LTC6078 voltage follower: IN+, IN-, V+, V-, OUT
+XBUF VREF OUT VCC VEE OUT LTC6078
+
+RLOAD OUT 0 1k
+
+.tran 0 30 20 1m startup
+.meas tran vout_dc AVG V(OUT) FROM 25 TO 30
+.options plotwinsize=0
+
+.end

@@ -1,0 +1,28 @@
+```spice
+* LT3094 Negative LDO delivering -5V from -7V input
+
+* Input Voltage Source
+V1 IN 0 -7
+
+* Load Resistor (10mA load at -5V)
+Rload OUT 0 500
+
+* LT3094 LDO Subcircuit
+* Standard LTspice Pin Order: IN EN_UVLO PGFB PG ILIM SET VIOC GND OUT
+X1 IN 0 IN IN IN SET IN 0 OUT LT3094
+
+* SET Pin Programming
+* The LT3094 features a precision 100uA current source flowing from GND through Rset.
+* VOUT = -100uA * Rset -> For -5V output, Rset = 50k
+Rset SET 0 50k
+Cset SET 0 10n
+
+* Input and Output Capacitors (with small ESR for simulation stability)
+Cin IN 0 10u Rser=0.01
+Cout OUT 0 10u Rser=0.01
+
+* Transient analysis to allow the LDO to settle to its DC operating point
+.tran 20m
+
+.end
+```

@@ -1,0 +1,20 @@
+* AD8237 Instrumentation Amplifier
+VCC VCC 0 5
+VEE VEE 0 0
+VREF REF 0 2.5
+VBW BW 0 5
+
+V1 IN 0 SINE(0 20m 1k) AC 1
+E1 INP REF IN 0 0.5
+E2 INN REF IN 0 -0.5
+
+X1 BW INP INN VEE REF FB OUT VCC AD8237
+
+R2 OUT FB 9k
+R1 FB REF 1k
+
+.ac dec 10 100 10k
+.tran 0 10m 5m
+.measure ac gain_db FIND VdB(OUT) AT 1k
+
+.end

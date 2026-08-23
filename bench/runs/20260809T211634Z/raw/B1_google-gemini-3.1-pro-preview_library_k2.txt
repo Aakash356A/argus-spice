@@ -1,0 +1,31 @@
+* AD8092 Non-Inverting Amplifier
+.lib ADI.lib
+
+* Power Supplies
+VCC VCC 0 5
+VEE VEE 0 -5
+
+* Input Signal: 100 mV amplitude sine at 1 MHz
+VIN IN 0 SINE(0 100m 1Meg)
+
+* Amplifier Circuit (Gain = 1 + 1k/250 = 5 V/V)
+X1 IN IN_MINUS VCC VEE OUT AD8092
+R1 IN_MINUS 0 250
+R2 OUT IN_MINUS 1k
+RL OUT 0 1k
+
+* Transient Analysis
+.tran 0 10u 0 1n
+
+* Measurements for Gain
+.meas tran in_max MAX V(IN) FROM=5u TO=10u
+.meas tran in_min MIN V(IN) FROM=5u TO=10u
+.meas tran in_pp PARAM in_max-in_min
+
+.meas tran out_max MAX V(OUT) FROM=5u TO=10u
+.meas tran out_min MIN V(OUT) FROM=5u TO=10u
+.meas tran out_pp PARAM out_max-out_min
+
+.meas tran gain_db PARAM 20*log10(out_pp/in_pp)
+
+.end

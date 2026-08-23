@@ -1,0 +1,24 @@
+* ADR1399H precision reference buffered by LTC6078
+.include ADR1399H.lib
+.include LTC6078.lib
+
+VIN     IN      0       DC 15
+VOPP    VDD     0       DC 9.5
+VOPN    VSS     0       DC 4.5
+
+* ADR1399H pins: VZ-, HEATER-, HEATER+, VZ+
+XREF    0       0       IN      REF     ADR1399H
+RBIAS   IN      REF     3.92k
+CREF    REF     0       100n
+
+* LTC6078 pins: OUTA, -INA, +INA, V-, +INB, -INB, OUTB, V+
+XBUF    OUT     OUT     REF     VSS     VSS     UNUSED UNUSED VDD LTC6078
+CDEC    VDD     VSS     100n
+
+RLOAD   OUT     0       1k
+
+.tran 0 30 0 10m startup
+.meas tran VOUT_DC AVG V(OUT) FROM 29 TO 30
+
+.options plotwinsize=0
+.end

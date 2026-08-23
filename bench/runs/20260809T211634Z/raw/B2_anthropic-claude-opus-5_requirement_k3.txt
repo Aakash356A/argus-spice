@@ -1,0 +1,39 @@
+```
+* ADA4177 Inverting Amplifier, Gain = -10 V/V (+20 dB), +/-15 V supplies
+*
+* -------------------------------------------------------------------
+* ADA4177 macromodel (from Analog Devices) is instantiated as a subckt.
+* Pin order of the ADI model: +IN  -IN  V+  V-  OUT
+* Place ADA4177.cir in the simulation directory (or point .include to it).
+* -------------------------------------------------------------------
+.include ADA4177.cir
+
+* ---------------- Supplies ----------------
+VCC VCC 0 DC 15
+VEE VEE 0 DC -15
+
+* ---------------- Signal source ----------------
+* 50 mV amplitude, 1 kHz sine (AC 1 added so a .ac sweep also works)
+VIN IN 0 SINE(0 50m 1k 0 0 0) AC 1
+
+* ---------------- Inverting amplifier ----------------
+RIN  IN   SUMJ 1k
+RF   SUMJ OUT  10k
+X1   0    SUMJ VCC VEE OUT ADA4177
+
+* Light load on the output
+RL   OUT  0    10k
+
+* ---------------- Analyses ----------------
+.tran 0 5m 0 1u
+.ac dec 100 10 10Meg
+
+* ---------------- Measurements ----------------
+.meas TRAN vout_pp PP V(OUT) FROM=1m TO=5m
+.meas TRAN vin_pp  PP V(IN)  FROM=1m TO=5m
+.meas TRAN gain_db PARAM 20*LOG10(vout_pp/vin_pp)
+.meas AC   gain_ac_db MAX V(OUT) ; magnitude at low frequency
+
+.options plotwinsize=0 numdgt=7
+.end
+```

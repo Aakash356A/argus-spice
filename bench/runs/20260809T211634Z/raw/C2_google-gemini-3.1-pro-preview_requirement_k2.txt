@@ -1,0 +1,36 @@
+* ADG5248F Analog Multiplexer Circuit
+V1 VDD 0 15
+V2 VSS 0 -15
+V3 V_EN 0 5
+
+* Input signal: 1 kHz, 500 mV amplitude sine, AC=1 for AC sweep
+V4 IN 0 SINE(0 500m 1k) AC 1
+
+* ADG5248F instance
+* Pin order: S1 S2 S3 S4 S5 S6 S7 S8 D A0 A1 A2 EN VDD VSS GND FF SF
+X1 IN NC2 NC3 NC4 NC5 NC6 NC7 NC8 OUT 0 0 0 V_EN VDD VSS 0 FF SF ADG5248F
+
+* Terminate unused source pins to prevent floating node warnings
+R_NC2 NC2 0 1G
+R_NC3 NC3 0 1G
+R_NC4 NC4 0 1G
+R_NC5 NC5 0 1G
+R_NC6 NC6 0 1G
+R_NC7 NC7 0 1G
+R_NC8 NC8 0 1G
+
+* Pull-ups for open-drain fault flags
+R_FF FF V_EN 10k
+R_SF SF V_EN 10k
+
+* Load
+R_LOAD OUT 0 1Meg
+
+* Analysis: AC sweep at 1 kHz to measure gain
+.ac list 1k
+
+* Measure gain in dB
+.meas ac gain_lin FIND mag(V(OUT)) AT 1k
+.meas ac gain_db param 20*log10(gain_lin + 1e-15)
+
+.end

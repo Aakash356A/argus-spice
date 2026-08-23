@@ -1,0 +1,27 @@
+* AD8237 instrumentation amplifier, G = 10 V/V, single 5 V supply
+VCC VCC 0 5
+RREF1 VCC VREF 100k
+RREF2 VREF 0 100k
+CREF VREF 0 1u
+CSUP VCC 0 100n
+
+* 20 mV peak differential input at 1 kHz
+VIN IN 0 DC 2.5 AC 20m SINE(2.5 20m 1k)
+
+* AD8237 functional model: +IN, -IN, REF, OUT, +VS, -VS
+XU1 IN VREF VREF OUT VCC 0 AD8237 G=10
+
+.tran 0 5m 0 1u
+.ac dec 100 10 100k
+
+.meas AC VIN_MAG FIND mag(V(IN)) AT=1k
+.meas AC VOUT_MAG FIND mag(V(OUT)) AT=1k
+.meas AC GAIN_DB PARAM 20*log(VOUT_MAG/VIN_MAG)
+
+.subckt AD8237 INP INN REF OUT VDD VSS PARAMS: G=10
+BAMP OUT 0 V=limit(V(REF)+{G}*(V(INP)-V(INN)),V(VSS)+20m,V(VDD)-20m)
+RINP INP VSS 1G
+RINN INN VSS 1G
+.ends AD8237
+
+.end

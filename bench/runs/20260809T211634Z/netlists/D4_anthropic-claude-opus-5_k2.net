@@ -1,0 +1,42 @@
+* LT6106 High-Side Current Sense Amplifier
+* 100 mA load, 0.1 ohm shunt on a 12 V rail
+* Vsense = 100mA * 0.1ohm = 10mV ; Gain = Rout/Rin = 10k/100 = 100 -> VOUT = 1.0 V
+*-------------------------------------------------------------------
+
+*** Power rail and shunt ***
+VS      VS   0    DC 12
+Rshunt  VS   IN   0.1          ; sense resistor (0.1 ohm, 12V rail)
+Iload   IN   0    DC 100m      ; 100 mA load current (IN = load side of shunt)
+
+*** Gain-setting network (real-design values) ***
+Rin     IN   INM  100          ; input resistor from load side of shunt to -IN
+Rout    OUT  0    10k          ; output/gain resistor, gain = Rout/Rin = 100
+Cfilt   OUT  0    100p         ; small output filter cap (noise / stability)
+
+*** Current sense amplifier ***
+* Pin order: +IN  -IN  OUT  V-
+X1      VS   INM  OUT  0   LT6106
+
+*-------------------------------------------------------------------
+* LT6106 macromodel (transconductance loop forces V(-IN) = V(+IN);
+* the resulting Rin current is mirrored out of the OUT pin, both
+* supplied from the +IN pin, as in the real device).
+*-------------------------------------------------------------------
+.subckt LT6106 INP INM OUT VM
+Bsense  INP INM I = limit(1e3*(V(INP)-V(INM)-100u), 0, 1.5m)   ; includes ~100uV Vos
+Bmirror INP OUT I = limit(1e3*(V(INP)-V(INM)-100u), 0, 1.5m)
+Rinp    INP VM  10G
+Ribm    INM VM  10G
+Cinm    INM VM  5p
+Cout    OUT VM  5p
+Rleak   OUT VM  100G
+.ends LT6106
+
+*-------------------------------------------------------------------
+*** Analysis ***
+.tran 0 2m 0 1u
+.meas TRAN vout_dc AVG V(OUT) FROM 1m TO 2m
+.meas TRAN vsense  AVG (V(VS)-V(IN)) FROM 1m TO 2m
+
+.options plotwinsize=0 reltol=1e-4
+.end

@@ -1,0 +1,42 @@
+```
+* AD8237 Instrumentation Amplifier -- G = +10 V/V, single 5 V supply
+* 20 mV amplitude differential sine at 1 kHz, REF = mid-supply (2.5 V)
+* -------------------------------------------------------------------
+.lib AD8237.lib
+
+* ---------------- Supplies / references ----------------
+VCC   VCC  0   DC 5
+VREF  REF  0   DC 2.5            ; mid-supply reference (ideal low-Z source)
+
+* ---------------- Differential input drive ----------------
+* Node IN is the +IN terminal; -IN is tied to the 2.5 V common-mode node,
+* so Vdiff = V(IN) - 2.5 V = 20 mV amplitude sine at 1 kHz.
+VIN   IN   REF  SINE(0 20m 1k 0 0 0) AC 1
+
+* ---------------- AD8237 in-amp ----------------
+* Subcircuit pin order: +IN  -IN  FB  REF  +VS  -VS  OUT
+X1    IN   REF  FB   REF  VCC  0   OUT  AD8237
+
+* ---------------- Gain-setting feedback network ----------------
+* Gain = 1 + RF/RG = 1 + 9k/1k = 10 V/V (20 dB)
+RG    FB   REF  1k
+RF    OUT  FB   9k
+
+* ---------------- Load / supply decoupling ----------------
+RL    OUT  REF  10k
+CL    OUT  REF  100p
+CBYP  VCC  0    100n
+
+* ---------------- Analysis ----------------
+.tran 0 5m 0 1u
+
+* ---------------- Measurements ----------------
+.meas TRAN vopp  PP V(OUT)     FROM 1m TO 5m
+.meas TRAN vipp  PP V(IN)      FROM 1m TO 5m
+.meas TRAN gain      PARAM vopp/vipp
+.meas TRAN gain_db   PARAM 20*log10(vopp/vipp)
+.meas TRAN voutdc AVG V(OUT)   FROM 1m TO 5m
+
+.options plotwinsize=0
+.end
+```

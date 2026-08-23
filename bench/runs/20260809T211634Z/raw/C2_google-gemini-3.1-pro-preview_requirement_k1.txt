@@ -1,0 +1,36 @@
+```spice
+* ADG5248F Multiplexer Test
+
+* Power Supplies (+/- 15V)
+V_VDD VDD 0 15
+V_VSS VSS 0 -15
+
+* Logic Supply / Enable (5V)
+V_EN V_EN 0 5
+
+* Input Signal: 1 kHz, 500 mV amplitude sine
+V1 IN 0 SINE(0 0.5 1k)
+
+* ADG5248F Subcircuit Instantiation
+* Typical ADI LTspice pinout follows the TSSOP package (ignoring NCs):
+* 1:A0 2:A1 3:EN 4:VSS 5:S1 6:S2 7:S3 8:S4 9:D 10:S8 11:S7 12:S6 13:S5 14:VDD 15:GND 16:FF 17:SF 18:A2
+* Channel 1 selected by driving A0=0, A1=0, A2=0, and EN=5V
+X1 0 0 V_EN VSS IN 0 0 0 OUT 0 0 0 0 VDD 0 FF SF 0 ADG5248F
+
+* Pull-up resistors for open-drain fault flags (FF and SF)
+R_FF FF V_EN 10k
+R_SF SF V_EN 10k
+
+* High impedance load to ensure ~0 dB gain (ADG5248F typical Ron is ~335 ohms)
+RL OUT 0 1Meg
+
+* Transient Analysis
+.tran 0 5m
+
+* Measurements for Gain in dB
+.measure tran Vout_pk MAX V(OUT) from=2m to=5m
+.measure tran Vin_pk MAX V(IN) from=2m to=5m
+.measure tran gain_db param 20*log10(Vout_pk/Vin_pk)
+
+.end
+```

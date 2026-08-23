@@ -1,0 +1,35 @@
+* LTC6078 Unity-Gain Voltage Follower (Single 5 V Supply)
+* 1 kHz, 100 mVp sine input, 10 k load
+* Primary input node: IN     Primary output node: OUT
+
+.lib LTC6078.sub
+
+* ---------------- Supplies ----------------
+VCC   VCC   0   DC 5
+* Mid-supply reference for single-supply operation
+VBIAS VMID  0   DC 2.5
+
+* ---------------- Input source ----------------
+* 1 kHz, 100 mV amplitude sine centered on mid-supply (2.5 V)
+VIN   IN    VMID  SINE(0 0.1 1k 0 0 0) AC 1
+
+* ---------------- LTC6078 unity-gain buffer ----------------
+* Pin order: In+  In-  V+  V-  Out
+XU1   IN   OUT   VCC   0   OUT   LTC6078
+
+* ---------------- Load ----------------
+RL    OUT  0     10k
+
+* ---------------- Analysis ----------------
+* 5 ms = 5 cycles at 1 kHz; skips no data so gain can be measured
+.tran 0 5m 0 1u
+* Alternative small-signal check (enable instead of .tran if desired):
+* .ac dec 100 10 10Meg
+
+.options plotwinsize=0 numdgt=7
+
+.meas TRAN vin_pp  PP V(IN)  FROM 1m TO 5m
+.meas TRAN vout_pp PP V(OUT) FROM 1m TO 5m
+.meas TRAN gain_db PARAM 20*log10(vout_pp/vin_pp)
+
+.end

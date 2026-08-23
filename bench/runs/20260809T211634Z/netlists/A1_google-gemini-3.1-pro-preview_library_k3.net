@@ -1,0 +1,31 @@
+* LT3045-1 3.3V LDO Regulator
+.lib LT3045-1.sub
+
+* Input Supply (5V)
+V1 IN 0 5
+C1 IN 0 10u
+
+* LT3045-1 Subcircuit Instantiation
+* Pin Order: IN EN_UV PG ILIM VIOC SET GND OUTS OUT
+X1 IN IN PG 0 NC_VIOC SET 0 OUT OUT LT3045-1
+
+* SET Pin Programming (VOUT = 100uA * R_SET)
+* For 3.3V output: R_SET = 3.3V / 100uA = 33kOhm
+R_SET SET 0 33k
+* Small SET capacitor for stability and fast simulation settling
+C_SET SET 0 1n
+
+* Power Good Pull-up
+R_PG IN PG 100k
+
+* VIOC Pin (Floating, tied to dummy 1G resistor to prevent floating node errors)
+R_VIOC NC_VIOC 0 1G
+
+* Output Capacitance and Load (100mA at 3.3V -> 33 Ohms)
+C_OUT OUT 0 10u
+R_LOAD OUT 0 33
+
+* Transient Analysis to measure DC settled output
+.tran 0 2m
+
+.end

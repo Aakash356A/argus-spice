@@ -1,0 +1,28 @@
+```spice
+* ADG711 Analog Switch Test
+.lib ADG711.sub
+
+* Power Supply (Single 5V supply)
+V_VDD VDD 0 5V
+
+* Analog Input Signal
+V_IN IN 0 2V
+
+* Control Signal (Logic 0 closes the switch for ADG711)
+V_CTRL CTRL 0 0V
+
+* Load Resistor
+R_LOAD OUT 0 10k
+
+* ADG711 Quad SPST Switch Instantiation
+* Standard 16-pin DIP/SOIC/TSSOP Pinout:
+* 1:IN1  2:D1  3:S1  4:VSS  5:GND  6:S4  7:D4  8:IN4 
+* 9:IN3 10:D3 11:S3 12:NC  13:VDD 14:S2 15:D2 16:IN2
+* Unused switches (2, 3, 4) and NC are safely grounded.
+X1 CTRL OUT IN 0 0 0 0 0 0 0 0 0 VDD 0 0 0 ADG711
+
+* Analysis Directive
+.tran 1m
+
+.end
+```

@@ -1,0 +1,29 @@
+* ADG5248F Multiplexer Test Netlist
+
+* Power Supplies
+Vdd VDD 0 15
+Vss VSS 0 -15
+
+* Logic Control (EN = High, A0=A1=A2 = Low to select Channel 1)
+Ven EN 0 5
+Va0 A0 0 0
+Va1 A1 0 0
+Va2 A2 0 0
+
+* Input Signal (1 kHz, 500 mV amplitude sine wave)
+Vin IN 0 SINE(0 500m 1k) AC 1
+
+* ADG5248F Instance
+* Pin order typical for ADI 8:1 Fault-Protected Muxes: 
+* S1 S2 S3 S4 S5 S6 S7 S8 D A0 A1 A2 EN VDD VSS GND FF
+X1 IN NC2 NC3 NC4 NC5 NC6 NC7 NC8 OUT A0 A1 A2 EN VDD VSS GND FF ADG5248F
+
+* Load and Pull-up for Fault Flag (open-drain)
+Rload OUT 0 100k
+Rff FF EN 10k
+
+* Analysis Directives
+.tran 0 5m
+.ac dec 10 100 100k
+
+.end

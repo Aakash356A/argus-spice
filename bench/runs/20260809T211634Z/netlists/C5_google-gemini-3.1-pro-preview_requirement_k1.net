@@ -1,0 +1,41 @@
+* LTC4281 Hot-Swap Controller Netlist
+V1 IN 0 PWL(0 0 1m 12)
+C_in IN 0 10u
+
+* Power Path
+R_sense IN SENSEN 0.01
+M1 SENSEN GATE OUT OUT N_MOS
+C_gate GATE OUT 10n
+
+* Load
+R_load OUT 0 10
+C_load OUT 0 100u
+
+* UV/ON Divider (Threshold ~1.245V, set for ~9.5V turn-on)
+R1 IN UV_ON 100k
+R2 UV_ON 0 15k
+
+* Timing and Bypassing
+C_timer TIMER 0 0.01u
+C_vdd33 VDD33 0 1u
+C_refout REFOUT 0 0.1u
+
+* Digital Pull-ups
+R_fault FAULTB VDD33 10k
+R_pg PGB VDD33 10k
+R_int INTB VDD33 10k
+R_sdao SDAO VDD33 10k
+R_scl SCL VDD33 10k
+R_sdai SDAI VDD33 10k
+
+* LTC4281 Subcircuit Instance
+* Pins: VDD SENSEP SENSEN GATE SOURCE OUT GND UV OV ON TIMER FAULTB PGB INTB SCL SDAI SDAO ADIN ADR0 ADR1 ADR2 WP EE_VCC VDD33 REFOUT REF_SEL
+X1 IN IN SENSEN GATE OUT OUT 0 UV_ON 0 UV_ON TIMER FAULTB PGB INTB SCL SDAI SDAO 0 0 0 0 0 VDD33 VDD33 REFOUT 0 LTC4281
+
+* MOSFET Model
+.model N_MOS VDMOS(Vto=2.5 Kp=50 Rs=2m Rd=2m Rg=1 Cgdmax=1n Cgdmin=0.2n Cgs=2n Cjo=1n)
+
+* Analysis: Run long enough to cover the ~100ms internal debounce and turn-on time
+.tran 0 0.4
+
+.end

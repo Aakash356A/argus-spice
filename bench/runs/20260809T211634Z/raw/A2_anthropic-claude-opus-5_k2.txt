@@ -1,0 +1,45 @@
+```
+* ADP7118 CMOS LDO -- 3.3 V IN, 1.8 V OUT @ 50 mA (behavioral macromodel)
+*------------------------------------------------------------------
+* Top-level application circuit
+*------------------------------------------------------------------
+VIN   IN  0   DC 3.3
+Cin   IN  0   1u   Rser=20m          ; input decoupling
+XU1   IN  OUT IN  0   ADP7118        ; VIN VOUT EN GND (EN tied to IN)
+Cout  OUT 0   1u   Rser=10m          ; output decoupling
+Rload OUT 0   36                     ; 1.8 V / 36 ohm = 50 mA
+
+*------------------------------------------------------------------
+* Behavioral ADP7118 model:
+*   1.8 V fixed internal reference, gm error amplifier with dominant
+*   pole, PMOS pass element (Rds(on) ~ 0.5 ohm) with 200 mA current
+*   limit, quiescent current and EN control.
+*------------------------------------------------------------------
+.subckt ADP7118 VIN VOUT EN GND
+* internal 1.8 V reference
+Vref  REF GND 1.8
+Rrefl REF GND 1G
+* error amplifier (transconductance) + dominant pole
+Gerr  GND ERR VALUE={ IF(V(EN,GND)>1.2, 3e-5*(V(REF,GND)-V(VOUT,GND)), 0) }
+Rerr  ERR GND 1Meg
+Cerr  ERR GND 0.16u
+* PMOS pass element: current limited (0.2 A) and dropout limited
+Bpass VIN VOUT I={ IF(V(EN,GND)>1.2,
++                    MIN( LIMIT(V(ERR,GND),0,0.2),
++                         MAX(V(VIN,GND)-V(VOUT,GND),0)/0.5 ), 0) }
+* ground-current / quiescent current
+Iq    VIN GND 55u
+* output leakage / pull-down path
+Rpd   VOUT GND 2Meg
+.ends ADP7118
+
+*------------------------------------------------------------------
+* Analysis
+*------------------------------------------------------------------
+.tran 0 20m 0 5u
+.meas TRAN vout_dc AVG V(OUT) FROM 15m TO 20m
+.meas TRAN vin_dc  AVG V(IN)  FROM 15m TO 20m
+.meas TRAN iload   AVG I(Rload) FROM 15m TO 20m
+.options plotwinsize=0
+.end
+```

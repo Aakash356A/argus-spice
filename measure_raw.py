@@ -38,6 +38,21 @@ def _normalize_trace_name(node: str) -> str:
     return f"V({name})"
 
 
+def _split_differential_voltage_expression(node: str):
+    """Return voltage operands for ``Vin+-Vin-`` or ``V(Vin+)-V(Vin-)``."""
+    expression = node.strip()
+    if expression.lower().startswith("i("):
+        return None
+
+    positive, separator, negative = expression.partition("-")
+    if not separator or not positive.strip() or not negative.strip():
+        return None
+
+    if positive.strip().lower().startswith("i(") or negative.strip().lower().startswith("i("):
+        return None
+    return positive.strip(), negative.strip()
+
+
 def _get_trace(traces, node: str, case: int = 0) -> np.ndarray:
     """Lookup of a trace by node/component name.
 
@@ -47,12 +62,34 @@ def _get_trace(traces, node: str, case: int = 0) -> np.ndarray:
     confusing TypeError happen later on a None value.
 
     Accepts either a bare node name (`"out"`) or an explicit trace name
-    (`"V(out)"`, `"I(R1)"`).
+    (`"V(out)"`, `"I(R1)"`), plus a differential voltage expression such
+    as `"Vin+-Vin-"` or `"V(Vin+)-V(Vin-)"`.
     """
     wanted = _normalize_trace_name(node)
     data = traces.get_data(wanted, case=case)
     if data is not None:
         return data
+
+    differential = _split_differential_voltage_expression(node)
+    if differential:
+        positive, negative = differential
+        positive_wanted = _normalize_trace_name(positive)
+        negative_wanted = _normalize_trace_name(negative)
+        positive_data = traces.get_data(positive_wanted, case=case)
+        negative_data = traces.get_data(negative_wanted, case=case)
+        if positive_data is not None and negative_data is not None:
+            return positive_data - negative_data
+
+        missing = []
+        if positive_data is None:
+            missing.append(positive_wanted)
+        if negative_data is None:
+            missing.append(negative_wanted)
+        available = list(getattr(traces, "variables", []) or [])
+        raise MeasurementError(
+            f"Differential trace '{node}' is missing {', '.join(missing)}. "
+            f"Available traces: {available}"
+        )
 
     available = list(getattr(traces, "variables", []) or [])
     raise MeasurementError(

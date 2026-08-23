@@ -1,0 +1,25 @@
+* LT3045-1 3.3V LDO Regulator
+VIN IN 0 5
+CIN IN 0 10u
+
+* LT3045-1 Subcircuit Instantiation
+* Pins: IN, EN/UV, PG, ILIM, VIOC, SET, GND, OUTS, OUT
+X1 IN IN NC_PG 0 0 SET 0 OUT OUT LT3045-1
+
+* Pull-up for Power Good (PG) to avoid floating node
+RPG IN NC_PG 100k
+
+* SET pin programming: 100uA * 33k = 3.3V
+RSET SET 0 33k
+* Small SET capacitor for fast simulation startup (~0.33ms)
+CSET SET 0 10n
+
+* Output capacitor (10uF minimum required for stability)
+COUT OUT 0 10u
+
+* 100mA Resistive Load (3.3V / 100mA = 33 Ohms)
+RLOAD OUT 0 33
+
+* Transient analysis to allow the output to settle
+.tran 10m
+.end

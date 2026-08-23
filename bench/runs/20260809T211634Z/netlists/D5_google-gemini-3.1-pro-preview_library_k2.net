@@ -1,0 +1,28 @@
+* Precision reference subsystem using ADR1399H and LTC6078
+* Primary input node: IN (15V supply)
+* Primary output node: OUT (7.05V buffered reference)
+
+* 15V DC Supply
+V1 IN 0 15
+
+* Zener Bias Resistor (Targeting ~3mA: (15V - 7.05V) / 2.67k = 2.97mA)
+R1 IN Z_node 2.67k
+
+* ADR1399H Subcircuit
+* Pin order (typical for LM399/ADR1399): Zener+, Zener-, Heater+, Heater-
+X1 Z_node 0 IN 0 ADR1399H
+
+* LTC6078 Op-Amp Buffer (Unity Gain Configuration)
+* Pin order: IN+, IN-, V+, V-, OUT
+X2 Z_node OUT IN 0 OUT LTC6078
+
+* 1k Load on the output
+Rload OUT 0 1k
+
+* Load the manufacturer's library for the ADR1399H
+.lib ADR1399H.sub
+
+* Transient analysis to allow the heater thermal model and output to settle
+.tran 1
+
+.end

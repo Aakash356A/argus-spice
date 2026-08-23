@@ -1,0 +1,27 @@
+* LT3094 Negative LDO Regulator -5V Output
+VIN IN 0 -7
+CIN IN 0 10u
+COUT OUT 0 10u
+
+* LT3094 Subcircuit Invocation
+* Pin Order: IN, EN/UVLO, PG, ILIM, PGFB, VIOC, SET, GND, OUTS, OUT
+XU1 IN IN PG ILIM OUT OUT SET 0 OUT OUT LT3094
+
+* ILIM resistor (10k sets current limit to 500mA)
+RILIM ILIM 0 10k
+
+* PG open-collector pull-down (PG pulls to IN when bad, high-Z when good; pulling to GND is safe)
+RPG PG 0 100k
+
+* SET pin programming resistor (VOUT = -100uA * RSET -> 50k gives -5.0V)
+RSET SET 0 50k
+* SET pin capacitor for noise reduction and soft-start (~1ms soft-start time)
+CSET SET 0 10n
+
+* Light resistive load (500 ohms draws 10mA, satisfying the 5mA minimum load requirement)
+RLOAD OUT 0 500
+
+* Simulation directive to measure settled DC output
+.tran 10m
+
+.end

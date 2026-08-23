@@ -1,0 +1,53 @@
+```
+* ADA4177 Inverting Amplifier, Gain = -10 V/V (20 dB), +/-15 V supplies
+* -------------------------------------------------------------------
+* Signal source: 50 mV amplitude, 1 kHz sine
+V1 IN 0 SINE(0 50m 1k) AC 1
+
+* Split supplies
+VCC VCC 0 DC 15
+VEE VEE 0 DC -15
+
+* Gain setting network:  Av = -R2/R1 = -10k/1k = -10 V/V (20 dB)
+R1 IN N1 1k
+R2 N1 OUT 10k
+
+* Op amp: non-inverting input grounded, inverting input is summing node
+XU1 0 N1 VCC VEE OUT ADA4177
+
+* Light load
+RL OUT 0 10k
+
+* -------------------------------------------------------------------
+* ADA4177 behavioral macromodel
+* Pin order: 1=+IN  2=-IN  3=V+  4=V-  5=OUT
+* Aol ~ 1e6 (120 dB), GBW ~ 3.5 MHz, rail-to-rail limited output
+* -------------------------------------------------------------------
+.subckt ADA4177 1 2 3 4 5
+RIN 1 2 1T
+CIN 1 2 5p
+* Input bias current (typ. 0.5 nA)
+IB1 1 0 0.5n
+IB2 2 0 0.5n
+* Open-loop gain stage with output-swing clamping to the supplies
+BGM 6 0 V=LIMIT(1E6*V(1,2), V(4)+0.2, V(3)-0.2)
+* Dominant pole: fp = 1/(2*pi*1k*45.5u) = 3.5 Hz  -> GBW = 3.5 MHz
+RP 6 7 1k
+CP 7 0 45.5u
+* Unity-gain output buffer with 25 ohm output impedance
+EBUF 8 0 7 0 1
+RO 8 5 25
+.ends ADA4177
+
+* -------------------------------------------------------------------
+* Analysis: transient (5 periods of 1 kHz) for gain measurement
+* -------------------------------------------------------------------
+.tran 0 5m 0 1u
+
+.meas TRAN vin_pp  PP V(IN)  FROM=1m TO=5m
+.meas TRAN vout_pp PP V(OUT) FROM=1m TO=5m
+.meas TRAN gain_db PARAM 20*LOG10(vout_pp/vin_pp)
+
+.options plotwinsize=0 numdgt=7
+.end
+```

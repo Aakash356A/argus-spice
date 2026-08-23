@@ -1,0 +1,21 @@
+* ADP7118 adjustable LDO: 3.3 V input, 1.8 V output, 50 mA load
+* Uses the genuine Analog Devices ADP7118 SPICE macro-model.
+.include ADP7118.cir
+
+VINPUT IN 0 3.3
+CIN IN 0 2.2u Rser=20m
+
+* ADP7118 model pin order: VIN GND EN SENSE/ADJ VOUT
+XU1 IN 0 IN FB OUT ADP7118
+
+* VOUT = 1.2 V * (1 + RFB_TOP/RFB_BOTTOM) = 1.8 V
+RFB_TOP OUT FB 10k
+RFB_BOTTOM FB 0 20k
+
+COUT OUT 0 2.2u Rser=20m
+RLOAD OUT 0 36
+
+.tran 0 10m 0 1u startup
+.meas tran vout_dc AVG V(OUT) FROM 9m TO 10m
+
+.end

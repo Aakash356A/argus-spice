@@ -1,0 +1,21 @@
+* ADA4177 Inverting Amplifier
+Vin IN 0 SINE(0 50m 1k) AC 1
+Vcc VCC 0 15
+Vee VEE 0 -15
+
+Rin IN N_inv 10k
+Rf N_inv OUT 100k
+
+* Genuine ADA4177 Op-Amp Subcircuit (IN+ IN- V+ V- OUT)
+X1 0 N_inv VCC VEE OUT ADA4177
+
+* Analysis directives
+.tran 0 5m 0 1u
+.ac dec 10 10 100k
+
+* Measurements for numeric targets
+.meas tran vin_pp PP V(IN) FROM 2m TO 5m
+.meas tran vout_pp PP V(OUT) FROM 2m TO 5m
+.meas tran gain_db PARAM 20*log10(vout_pp/vin_pp)
+
+.end

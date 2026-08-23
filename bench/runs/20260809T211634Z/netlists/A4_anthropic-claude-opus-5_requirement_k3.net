@@ -1,0 +1,32 @@
+* ADR1399H Precision 7.05V Buried-Zener Voltage Reference
+* -------------------------------------------------------
+* 15 V supply -> series bias resistor -> ADR1399H zener output (OUT)
+* Output bypass capacitor + light (70 uA) load
+*
+* ADR1399H pin order in ADI model: (1) HEATER+  (2) CATHODE/OUT  (3) ANODE  (4) HEATER-
+* -------------------------------------------------------
+
+.include ADR1399H.cir
+
+* ---------------- Supply ----------------
+V1 IN 0 DC 15
+
+* ------------- Bias network -------------
+* Sets zener current: (15 - 7.05)/7.87k ~ 1.0 mA
+R1 IN OUT 7.87k
+
+* ------------ Reference device ----------
+XREF IN OUT 0 0 ADR1399H
+
+* --------- Output bypass and load -------
+C1 OUT 0 1u
+RL OUT 0 100k
+
+* -------------- Analysis ----------------
+.tran 0 100m 0 20u uic
+
+.meas TRAN vout_dc AVG V(OUT) FROM 80m TO 100m
+.meas TRAN izener AVG I(R1) FROM 80m TO 100m
+
+.options plotwinsize=0 gmin=1e-12 reltol=1e-4
+.end

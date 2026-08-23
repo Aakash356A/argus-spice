@@ -1,0 +1,38 @@
+```
+* LT3094 Negative LDO: -7 V IN  ->  -5.0 V OUT
+* ----------------------------------------------------------------
+* Vout = -50uA * Rset  =>  Rset = 100k for -5.0 V
+* ----------------------------------------------------------------
+
+* --- Model library for the genuine LT3094 macromodel ---
+.include LT3094.lib
+
+* --- Negative input supply (soft ramp to aid start-up) ---
+V1 IN 0 PWL(0 0 500u -7 10m -7)
+
+* --- Input / output capacitors ---
+CIN  IN  0 1u
+COUT OUT 0 10u
+
+* --- Light resistive load: -5 V / 1k = 5 mA ---
+RL OUT 0 1k
+
+* --- Output voltage programming resistor (SET pin to GND) ---
+RSET SET 0 100k
+
+* --- Power-good pull-down (PG is open collector, unused here) ---
+RPG PG 0 100k
+
+* --- LT3094 negative LDO ---
+* pin order: IN  OUT  OUTS  SET  ILIM  EN/UV  PGFB  PG  GND
+XU1 IN OUT OUT SET ILIM IN 0 PG 0 LT3094
+
+* --- Analysis ---
+.tran 0 10m 0 5u
+.meas TRAN vout_dc AVG V(OUT) FROM=8m TO=10m
+.meas TRAN vout_final FIND V(OUT) AT=10m
+
+.options plotwinsize=0 gmin=1e-12 reltol=1e-4
+
+.end
+```

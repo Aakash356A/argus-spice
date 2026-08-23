@@ -1,0 +1,57 @@
+* LT8710 synchronous SEPIC converter: 24V input, 12V output
+.include LT8710.sub
+
+VINPUT IN 0 24
+
+* Input filtering and UVLO/enable
+CIN1 IN 0 100u Rser=25m
+CIN2 IN 0 1u Rser=20m
+REN1 IN ENFB 100k
+REN2 ENFB 0 10k
+
+* SEPIC power stage
+L1 IN SW1 15u Rser=25m
+CSEP SW1 SW2 22u Rser=20m
+L2 SW2 0 15u Rser=25m
+
+MMAIN SW1 GATE1 ISENSE ISENSE NMOS_POWER
+RSENSE ISENSE 0 20m
+MSYNC SW2 GATE2 OUT OUT PMOS_POWER
+
+.model NMOS_POWER VDMOS(Vto=2.5 Kp=70 Rd=8m Rs=5m Rg=2 Cgdmax=1n Cgdmin=100p Cgs=2n)
+.model PMOS_POWER VDMOS(Pchan Vto=-2.5 Kp=50 Rd=12m Rs=7m Rg=2 Cgdmax=1n Cgdmin=100p Cgs=2n)
+
+* Output filter and resistive load
+COUT1 OUT 0 220u Rser=25m
+COUT2 OUT 0 10u Rser=15m
+RLOAD OUT 0 12
+
+* 1.2V feedback reference: 12V nominal output
+RFBTOP OUT FB 90k
+RFBBOT FB 0 10k
+
+* Compensation and soft start
+RVC VC VCOMP 15k
+CVC VCOMP 0 10n
+CHF VC 0 100p
+CSS SS 0 47n
+
+* Switching frequency programming and operating mode
+RRT RT 0 88.7k
+RSYNC SYNC 0 10k
+RMODE INTVCC MODE 10k
+
+* Internal regulator bypass and bias
+CINTVCC INTVCC 0 4.7u
+RBIAS OUT BIAS 1
+RPG OUT PG 100k
+
+* Genuine LT8710 macromodel
+* Pin order: VIN EN/FBIN GATE1 GATE2 CSP CSN FB VC SS RT SYNC MODE INTVCC BIAS PG GND
+XU1 IN ENFB GATE1 GATE2 ISENSE 0 FB VC SS RT SYNC MODE INTVCC BIAS PG 0 LT8710
+
+.tran 0 50m 0 100n startup
+.meas tran VOUT_DC AVG V(OUT) FROM 45m TO 50m
+
+.options plotwinsize=0
+.end

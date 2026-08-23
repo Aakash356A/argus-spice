@@ -1,0 +1,18 @@
+* AD8551 Non-inverting Amplifier
+Vdd VDD 0 5
+V1 IN 0 SINE(2.5 10m 1k)
+
+X1 IN FB VDD 0 OUT AD8551
+R1 OUT FB 99k
+R2 FB N1 1k
+C1 N1 0 1000u
+
+.lib ADI1.lib
+.lib ADI.lib
+
+.tran 0 10m 0 1u
+.meas tran Vout_pp PP V(OUT) FROM=5m TO=10m
+.meas tran Vin_pp PP V(IN) FROM=5m TO=10m
+.meas tran gain_db param 20*log10(Vout_pp/Vin_pp)
+
+.end

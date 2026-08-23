@@ -1,0 +1,35 @@
+* LTC6078 Unity-Gain Voltage Follower, single 5 V supply
+* 1 kHz, 100 mV amplitude sine input, 10 k load
+*
+* ---- Genuine ADI/LT device model (LTspice standard library) ----
+.include LTC6078.sub
+* (if your install indexes it as a library, use instead:  .lib LTC6078.sub)
+
+* ---- Supplies ----
+VCC VCC 0 DC 5
+* mid-supply reference not needed: input source carries its own 2.5 V bias
+
+* ---- Input source: 2.5 V DC bias + 100 mV, 1 kHz sine (AC=1 for optional .ac) ----
+VIN IN 0 SINE(2.5 0.1 1k 0 0 0) AC 1
+
+* ---- LTC6078 (one half of the dual) wired as unity-gain follower ----
+* Pin order: IN+  IN-  V+  V-  OUT
+XU1 IN OUT VCC 0 OUT LTC6078
+
+* ---- Load ----
+RL OUT 0 10k
+
+* ---- Analysis: transient with SINE source lets gain be measured ----
+.tran 0 5m 0 1u
+
+* Optional small-signal check (uncomment ONE analysis at a time)
+*.ac dec 100 10 10Meg
+
+* ---- Measurements ----
+.meas TRAN vin_pp PP V(IN) FROM 1m TO 5m
+.meas TRAN vout_pp PP V(OUT) FROM 1m TO 5m
+.meas TRAN gain_db PARAM 20*log10(vout_pp/vin_pp)
+.meas TRAN vout_dc AVG V(OUT) FROM 1m TO 5m
+
+.options plotwinsize=0
+.end

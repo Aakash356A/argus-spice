@@ -1,0 +1,25 @@
+* LT3045-1, 5 V input to 3.3 V output at 100 mA
+
+V1 IN 0 5
+CIN IN 0 10u
+
+VEN EN 0 5
+RSET SET 0 33k
+CSET SET 0 10n
+
+XU1 IN OUT SET EN 0 LT3045_1
+
+COUT OUT 0 10u
+RLOAD OUT 0 33
+
+.subckt LT3045_1 IN OUT SET EN GND
+ISET GND SET DC 100u
+BREG NREG GND V=if(V(EN,GND)>1,limit(V(SET,GND),0,V(IN,GND)-0.2),0)
+ROUT NREG OUT 1m
+RIN IN GND 2.5k
+.ends LT3045_1
+
+.tran 0 10m 0 10u
+.meas tran vout_dc FIND V(OUT) AT=10m
+
+.end

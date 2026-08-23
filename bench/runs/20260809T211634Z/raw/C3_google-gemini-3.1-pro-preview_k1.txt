@@ -1,0 +1,39 @@
+* LT8710 24V to 12V Synchronous SEPIC Converter
+V1 IN 0 24
+C_IN IN 0 10u
+L1 IN SW1 22u
+C1 SW1 SW2 4.7u
+L2 SW2 0 22u
+
+* Primary N-channel switch
+M1 SW1 N_BG N_CSP 0 NCH
+R_SENSE N_CSP 0 0.01
+
+* Synchronous P-channel rectifier
+M2 SW2 N_TG OUT OUT PCH
+
+C_OUT OUT 0 100u
+R_LOAD OUT 0 10
+
+* LT8710 Controller Subcircuit Call
+* Pins: 1:EN 2:SYNC 3:RT 4:IMON 5:SS 6:VC 7:FBX 8:SGND 9:CSN 10:CSP 11:BG 12:INTVCC 13:VIN 14:TG 15:ISP 16:ISN 17:BIAS 18:FLAG 19:MODE 20:PGND 21:EP
+XU1 IN 0 N_RT N_IMON N_SS N_VC N_FB 0 0 N_CSP N_BG N_INTVCC IN N_TG OUT OUT OUT N_FLAG 0 0 0 LT8710
+
+* Controller external components
+R_RT N_RT 0 100k
+C_SS N_SS 0 0.1u
+R_C N_VC N_VC2 10k
+C_C N_VC2 0 2.2n
+R_FB1 OUT N_FB 107k
+R_FB2 N_FB 0 13k
+C_INTVCC N_INTVCC 0 4.7u
+R_IMON N_IMON 0 10k
+R_FLAG N_FLAG 0 1Meg
+
+* MOSFET Models
+.model NCH VDMOS(Rg=1 Vto=2 Rd=10m Rs=1m Rb=10m Kp=60 Cgdmax=1n Cgdmin=100p Cgs=1n Cjo=1n Is=10p mtype=n)
+.model PCH VDMOS(Rg=1 Vto=-2 Rd=20m Rs=1m Rb=20m Kp=30 Cgdmax=1n Cgdmin=100p Cgs=1n Cjo=1n Is=10p mtype=p)
+
+* Analysis directive
+.tran 30m
+.end

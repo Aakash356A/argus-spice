@@ -1,0 +1,15 @@
+```spice
+* ADG711 Analog Switch Circuit
+V1 VDD 0 5
+V2 IN 0 2
+V3 CTRL 0 0
+
+* ADG711 is a normally closed (ON when CTRL = Low) single-supply switch.
+* Typical 5-pin SPST subcircuit pinout: Source, Drain, Control, VDD, GND
+X1 IN OUT CTRL VDD 0 ADG711
+
+R1 OUT 0 10k
+
+.tran 1m
+.end
+```

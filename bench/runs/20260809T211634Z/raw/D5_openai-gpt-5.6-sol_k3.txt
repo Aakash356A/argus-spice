@@ -1,0 +1,50 @@
+* ADR1399H precision reference buffered by LTC6078
+VINPUT IN 0 15
+
+* ADR1399H shunt-reference bias and heater connections
+RBIAS IN REF 1k
+XREF REF 0 IN 0 ADR1399H
+
+* Floating 5 V supply centered around the 7.05 V reference level
+EVPLUS VPLUS 0 VALUE={V(IN)-5.5}
+EVMINUS VMINUS 0 VALUE={V(IN)-10.5}
+
+* Mid-supply bias for unused LTC6078 channel
+RMID1 VPLUS VMID 100k
+RMID2 VMID VMINUS 100k
+
+* LTC6078 dual op amp: channel A is the VREF buffer
+XU1 OUT OUT REF VMINUS VMID UNUSED UNUSED VPLUS LTC6078
+
+* Required 1 k load
+RLOAD OUT 0 1k
+
+.tran 0 20m 0 10u
+.meas TRAN vout_dc AVG V(OUT) FROM 15m TO 20m
+
+* ADR1399H behavioral macromodel
+* Pins: cathode anode heater+ heater-
+.subckt ADR1399H K A HP HM
+VREF_INT NZ A 7.05
+RZ NZ K 0.5
+CREF K A 10n
+RHEATER HP HM 1.5k
+.ends ADR1399H
+
+* LTC6078 dual-op-amp behavioral macromodel
+* Pins: OUTA INA- INA+ V- INB+ INB- OUTB V+
+.subckt LTC6078 1 2 3 4 5 6 7 8
+XAMP_A 3 2 8 4 1 LTC6078_AMP
+XAMP_B 5 6 8 4 7 LTC6078_AMP
+.ends LTC6078
+
+* Single amplifier section
+* Pins: noninverting inverting V+ V- output
+.subckt LTC6078_AMP NP NM VP VN VO
+RIN NP NM 1T
+BOPEN NDRV 0 V=limit(1e6*V(NP,NM),V(VN)+20m,V(VP)-20m)
+ROUT NDRV VO 2
+COUT VO 0 5p
+.ends LTC6078_AMP
+
+.end

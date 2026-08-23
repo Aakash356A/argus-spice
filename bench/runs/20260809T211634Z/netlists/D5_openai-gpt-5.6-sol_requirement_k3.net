@@ -1,0 +1,27 @@
+* ADR1399H precision reference buffered by LTC6078
+.include ADR1399H.lib
+.include LTC6078.lib
+
+* Primary supply input
+VIN IN 0 DC 15
+
+* Floating 5 V supply for the LTC6078
+VOP VDD 0 DC 9.5
+VOM VSS 0 DC 4.5
+CDD VDD VSS 1u
+
+* ADR1399H: VREF, reference ground, heater+, heater-
+XREF REF 0 IN 0 ADR1399H
+RBIAS IN REF 2.67k
+CREF REF 0 1u
+
+* LTC6078: noninverting input, inverting input, V+, V-, output
+XBUF REF OUT VDD VSS OUT LTC6078
+
+* Required 1 k load
+RLOAD OUT 0 1k
+
+.tran 0 20 0 10m startup
+.meas tran vout_dc AVG V(OUT) FROM 19 TO 20
+
+.end

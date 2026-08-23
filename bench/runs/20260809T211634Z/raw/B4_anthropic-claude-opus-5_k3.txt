@@ -1,0 +1,62 @@
+```
+* AD8551 Non-Inverting Amplifier, Av = 100 V/V (40 dB), Single +5 V Supply
+* Input: 10 mV amplitude, 1 kHz sine (biased at mid-supply)
+*
+*--------------------------------------------------------------------
+* Supplies and mid-supply reference
+*--------------------------------------------------------------------
+VCC   VCC  0  DC 5
+VREF  VMID 0  DC 2.5          ; low-impedance 2.5 V mid-supply reference
+*
+*--------------------------------------------------------------------
+* Signal source : 10 mV amplitude 1 kHz sine, sitting on 2.5 V bias
+*--------------------------------------------------------------------
+V1    IN   0  SINE(2.5 10m 1k 0 0 0) AC 1
+Rs    IN   INP 50             ; source series resistance
+*
+*--------------------------------------------------------------------
+* AD8551 zero-drift rail-to-rail op amp, non-inverting gain stage
+*   Av = 1 + Rf/Rg = 1 + 99k/1k = 100 V/V = 40 dB
+*--------------------------------------------------------------------
+XU1   INP  NINV VCC 0 OUT  AD8551
+Rg    NINV VMID 1k
+Rf    OUT  NINV 99k
+Cf    OUT  NINV 1p            ; small stray feedback capacitance
+*
+RL    OUT  0    10k           ; load
+CL    OUT  0    100p
+*
+*--------------------------------------------------------------------
+* Behavioral AD8551 macromodel
+*   Aol = 120 dB, GBW = 1.5 MHz, rail-to-rail in/out, Vos = 1 uV
+*   Pin order: IN+  IN-  V+  V-  OUT
+*--------------------------------------------------------------------
+.subckt AD8551 INP INN VCC VEE OUT
+Ros   INP  NP   1                ; input series (models 1 uV offset path)
+Vos   NP   NPP  DC 1u            ; input offset voltage
+Rin   NPP  INN  1T
+Cinp  NPP  0    8p
+Cinn  INN  0    8p
+* transconductance stage: gm = 1 mA/V
+G1    0    N1   NPP INN 1m
+* dominant pole: Aol = gm*R1 = 1e6 (120 dB), fp = 1.5 Hz, GBW = 1.5 MHz
+R1    N1   0    1G
+C1    N1   0    106p
+* second pole ~ 4 MHz for phase margin
+R2    N1   N2   1k
+C2    N2   0    40p
+* rail-to-rail output buffer with supply clamping
+Bout  N3   0    V = limit( V(N2), V(VEE)+20m, V(VCC)-20m )
+Rout  N3   OUT  40
+* quiescent supply current (~800 uA)
+Iq    VCC  VEE  800u
+.ends AD8551
+*
+*--------------------------------------------------------------------
+* Analysis
+*--------------------------------------------------------------------
+.tran 0 10m 0 500n
+* .ac dec 100 1 10Meg          ; alternative small-signal gain sweep
+.options plotwinsize=0 numdgt=7
+.end
+```

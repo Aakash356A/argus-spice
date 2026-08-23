@@ -37,9 +37,17 @@ class LLMError(Exception):
 
 
 def call_llm(user_prompt: str, system_prompt: str = "",
-             temperature: float = 0.2, max_tokens: int = 8000,
-             timeout_s: int = 180) -> str:
-    """Single-turn chat completion; returns the assistant message text."""
+             temperature: float | None = 0.2, max_tokens: int = 8000,
+             timeout_s: int = 180, model: str | None = None) -> str:
+    """Single-turn chat completion; returns the assistant message text.
+
+    `model` overrides the LLM_MODEL environment default, so one process can
+    sweep several backends without re-importing or mutating the environment.
+
+    `temperature` is omitted from the payload when None. Some current models
+    (Claude Opus 5 among them) reject sampling parameters outright; pass None
+    for those rather than relying on the provider to silently drop the field.
+    """
     if not API_KEY:
         raise LLMError("No API key: set LLM_API_KEY or OPENROUTER_API_KEY.")
 
@@ -49,11 +57,12 @@ def call_llm(user_prompt: str, system_prompt: str = "",
     messages.append({"role": "user", "content": user_prompt})
 
     payload = {
-        "model": MODEL,
+        "model": model or MODEL,
         "messages": messages,
-        "temperature": temperature,
         "max_tokens": max_tokens,
     }
+    if temperature is not None:
+        payload["temperature"] = temperature
 
     try:
         resp = requests.post(
@@ -73,11 +82,25 @@ def call_llm(user_prompt: str, system_prompt: str = "",
     except ValueError as e:
         raise LLMError("LLM returned a non-JSON response.") from e
     try:
-        content = data["choices"][0]["message"]["content"]
+        choice = data["choices"][0]
+        message = choice["message"]
+        content = message.get("content")
     except (KeyError, IndexError) as e:
         raise LLMError(f"Malformed completion response: {data}") from e
     if not content:
-        raise LLMError("Empty completion content.")
+        # A bare "empty completion" is undiagnosable, and empty replies are
+        # common with reasoning models: the response can carry a full
+        # reasoning trace and no visible text when the output budget runs out
+        # mid-thought. Report finish_reason, the usage counters and whether
+        # reasoning was present, so the caller can tell "ran out of budget"
+        # (retry bigger) from "model declined" (retry is pointless).
+        finish = choice.get("finish_reason") or choice.get("native_finish_reason")
+        usage = data.get("usage") or {}
+        reasoning = message.get("reasoning") or message.get("reasoning_content")
+        detail = (f"finish_reason={finish!r}, "
+                  f"completion_tokens={usage.get('completion_tokens')}, "
+                  f"reasoning_present={bool(reasoning)}")
+        raise LLMError(f"Empty completion content ({detail}).")
     return content
 
 

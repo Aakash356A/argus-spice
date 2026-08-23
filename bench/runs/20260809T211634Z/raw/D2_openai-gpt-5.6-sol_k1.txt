@@ -1,0 +1,11 @@
+ADG711 2 V DC Analog Switch Test
+VDD VDD 0 5
+VIN IN 0 2
+VCTRL CTRL 0 5
+S1 IN OUT CTRL 0 ADG711_SW
+.model ADG711_SW SW(Ron=4 Roff=1G Vt=2.5 Vh=0.1)
+RLOAD OUT 0 10k
+CLOAD OUT 0 10p
+.tran 0 1m 0 1u
+.meas tran vout_dc AVG V(OUT) FROM=0.9m TO=1m
+.end

@@ -1,0 +1,9 @@
+* Precision reference subsystem
+V1 IN 0 15
+R1 IN Z_PLUS 2.67k
+X1 Z_PLUS 0 IN 0 ADR1399
+X2 Z_PLUS OUT IN 0 OUT LTC6078
+Rload OUT 0 1k
+
+.tran 0.1
+.end

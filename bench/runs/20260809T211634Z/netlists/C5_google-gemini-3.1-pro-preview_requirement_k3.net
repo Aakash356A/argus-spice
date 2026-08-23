@@ -1,0 +1,77 @@
+* Complete LTspice netlist for LTC4281 Hot-Swap Controller
+
+* Input Voltage Source
+V1 IN 0 PWL(0 0 1m 12)
+
+* Sense Resistor (5mOhm for 5A current limit)
+Rsense IN SENSE_M 0.005
+
+* External N-Channel MOSFET
+M1 SENSE_M GATE OUT OUT N_MOS
+.model N_MOS VDMOS(Rg=1 Vto=2 Rd=10m Rs=1m Rb=1m Kp=60 Cgdmax=1n Cgdmin=0.5n Cgs=2n Cjo=1n Is=10p mtriode=1.2)
+
+* Gate capacitor to control inrush slew rate
+C_gate GATE OUT 10n
+
+* LTC4281 Instantiation
+* Pin Mapping:
+* 1:SENSE+  (IN)
+* 2:SENSE-  (SENSE_M)
+* 3:VDD     (SENSE_M)
+* 4:SOURCE  (OUT)
+* 5:GATE    (GATE)
+* 6:OUT     (OUT)
+* 7:FB      (FB)
+* 8:CFILTER (CFILTER)
+* 9:GPIO1   (NC1)
+* 10:GPIO2  (NC2)
+* 11:GPIO3  (NC3)
+* 12:GND    (0)
+* 13:INTVCC (INTVCC)
+* 14:EE     (0)
+* 15:WP     (0)
+* 16:SDAI   (VDD33)
+* 17:SDAO   (NC4)
+* 18:SCL    (VDD33)
+* 19:ALERT# (NC5)
+* 20:ADIN   (0)
+* 21:VDD33  (VDD33)
+* 22:ON     (ON)
+* 23:OV     (0)
+* 24:UV     (ON)
+* 25:TIMER  (TIMER)
+* 26:FAULT# (NC6)
+* 27:PG#    (NC7)
+* 28:EN#    (0)
+X1 IN SENSE_M SENSE_M OUT GATE OUT FB CFILTER NC1 NC2 NC3 0 INTVCC 0 0 VDD33 NC4 VDD33 NC5 0 VDD33 ON 0 ON TIMER NC6 NC7 0 LTC4281
+
+* Resistor divider for ON and UV pins (Threshold is 1.28V)
+R_ON1 IN ON 100k
+R_ON2 ON 0 15k
+
+* Resistor divider for FB pin (Threshold is 1.28V)
+R_FB1 OUT FB 100k
+R_FB2 FB 0 15k
+
+* Capacitors for timing, filtering, and internal LDOs
+C_CFILTER CFILTER 0 10n
+C_TIMER TIMER 0 100n
+C_INTVCC INTVCC 0 1u
+C_VDD33 VDD33 0 1u
+
+* Pull-ups and dummy loads for open-drain/NC pins to prevent floating nodes
+R_ALERT NC5 VDD33 10k
+R_FAULT NC6 VDD33 10k
+R_PG NC7 VDD33 10k
+R_SDAO NC4 VDD33 10k
+R_GPIO1 NC1 0 10k
+R_GPIO2 NC2 0 10k
+R_GPIO3 NC3 0 10k
+
+* Output Load
+R_load OUT 0 12
+C_load OUT 0 100u
+
+* Analysis Directive
+.tran 100m
+.end

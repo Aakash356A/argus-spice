@@ -1,0 +1,18 @@
+* LT6106 high-side current-sense amplifier, 100mA through 0.1 ohm shunt
+.include LT6106.sub
+
+VRAIL RAIL 0 DC 12
+RSHUNT RAIL IN 0.1
+ILOAD IN 0 DC 100m
+
+* Gain = ROUT/RIN = 10k/100 = 100V/V
+RIN IN NINM 100
+ROUT OUT 0 10k
+
+* Pin order: IN+ IN- V+ V- OUT
+XU1 RAIL NINM RAIL 0 OUT LT6106
+
+.tran 0 10m 0 10u
+.meas tran vout_dc AVG V(OUT) FROM 9m TO 10m
+
+.end

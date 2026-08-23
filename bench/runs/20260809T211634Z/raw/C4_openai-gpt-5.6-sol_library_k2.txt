@@ -1,0 +1,42 @@
+* AD4021 20-bit SAR ADC digitizing a 1 V DC input
+.lib AD4021.sub
+
+* Analog input
+VIN     IN      0       DC 1
+CIN     IN      0       2.7n
+
+* ADC core and digital-interface supplies
+VDD1    VDD     0       DC 1.8
+CVDD1   VDD     0       100n
+CVDD2   VDD     0       10u
+
+VIO1    VIO     0       DC 1.8
+CVIO1   VIO     0       100n
+CVIO2   VIO     0       1u
+
+* Precision 5 V reference and local bypassing
+VREF1   REF     0       DC 5
+CREF1   REF     0       100n
+CREF2   REF     0       10u
+
+* CNV rising edge starts conversion; falling edge enables readout
+VCNV    CNV     0       PULSE(0 1.8 100n 1n 1n 349n 10u)
+
+* Twenty 50 MHz serial-clock cycles begin after conversion completes
+VSCK    SCK     0       PULSE(0 1.8 500n 1n 1n 8n 20n)
+
+* Select the three-wire serial mode
+RSDI    SDI    VIO     10
+
+* Representative digital-output loading
+COUT    OUT     0       5p
+ROUT    OUT     0       100k
+
+* Pin order follows the AD4021 package:
+* REF VDD IN+ IN- GND VIO SDO SCK SDI CNV
+XU1     REF VDD IN 0 0 VIO OUT SCK SDI CNV AD4021
+
+.options plotwinsize=0
+.tran 0 900n 0 250p
+
+.end

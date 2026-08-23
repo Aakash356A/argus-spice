@@ -1,0 +1,15 @@
+* LTC6078 unity-gain follower, single 5 V supply
+VCC VPLUS 0 5
+VIN IN 0 DC 2.5 AC 0.1 SINE(2.5 0.1 1k)
+
+CDEC VPLUS 0 100n
+XU1 IN OUT VPLUS 0 OUT LTC6078
+RLOAD OUT 0 10k
+
+.include LTC6078.sub
+
+.tran 0 10m 5m 1u
+.ac dec 100 100 100k
+.meas AC gain_db FIND 20*log10(mag(V(OUT)/V(IN))) AT=1k
+
+.end

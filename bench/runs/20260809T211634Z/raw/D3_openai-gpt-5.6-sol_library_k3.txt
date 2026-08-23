@@ -1,0 +1,23 @@
+AD8237 Gain-of-10 Instrumentation Amplifier
+.lib AD8237.lib
+
+VCC VCC 0 5
+VREF VREF 0 2.5
+VINN INN 0 2.5
+VDIFF IN INN SINE(0 20m 1k) AC 20m
+
+CDEC VCC 0 100n
+
+RFB OUT FB 90k
+RG RG VREF 10k
+
+XU1 FB INN IN 0 VREF OUT VCC RG AD8237
+
+RLOAD OUT VREF 100k
+CLOAD OUT VREF 20p
+
+.tran 0 5m 1m 1u
+.ac dec 20 100 10k
+.meas ac gain_db FIND 20*log10(mag(V(OUT)/V(IN,INN))) AT=1k
+
+.end

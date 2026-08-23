@@ -1,0 +1,24 @@
+* AD8237 Instrumentation Amplifier
+.lib AD8237.lib
+
+* Power Supply
+V1 VCC 0 5
+V2 REF 0 2.5
+
+* Input Signal (Common-mode = 2.5V, Differential = 20mV amplitude at 1kHz)
+V4 IN_M 0 2.5
+V3 IN IN_M SINE(0 20m 1k) AC 1
+
+* AD8237 Subcircuit Instantiation
+* Pin order: +IN -IN BW -VS REF FB OUT +VS
+X1 IN IN_M VCC 0 REF FB OUT VCC AD8237
+
+* Gain Setting Resistors (Gain = 1 + R2/R1 = 10 V/V)
+R1 FB REF 10k
+R2 OUT FB 90k
+
+* Analysis Directives
+.tran 0 5m
+.ac dec 10 10 100k
+
+.end

@@ -1,0 +1,60 @@
+* ADR1399H 7.05V Buried-Zener Reference with LTC6079 Unity-Gain Buffer
+* Primary input node: IN     Primary output node: OUT
+*
+*-------------------------------------------------------------------
+* Supply
+*-------------------------------------------------------------------
+V1 IN 0 DC 15
+
+*-------------------------------------------------------------------
+* Reference bias network:  (15V - 7.05V)/1.5k ~= 5.3mA reverse current
+*-------------------------------------------------------------------
+R1 IN REF 1.5k
+X1 IN REF 0 ADR1399H          ; VHTR  K(REF)  A(GND)
+CREF REF 0 100n
+
+*-------------------------------------------------------------------
+* LTC6079 precision op amp as low-impedance unity-gain buffer
+*   X2 : IN+   IN-   V+   V-   OUT
+*-------------------------------------------------------------------
+X2 REF OUT IN 0 OUT LTC6079
+
+* Load and output decoupling
+RL OUT 0 1k
+CL OUT 0 100p
+
+*-------------------------------------------------------------------
+* ADR1399H behavioral model (heated buried-zener, Vz = 7.05V typ)
+*-------------------------------------------------------------------
+.subckt ADR1399H VHTR K A
+* on-chip heater (modeled as fixed resistive load on the heater pin)
+RHTR VHTR A 470
+* buried zener core: breakdown reference + dynamic impedance
+VZ NX A DC 7.043
+DZ K NX DZEN
+.model DZEN D(IS=1e-14 N=0.01 RS=0.5 CJO=50p)
+.ends ADR1399H
+
+*-------------------------------------------------------------------
+* LTC6079 simplified macromodel
+*  Av = 1e6, GBW ~ 2MHz, rail-to-rail in/out, Rout = 30 ohm
+*-------------------------------------------------------------------
+.subckt LTC6079 INP INN VP VN OUT
+RINP INP INN 1T
+RCM  INP 0   1T
+BGAIN A 0 V=limit(1e6*(V(INP)-V(INN)), V(VN)+0.02, V(VP)-0.02)
+RP A B 1k
+CP B 0 79.6n
+BOUT C 0 V=V(B)
+RO C OUT 30
+.ends LTC6079
+
+*-------------------------------------------------------------------
+* Analysis
+*-------------------------------------------------------------------
+.tran 0 20m 0 5u uic
+.meas TRAN vout_dc AVG V(OUT) FROM 15m TO 20m
+.meas TRAN vref_dc AVG V(REF) FROM 15m TO 20m
+.options plotwinsize=0 gmin=1e-14 abstol=1e-12 reltol=1e-5
+
+.end

@@ -1,0 +1,25 @@
+* ADG5248F 8:1 analog multiplexer, channel S1 selected
+.lib ADG.lib
+
+VDD  VDD  0  15
+VSS  VSS  0 -15
+
+VA0  A0   0  0
+VA1  A1   0  0
+VA2  A2   0  0
+VEN  EN   0  5
+
+VIN  IN   0  SINE(0 0.5 1k)
+
+* Pin order: A0 EN VSS S1 S2 S3 S4 D S8 S7 S6 S5 VDD GND A2 A1
+XU1 A0 EN VSS IN 0 0 0 OUT 0 0 0 0 VDD 0 A2 A1 ADG5248F
+
+RLOAD OUT 0 100k
+CLOAD OUT 0 10p
+
+.tran 0 6m 2m 2u
+.meas tran VIN_PP  PP V(IN)  FROM 2m TO 6m
+.meas tran VOUT_PP PP V(OUT) FROM 2m TO 6m
+.meas tran gain_db PARAM 20*log(VOUT_PP/VIN_PP)
+
+.end

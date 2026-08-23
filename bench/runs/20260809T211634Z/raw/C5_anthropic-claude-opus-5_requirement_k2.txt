@@ -1,0 +1,72 @@
+```
+* LTC4281 12V HOT SWAP CONTROLLER - INRUSH CONTROLLED TURN-ON INTO RESISTIVE LOAD
+* -----------------------------------------------------------------------------
+* Genuine LTC4281 subcircuit is used (model shipped in LTspice lib\sub).
+* Assumed subcircuit pin order (functional order of the LTC4281 symbol):
+*   VDD SENSE GATE SOURCE OUT GND INTVCC OV UV FB ON EN
+*   ADIN ADIN2 GPIO1 GPIO2 GPIO3 ALERT SDAI SDAO SCL ADR0 ADR1 ADR2
+* -----------------------------------------------------------------------------
+.lib LTC4281.sub
+
+*** 12V backplane supply (board insertion modelled as a fast supply ramp) ***
+VIN IN 0 PWL(0 0 200u 12)
+CIN IN 0 1u
+
+*** Current sense resistor : 5 mohm  (5A limit at 25mV sense threshold) ***
+RSENSE IN SW 5m
+
+*** External N-channel pass MOSFET ***
+M1 SW GATE OUT OUT PWRNMOS W=1m L=1u
+.model PWRNMOS NMOS(VTO=2.0 KP=20 LAMBDA=5m CGSO=1n CGDO=200p)
+
+*** Gate (dV/dt / inrush) timing capacitor ***
+CGATE GATE 0 10n
+
+*** Output rail : bulk capacitance + resistive load (1A at 12V) ***
+COUT OUT 0 100u
+RLOAD OUT 0 12
+
+*** Input UV / OV programming string (UV ~11.5V rising, OV ~13.8V) ***
+RUV1 IN UV 100k
+RUV2 UV OV 2k
+ROV2 OV 0 10k
+
+*** Output voltage feedback (power good comparator) ***
+RFB1 OUT FB 100k
+RFB2 FB 0 12.1k
+
+*** ADC auxiliary inputs ***
+RA1 OUT ADIN 100k
+RA2 ADIN 0 10k
+RB1 IN ADIN2 100k
+RB2 ADIN2 0 10k
+
+*** ON / EN control : ON held high through divider, EN pulled to INTVCC ***
+RON1 IN ON 100k
+RON2 ON 0 20k
+REN EN INTVCC 10k
+
+*** Internal regulator bypass ***
+CVCC INTVCC 0 1u
+
+*** I2C / ALERT / GPIO pull-ups, address pins strapped low ***
+RP1 SDAI INTVCC 10k
+RP2 SDAO INTVCC 10k
+RP3 SCL  INTVCC 10k
+RP4 ALERT INTVCC 10k
+RG1 GPIO1 INTVCC 10k
+RG2 GPIO2 0 10k
+RG3 GPIO3 0 10k
+
+*** LTC4281 hot swap controller ***
+XU1 IN SW GATE OUT OUT 0 INTVCC OV UV FB ON EN
++    ADIN ADIN2 GPIO1 GPIO2 GPIO3 ALERT SDAI SDAO SCL 0 0 0 LTC4281
+
+*** Analysis ***
+.tran 0 100m 0 10u
+.meas TRAN vout_dc AVG V(OUT) FROM 80m TO 100m
+.meas TRAN iinrush MAX I(RSENSE) FROM 0 TO 50m
+.options plotwinsize=0 gmin=1e-11 reltol=1e-4
+
+.end
+```

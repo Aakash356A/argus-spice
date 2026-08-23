@@ -1,0 +1,65 @@
+```
+* ================================================================
+* ADR1399H 7.05 V heated-Zener reference + LTC6079 unity-gain buffer
+* Reference sets the DC level, op amp provides low-Z VREF at OUT
+* driving a 1 k load.
+* Node IN  = supply input (15 V)
+* Node OUT = buffered VREF output
+* ================================================================
+
+*** Supply ***
+V1 IN 0 DC 15
+
+*** Zener bias resistor: Iz = (15 - 7.05)/7.87k ~ 1.0 mA ***
+Rbias IN REF 7.87k
+
+*** ADR1399H reference (cathode, anode, heater+, heater-) ***
+XREF REF 0 IN 0 ADR1399H
+
+*** Noise-reduction / stabilizing cap on the reference node ***
+Cref REF 0 100n
+
+*** LTC6079 connected as a unity-gain buffer (follower) ***
+* pins: IN+ IN- V+ V- OUT
+XBUF REF OUT IN 0 OUT LTC6079
+
+*** Load ***
+Rload OUT 0 1k
+
+* ---------------- Analysis ----------------
+.tran 0 20m 0 5u
+.meas TRAN vout_dc AVG V(OUT) FROM=15m TO=20m
+.meas TRAN vref_dc AVG V(REF) FROM=15m TO=20m
+
+* ================================================================
+* Behavioral model of the ADR1399H buried-Zener heated reference
+*   Vz = 7.05 V nominal, dynamic impedance ~0.5 ohm
+*   Heater modeled as a resistive load between HTR1 and HTR2
+* ================================================================
+.subckt ADR1399H CATH ANODE HTR1 HTR2
+Vz    NZ ANODE DC 7.05
+Rz    CATH NZ 0.5
+Cz    CATH ANODE 10n
+Rhtr  HTR1 HTR2 1.2k
+.ends ADR1399H
+
+* ================================================================
+* Behavioral model of one LTC6079 amplifier channel
+*   Av(dc) = 120 dB, GBW ~ 100 kHz, rail-to-rail output, Ro = 100 ohm
+*   pins: 1=IN+  2=IN-  3=V+  4=V-  5=OUT
+* ================================================================
+.subckt LTC6079 INP INN VCC VEE OUT
+Rin   INP INN 1T
+Ccm1  INP 0 1p
+Ccm2  INN 0 1p
+Vos   INP INX DC 15u
+G1    0 N1 INX INN 1m
+R1    N1 0 1G
+C1    N1 0 1.5915n
+B1    N2 0 V = limit(V(N1), V(VEE)+20m, V(VCC)-20m)
+Rout  N2 OUT 100
+Cout  OUT 0 2p
+.ends LTC6079
+
+.end
+```

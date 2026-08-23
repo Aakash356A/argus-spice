@@ -1,0 +1,38 @@
+```spice
+* Precision Reference Subsystem using ADR1399H and LTC6078
+
+* Load the manufacturer's macro-model for the ADR1399H
+.lib ADR1399H.sub
+
+* Primary Input Supply (15V)
+VIN IN 0 15
+
+* The LTC6078 is a precision CMOS op-amp with a maximum supply voltage of 5.5V.
+* To buffer a 7.05V reference without exceeding the op-amp's absolute maximum ratings,
+* we power it from a floating 5V supply window (from 4.5V to 9.5V). 
+* The 7.05V input sits perfectly in the middle of this rail-to-rail op-amp's range.
+VOP V_OP_PLUS 0 9.5
+VOM V_OP_MINUS 0 4.5
+
+* Zener Bias Resistor
+* The ADR1399H requires around 3mA of bias current. 
+* (15V - 7.05V) / 3mA ≈ 2.65k. We use a standard 2.67k resistor.
+R1 IN Z_PLUS 2.67k
+
+* ADR1399H Precision Shunt Reference
+* Assuming standard LM399/ADR1399 pinout: Zener+, Zener-, Heater+, Heater-
+* The heater is powered directly from the 15V IN supply.
+X1 Z_PLUS 0 IN 0 ADR1399H
+
+* LTC6078 Unity-Gain Buffer
+* Standard LTspice op-amp subcircuit pinout: IN+ IN- V+ V- OUT
+X2 Z_PLUS OUT V_OP_PLUS V_OP_MINUS OUT LTC6078
+
+* 1k Load on the buffered VREF output
+RLOAD OUT 0 1k
+
+* Transient analysis to allow the reference (and its simulated heater) to settle to DC steady-state
+.tran 1
+
+.end
+```

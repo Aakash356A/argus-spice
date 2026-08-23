@@ -1,0 +1,24 @@
+* MAX44245 Non-Inverting Amplifier
+V1 VDD 0 15
+V2 VSS 0 -15
+Vin IN 0 SINE(0 50m 1k) AC 1
+
+* Feedback network: Gain = 1 + R1/R2 = 1 + 19k/1k = 20
+R1 OUT FB 19k
+R2 FB 0 1k
+
+* Op-Amp Instantiation (IN+ IN- V+ V- OUT)
+X1 IN FB VDD VSS OUT MAX44245
+
+* Library inclusion
+.lib MAX44245.lib
+
+* Transient analysis: run for 10ms, save data from 5ms to 10ms with 1us max timestep
+.tran 0 10m 5m 1u
+
+* Measurements to calculate gain in dB
+.meas tran in_pk MAX V(IN)
+.meas tran out_pk MAX V(OUT)
+.meas tran gain_db param 20*log10(out_pk/in_pk)
+
+.end

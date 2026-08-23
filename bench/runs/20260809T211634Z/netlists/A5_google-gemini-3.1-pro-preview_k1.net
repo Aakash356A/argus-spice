@@ -1,0 +1,9 @@
+* LT6654-1.25 Precision Voltage Reference
+V1 IN 0 5
+C1 IN 0 1u
+X1 IN 0 OUT LT6654AHS6-1.25
+C2 OUT 0 1u
+R1 OUT 0 100k
+
+.tran 5m
+.end

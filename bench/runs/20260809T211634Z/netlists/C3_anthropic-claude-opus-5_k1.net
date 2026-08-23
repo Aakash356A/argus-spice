@@ -1,0 +1,64 @@
+* LT8710 Synchronous Converter: 24 V IN -> 12 V OUT (buck mode, resistive load)
+* ---------------------------------------------------------------------------
+* Node IN  = primary input
+* Node OUT = primary regulated output
+* ---------------------------------------------------------------------------
+
+*** Input source and input capacitor ***
+VIN   IN 0 DC 24
+Cin   IN 0 22u IC=24
+Rcin  IN 0 10Meg
+
+*** LT8710 controller (behavioral average/switching model, 1.6 V FBX ref) ***
+XU1 IN 0 FBX VC TG BG LT8710
+
+*** Feedback divider: 12 V * 10k/(65k+10k) = 1.6 V at FBX ***
+R1 OUT FBX 65k
+R2 FBX 0  10k
+
+*** VC compensation network (type II) ***
+Rz VC VCZ 5k
+Cc VCZ 0  470n
+Cp VC  0  10n
+
+*** Synchronous power stage (external MOSFETs modeled as ideal switches) ***
+S1 IN  SWN TG 0 SWM        ; top (high-side) switch
+S2 SWN 0   BG 0 SWM        ; bottom (synchronous) switch
+.model SWM SW(Ron=20m Roff=1Meg Vt=2.5 Vh=0.1)
+
+*** Output inductor, output capacitor and resistive load ***
+RL   SWN LX  20m
+L1   LX  OUT 22u IC=0
+Cout OUT 0   100u IC=0
+Resr OUT 0   1Meg
+Rload OUT 0  4                ; 12 V / 4 ohm = 3 A load
+
+*** LT8710 behavioral subcircuit ***
+.subckt LT8710 VIN GND FBX VC TG BG
+* quiescent supply current
+Iq VIN GND 2m
+* 1.6 V reference + transconductance error amplifier (gm = 1 mA/V)
+Gea GND VC VALUE={ 1m*(1.6 - V(FBX,GND)) }
+* VC anti-windup clamps
+Vclp NCL GND 1.2
+Dclp VC  NCL DCL
+Dclm GND VC  DCL
+.model DCL D(Ron=1 Roff=1G Vfwd=0.05 epsilon=0.02)
+* 300 kHz sawtooth oscillator (0 V .. 1 V)
+Vosc RAMP GND PULSE(0 1 0 3.2u 1n 1n 3.3333u 3.3333u)
+* PWM comparator
+Bpwm PWMN GND V=if( V(VC,GND) > V(RAMP,GND), 5, 0 )
+* complementary gate drivers
+Btg TG GND V=if( V(PWMN,GND) > 2.5, 5, 0 )
+Bbg BG GND V=if( V(PWMN,GND) > 2.5, 0, 5 )
+Rtg TG GND 1Meg
+Rbg BG GND 1Meg
+.ends LT8710
+
+*** Analysis ***
+.ic V(OUT)=0 V(VC)=0
+.tran 0 5m 0 50n
+.meas TRAN vout_dc AVG V(OUT) FROM 4m TO 5m
+.meas TRAN vout_final FIND V(OUT) AT 5m
+.options plotwinsize=0
+.end

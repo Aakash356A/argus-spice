@@ -1,0 +1,38 @@
+```
+* LT3045-1 Ultralow Noise LDO: 5V IN -> 3.3V OUT @ 100mA
+* ---------------------------------------------------------------
+* Genuine ADI/LTC LT3045-1 macromodel is instantiated as a subcircuit
+.include LT3045-1.sub
+
+*** Input source (5 V rail) ***
+V1 IN 0 DC 5
+
+*** Input capacitor ***
+Cin IN 0 10u
+
+*** LT3045-1 LDO regulator ***
+* Node order: IN  OUT  OUTS  SET  ILIM  PG  EN/UV  GND
+* OUTS is Kelvin-tied to OUT, ILIM grounded for default (max) current limit,
+* EN/UV tied to IN for always-enabled operation.
+XU1 IN OUT OUT SET 0 PG IN 0 LT3045-1
+
+*** Output voltage programming: VOUT = 100uA * RSET = 100u * 33k = 3.3 V ***
+RSET SET 0 33k
+
+*** Output capacitor (>=10uF required for stability) ***
+Cout OUT 0 10u
+
+*** Power-good open-collector pull-up ***
+RPG PG OUT 100k
+
+*** Resistive load: 3.3 V / 33 ohm = 100 mA ***
+RLOAD OUT 0 33
+
+*** Analysis ***
+.tran 0 5m 0 1u
+.meas TRAN vout_dc AVG V(OUT) FROM 4m TO 5m
+.meas TRAN iload AVG I(RLOAD) FROM 4m TO 5m
+
+.options plotwinsize=0 gmin=1e-12 reltol=1e-4
+.end
+```

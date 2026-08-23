@@ -1,0 +1,20 @@
+* ADP7118 adjustable LDO: 3.3 V input, 1.8 V/50 mA output
+.include ADP7118.lib
+
+VINPUT IN 0 PWL(0 0 100u 3.3)
+CIN IN 0 2.2u
+
+* Pin order: VIN VOUT EN SENSE/ADJ GND
+XU1 IN OUT IN FB 0 ADP7118
+
+* VOUT = 1.2 V * (1 + 40.2k/80.6k) ~= 1.8 V
+RFB_TOP OUT FB 40.2k
+RFB_BOT FB 0 80.6k
+
+COUT OUT 0 2.2u
+RLOAD OUT 0 36
+
+.tran 0 10m 0 2u startup
+.meas tran vout_dc AVG V(OUT) FROM=8m TO=10m
+
+.end

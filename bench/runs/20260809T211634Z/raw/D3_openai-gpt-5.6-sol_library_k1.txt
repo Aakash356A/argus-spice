@@ -1,0 +1,25 @@
+* AD8237 instrumentation amplifier, gain = 10 V/V, single 5 V supply
+.lib AD8237.lib
+
+VCC VCC 0 5
+VREF VREF 0 2.5
+VIN IN 0 DC 2.5 AC 20m SINE(2.5 20m 1k)
+VINN INN 0 2.5
+
+CDEC VCC 0 100n
+
+* AD8237 pin order: FB, -IN, +IN, -VS, REF, OUT, +VS, RG
+XU1 FB INN IN 0 VREF OUT VCC RG AD8237
+
+* Gain = 1 + RFB/RG = 10
+RG1 RG VREF 10k
+RFB OUT FB 90k
+
+RLOAD OUT 0 100k
+CLOAD OUT 0 10p
+
+.ac dec 100 10 100k
+.tran 0 5m 1m 1u
+.meas AC gain_db FIND db(V(OUT)/V(IN)) AT=1k
+
+.end

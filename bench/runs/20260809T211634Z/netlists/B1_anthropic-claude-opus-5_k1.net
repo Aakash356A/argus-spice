@@ -1,0 +1,50 @@
+* AD8092 Non-Inverting Amplifier, Av = +5 V/V, +/-5 V supplies
+* Vin = 100 mV amplitude sine @ 1 MHz, RL = 500 ohm to ground
+*
+*------------------- Supplies -------------------
+VCC VCC 0 DC  5
+VEE VEE 0 DC -5
+*
+*------------------- Source ---------------------
+Vin IN 0 SINE(0 0.1 1MEG) AC 1
+Rs  IN 0 1MEG
+*
+*--------------- Amplifier stage ----------------
+XU1 IN INV VCC VEE OUT AD8092
+Rf  OUT INV 4k          ; feedback resistor
+Rg  INV 0   1k          ; gain-set resistor  -> Av = 1 + 4k/1k = 5
+RL  OUT 0   500         ; output load
+*
+*=====================================================
+* Behavioral macromodel of the AD8092 (voltage feedback,
+* ~110 MHz GBW, rail-limited output, ~5 ohm Rout)
+* Pins:  1=IN+  2=IN-  3=V+  4=V-  5=OUT
+*=====================================================
+.subckt AD8092 1 2 99 50 30
+Rin   1 2 10G
+Cin   1 2 1.5p
+Rcm1  1 0 100G
+Rcm2  2 0 100G
+* transconductance input stage : gm = 1 mA/V
+G1    0 10 1 2 1e-3
+R1    10 0 1e7          ; DC open-loop gain = 80 dB
+C1    10 0 1.447p       ; dominant pole -> GBW = 110 MHz
+* second (high-frequency) pole ~300 MHz
+R2    10 11 1k
+C2    11 0  0.53p
+* output buffer with supply clamping
+Bout  12 0 V = LIMIT( V(11), V(50)+0.2, V(99)-0.2 )
+Rout  12 30 5
+* quiescent supply current path (keeps supplies non-floating)
+Iq    99 50 4.5m
+.ends AD8092
+*
+*------------------ Analysis --------------------
+.tran 0 5u 0 100p
+.meas TRAN vipp PP V(IN)  FROM=2u TO=5u
+.meas TRAN vopp PP V(OUT) FROM=2u TO=5u
+.meas TRAN gain PARAM vopp/vipp
+.meas TRAN gain_db PARAM 20*log10(vopp/vipp)
+*
+.options plotwinsize=0 numdgt=7
+.end

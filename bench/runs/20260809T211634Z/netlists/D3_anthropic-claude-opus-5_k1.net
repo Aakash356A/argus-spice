@@ -1,0 +1,42 @@
+* AD8237 Instrumentation Amplifier -- G = 10 V/V, single +5 V supply
+* 20 mV amplitude differential 1 kHz sine input, REF = mid-supply (2.5 V)
+* --------------------------------------------------------------------
+* Behavioral macromodel of the AD8237 indirect-current-feedback in-amp
+* Loop forces:  (V(INP)-V(INN)) = (V(FB)-V(REF))
+* Gain set externally:  G = 1 + R2/R1
+* --------------------------------------------------------------------
+.subckt AD8237 INP INN REF FB OUT VP VN
+Berr  err 0  V=1e6*((V(INP)-V(INN))-(V(FB)-V(REF)))
+Rp    err o1 1k
+Cp    o1  0  159u
+Bo    o2  0  V=limit(V(o1),V(VN)+0.02,V(VP)-0.02)
+Rout  o2  OUT 1
+Rinp  INP INN 1T
+.ends AD8237
+
+* ---------------- supply and mid-supply reference ----------------
+VS    VDD 0   DC 5
+Rd1   VDD VCM 10k
+Rd2   VCM 0   10k
+Ccm   VCM 0   1u
+
+* ---------------- differential 1 kHz, 20 mV amplitude source ------
+VIN   IN  0   SINE(0 20m 1k) AC 20m
+Ep    INP VCM VALUE={0.5*V(IN)}
+En    INN VCM VALUE={-0.5*V(IN)}
+
+* ---------------- in-amp and gain-setting network -----------------
+XU1   INP INN VCM FB OUT VDD 0 AD8237
+R1    FB  VCM 1k
+R2    OUT FB  9k
+RL    OUT VCM 1Meg
+
+* ---------------- analysis ---------------------------------------
+.tran 0 5m 0 1u
+.meas TRAN vinpp  PP V(IN)  FROM 1m TO 5m
+.meas TRAN voutpp PP V(OUT) FROM 1m TO 5m
+.meas TRAN gain_vv PARAM voutpp/vinpp
+.meas TRAN gain_db PARAM 20*log10(voutpp/vinpp)
+* .ac dec 100 10 100k
+.options plotwinsize=0
+.end

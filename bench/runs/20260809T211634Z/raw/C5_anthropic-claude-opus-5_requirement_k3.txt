@@ -1,0 +1,78 @@
+```
+* ---------------------------------------------------------------------------
+* LTC4281 12V HOT SWAP CONTROLLER  --  12V IN, 12V OUT into resistive load
+* Genuine LTC4281 subcircuit model from the LTspice library (LTC4281.sub)
+* Pin order used for XU1 (as listed in the LTC4281 model / symbol):
+*   VDD SENSE SOURCE GATE OUT GND VDDCAP INTVCC EN OV UV ADIN ADIN2
+*   ADR0 ADR1 ADR2 SDAI SDAO SCL ALERT GPIO1 GPIO2 GPIO3 FB
+* ---------------------------------------------------------------------------
+.lib LTC4281.sub
+
+* ---------------- 12V input supply (with realistic ramp) -------------------
+VIN IN 0 PWL(0 0 1m 12 1 12)
+CIN IN 0 10u
+RIN IN 0 1Meg
+
+* ---------------- Hot swap pass element ------------------------------------
+* External N-channel power MOSFET, gate driven by the LTC4281 GATE pin.
+RG    GATE G 10
+M1    IN G SRC SRC NMOSPWR
+CGS   G SRC 10n            ; sets the inrush dV/dt with the GATE pull-up current
+CGD   G IN 1n
+
+* ---------------- Current sense resistor (Kelvin) --------------------------
+RSENSE SRC OUT 1m          ; 1 mohm -> 25 A limit at the default 25 mV threshold
+
+* ---------------- Output / load --------------------------------------------
+COUT  OUT 0 100u
+RLOAD OUT 0 6              ; 12V / 6 ohm = 2 A resistive load
+
+* ---------------- LTC4281 controller --------------------------------------
+XU1 IN OUT SRC GATE OUT 0 VDDCAP INTVCC EN 0 UV ADIN ADIN2
++   0 0 0 SDAI SDAO SCL ALERT GPIO1 GPIO2 GPIO3 FB LTC4281
+
+* Internal supply decoupling (required by the part)
+CVDDCAP VDDCAP 0 1u
+CINTVCC INTVCC 0 1u
+
+* Enable pin (held above its threshold once the input is valid)
+REN1 IN EN 100k
+REN2 EN 0 33k
+
+* Undervoltage monitor divider (UV held above threshold at 12V)
+RUV1 IN UV 100k
+RUV2 UV 0 33k
+
+* Overvoltage pin unused -> held low through the model instance (tied to GND)
+
+* ADC auxiliary inputs
+RA1 OUT ADIN 100k
+RA2 ADIN 0 10k
+RB1 IN ADIN2 100k
+RB2 ADIN2 0 10k
+
+* Output feedback / power-good divider
+RFB1 OUT FB 100k
+RFB2 FB 0 11k
+
+* I2C bus and open-drain outputs idle high (pulled to INTVCC)
+RSCL  SCL  INTVCC 10k
+RSDAI SDAI INTVCC 10k
+RSDAO SDAO INTVCC 10k
+RALRT ALERT INTVCC 10k
+RGP1  GPIO1 INTVCC 10k
+RGP2  GPIO2 INTVCC 10k
+RGP3  GPIO3 INTVCC 10k
+
+* ---------------- Power MOSFET model --------------------------------------
+.model NMOSPWR NMOS(Level=1 Vto=2 Kp=100 Lambda=0.005 Rd=1m Rs=1m Is=1e-12)
+
+* ---------------- Analysis -------------------------------------------------
+.tran 0 500m 0 50u
+.meas TRAN vout_dc AVG V(OUT) FROM 400m TO 500m
+.meas TRAN vin_dc  AVG V(IN)  FROM 400m TO 500m
+.meas TRAN iinrush MAX I(RSENSE)
+
+.options plotwinsize=0 gmin=1e-12 reltol=1e-4
+.end
+```

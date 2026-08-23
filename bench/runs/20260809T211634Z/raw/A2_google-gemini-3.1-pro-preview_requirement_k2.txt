@@ -1,0 +1,21 @@
+* ADP7118 1.8V LDO Regulator Netlist
+V1 IN 0 3.3
+C1 IN 0 2.2u
+C2 OUT 0 2.2u
+Rload OUT 0 36
+
+* Soft-start capacitor (1nF gives ~1.5ms soft-start time)
+Css SS 0 1n
+
+* Feedback voltage divider for 1.8V output (Vref = 1.2V)
+* Vout = 1.2V * (1 + R1/R2) -> 1.8V = 1.2V * (1 + 50k/100k)
+R1 OUT ADJ 50k
+R2 ADJ 0 100k
+
+* ADP7118 Subcircuit instantiation
+* Pin order: IN EN GND SS ADJ OUT
+X1 IN IN 0 SS ADJ OUT ADP7118
+
+* Transient analysis to allow output to settle
+.tran 10m
+.end

@@ -1,0 +1,30 @@
+* ADG5248F Multiplexer Test Netlist
+.lib ADG.lib
+
+* Power Supplies
+Vdd VDD 0 15
+Vss VSS 0 -15
+Vlog V5 0 5
+
+* Input Signal: 1 kHz, 500 mV amplitude sine
+Vin IN 0 SINE(0 500m 1k) AC 1
+
+* ADG5248F Instance
+* Standard ADI multiplexer macro-model pin order: 
+* S1 S2 S3 S4 S5 S6 S7 S8 D A0 A1 A2 EN VDD VSS GND SF FF
+* Channel 1 selected by driving A0=0, A1=0, A2=0, and EN=5V
+X1 IN 0 0 0 0 0 0 0 OUT 0 0 0 V5 VDD VSS 0 SF FF ADG5248F
+
+* Pull-ups for open-drain fault flags (SF, FF)
+Rsf SF V5 10k
+Rff FF V5 10k
+
+* Output Load
+Rload OUT 0 100k
+
+* Analysis Directives
+* AC analysis to measure precise gain_db at 1 kHz, and a Transient analysis for time-domain verification
+.ac dec 10 100 100k
+.tran 0 5m
+
+.end

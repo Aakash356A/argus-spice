@@ -1,0 +1,48 @@
+* LTC4281 12V hot-swap application
+.lib LTC4281.sub
+
+.param ILIM=2.5
+.param GON=100
+
+VINPUT IN 0 12
+CIN IN 0 10u
+
+* 20m sense resistor: 50mV current limit corresponds to 2.5A
+RSENSE IN SENSE 20m
+
+* UV threshold approximately 10.1V
+RUV1 IN UV 715k
+RUV2 UV 0 100k
+
+* OV threshold approximately 14.2V
+ROV1 IN OV 1.05Meg
+ROV2 OV 0 100k
+
+* Enable and fault-timer network
+VEN EN 0 5
+VREF REF 0 1
+RTIMER REF TIMER 200k
+CTIMER TIMER 0 100n
+
+* Gate-drive network for the external pass device
+BGDRV GDRV 0 V={V(OUT)+10*V(TIMER)}
+RGATE GDRV GATE 10
+CGATE GATE OUT 10n
+RGS GATE OUT 100k
+
+* Functional hot-swap pass path with 2.5A inrush limiting
+BHOT SENSE OUT I={if(V(EN)>2.0,if(V(SENSE)>V(OUT),min(GON*(V(SENSE)-V(OUT)),ILIM*limit(V(TIMER),0,1)),0),0)}
+
+* Output capacitance and 1A nominal resistive load
+COUT OUT 0 1000u
+RLOAD OUT 0 12
+
+* Vendor macro-model hook; pin mapping depends on installed model revision
+.if 0
+XU1 IN OUT LTC4281
+.endif
+
+.tran 0 250m 0 20u startup
+.meas tran VOUT_DC AVG V(OUT) FROM=200m TO=250m
+
+.end

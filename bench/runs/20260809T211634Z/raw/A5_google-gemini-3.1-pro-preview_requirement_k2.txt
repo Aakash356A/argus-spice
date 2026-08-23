@@ -1,0 +1,8 @@
+* LT6654-1.25 Precision Voltage Reference Circuit
+V1 IN 0 5
+C1 IN 0 0.1u
+C2 OUT 0 1u
+X1 IN 0 OUT LT6654AHS6-1.25
+.lib LTC.lib
+.tran 1m
+.end

@@ -1,0 +1,56 @@
+```
+* LT6654-1.25 Precision 1.25V Voltage Reference from 5V Supply
+* ---------------------------------------------------------------
+* Node IN  : 5 V input supply
+* Node OUT : 1.25 V precision reference output
+* ---------------------------------------------------------------
+
+*** Input supply (small ramp emulates real supply turn-on) ***
+V1 IN 0 PWL(0 0 100u 5 1 5)
+
+*** Input bypass capacitor ***
+Cin IN 0 1u
+
+*** Reference device ***
+XU1 IN OUT 0 LT6654_125
+
+*** Output bypass capacitor ***
+Cout OUT 0 1u
+
+*** Load ***
+Rload OUT 0 10k
+
+* ---------------------------------------------------------------
+* Behavioral macromodel of the LT6654-1.25 series reference
+*  - 1.25 V nominal output
+*  - ~350 uA quiescent supply current
+*  - low output impedance (load/line regulation)
+*  - dropout limited output tracking during start-up
+* ---------------------------------------------------------------
+.subckt LT6654_125 IN OUT GND
+
+* quiescent supply current drawn from IN
+Iq IN GND 350u
+
+* ideal core reference clamped by available headroom (dropout ~ 0.3 V)
+Bcore CORE GND V = min(1.25, V(IN,GND) - 0.3)
+
+* internal bandwidth / start-up settling network
+Rint CORE FILT 100
+Cint FILT GND 2n
+
+* output buffer with finite output impedance
+Bout BUF GND V = V(FILT,GND)
+Rout BUF OUT 0.06
+
+.ends LT6654_125
+
+* ---------------------------------------------------------------
+* Analysis
+* ---------------------------------------------------------------
+.tran 10u 5m 0 10u
+.meas TRAN vout_dc FIND V(OUT) AT 5m
+.meas TRAN vout_avg AVG V(OUT) FROM 4m TO 5m
+
+.end
+```

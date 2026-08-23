@@ -1,0 +1,41 @@
+* ADR1399H precision reference buffered by LTC6078
+VINPUT IN 0 15
+VCC VCC 0 10
+VEE VEE 0 5
+
+* ADR1399H bias and heater connections
+RBIAS IN REF 2.67k
+XREF REF 0 IN 0 ADR1399H
+CREF REF 0 10u
+
+* LTC6078 unity-gain buffer
+XU1 REF OUT VCC VEE OUT LTC6078
+COUT OUT 0 100n
+RLOAD OUT 0 1k
+
+.tran 0 20m 0 10u startup
+.meas tran VOUT_DC AVG V(OUT) FROM=15m TO=20m
+.options plotwinsize=0
+
+* ADR1399H functional model
+* Pins: reference-cathode anode heater+ heater-
+.subckt ADR1399H K A HP HM
+VZENER Z A 7.05
+RDYNAMIC K Z 0.5
+RHEATER HP HM 300
+RLEAK K A 100Meg
+.ends ADR1399H
+
+* LTC6078 functional precision op-amp model
+* Pins: noninverting inverting positive-supply negative-supply output
+.subckt LTC6078 INP INM VP VM OUT
+RINP INP 0 1T
+RINM INM 0 1T
+EGAIN NERR 0 VALUE={LIMIT(200000*(V(INP)-V(INM)),V(VM)+0.05,V(VP)-0.05)}
+RDOM NERR NDOM 10k
+CDOM NDOM 0 2n
+ECLAMP NDRV 0 VALUE={LIMIT(V(NDOM),V(VM)+0.02,V(VP)-0.02)}
+ROUT NDRV OUT 10
+.ends LTC6078
+
+.end

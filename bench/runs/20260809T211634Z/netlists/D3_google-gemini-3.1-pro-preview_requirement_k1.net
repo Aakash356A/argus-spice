@@ -1,0 +1,19 @@
+* AD8237 Instrumentation Amplifier
+VCC VCC 0 5
+VCM VCM 0 2.5
+VIN IN VCM SINE(0 20m 1k)
+
+* AD8237 subcircuit
+* Pins: 1:-IN 2:+IN 3:BW 4:-VS 5:+VS 6:REF 7:OUT 8:FB
+X1 VCM IN VCC 0 VCC VCM OUT FB AD8237
+
+* Feedback network for Gain = 10 V/V
+R2 OUT FB 9k
+R1 FB VCM 1k
+
+.tran 0 10m 2m 1u
+.measure tran in_pp PP V(IN)
+.measure tran out_pp PP V(OUT)
+.measure tran gain_db param 20*log10(out_pp/in_pp)
+
+.end

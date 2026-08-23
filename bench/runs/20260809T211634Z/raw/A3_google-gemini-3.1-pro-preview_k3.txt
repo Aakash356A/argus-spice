@@ -1,0 +1,10 @@
+* LT3094 Negative LDO Regulator
+V1 IN 0 -7
+Rload OUT 0 500
+C1 IN 0 10u
+C2 OUT 0 10u
+C3 SET 0 1n
+Rset SET 0 100k
+X1 IN 0 IN IN IN SET OUT 0 LT3094
+.tran 10m
+.end

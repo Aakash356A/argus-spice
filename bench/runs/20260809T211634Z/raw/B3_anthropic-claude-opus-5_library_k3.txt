@@ -1,0 +1,34 @@
+```
+* LTC6078 Unity-Gain Voltage Follower (Single 5 V Supply)
+* 1 kHz, 100 mV amplitude sine input, 10 k load
+* -------------------------------------------------------------
+
+.lib LTC5.lib
+
+* ---------- Supplies ----------
+VCC   VCC 0 DC 5
+C1    VCC 0 1u                  ; supply decoupling
+
+* ---------- Input source: 2.5 V mid-supply bias + 100 mV, 1 kHz sine ----------
+VIN   IN  0 SINE(2.5 0.1 1k 0 0 0)
+RS    IN  NIN 0                 ; 0 ohm series (keeps IN as the driven node)
+
+* ---------- LTC6078 connected as unity-gain buffer ----------
+* .SUBCKT LTC6078  +IN  -IN  V+  V-  OUT
+XU1   NIN OUT VCC 0 OUT LTC6078
+
+* ---------- Load ----------
+RL    OUT 0 10k
+
+* ---------- Analysis ----------
+.tran 0 5m 0 1u uic
+
+* ---------- Measurements (gain from IN to OUT over last 2 cycles) ----------
+.meas TRAN vopp   PP  V(OUT) FROM=3m TO=5m
+.meas TRAN vipp   PP  V(IN)  FROM=3m TO=5m
+.meas TRAN vodc   AVG V(OUT) FROM=3m TO=5m
+.meas TRAN gain_db PARAM 20*log10(vopp/vipp)
+
+.options plotwinsize=0
+.end
+```

@@ -1,0 +1,8 @@
+* LT6654-1.25 Voltage Reference Circuit
+V1 IN 0 5
+C1 IN 0 0.1u
+C2 OUT 0 1u
+R1 OUT 0 100k
+X1 IN 0 OUT LT6654-1.25
+.tran 10m
+.end

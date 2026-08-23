@@ -1,0 +1,21 @@
+* ADG5248F Analog Multiplexer Test
+V1 IN 0 SINE(0 500m 1k)
+VVDD VDD 0 15
+VVSS VSS 0 -15
+VA0 A0 0 0
+VA1 A1 0 0
+VA2 A2 0 0
+VEN EN 0 5
+
+* Instantiating ADG5248F (Assuming standard TSSOP pin order: A0 A1 A2 EN VSS GND S1 S2 S3 S4 S5 S6 S7 S8 D SF VDD)
+X1 A0 A1 A2 EN VSS 0 IN 0 0 0 0 0 0 0 OUT SF VDD ADG5248F
+
+Rload OUT 0 1Meg
+Rsf SF 0 1Meg
+
+.tran 0 10m 2m 1u
+.measure tran in_pp PP V(IN)
+.measure tran out_pp PP V(OUT)
+.measure tran gain_db param 20*log10(out_pp/in_pp)
+
+.end

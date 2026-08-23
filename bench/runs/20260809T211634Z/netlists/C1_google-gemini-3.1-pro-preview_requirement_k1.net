@@ -1,0 +1,34 @@
+* LTC6252 High-Speed Amplifier Configured for a Gain of 2 V/V
+* Supplies: +/-5V
+* Input: 1V amplitude sine wave at 10 MHz
+
+* Power Supplies
+VCC VCC 0 5
+VEE VEE 0 -5
+
+* Input Signal (1V peak, 10 MHz)
+VIN IN 0 SINE(0 1 10Meg)
+
+* Feedback Network for Non-Inverting Gain of 2
+* Using 402 ohms, a standard value for high-speed op-amps to minimize parasitic pole effects
+R1 IN_MINUS 0 402
+R2 OUT IN_MINUS 402
+
+* LTC6252 Subcircuit Instantiation
+* Pinout: IN+ IN- V+ V- OUT SHDN
+* SHDN is tied to VCC to enable the amplifier
+X1 IN IN_MINUS VCC VEE OUT VCC LTC6252
+
+* Transient Analysis
+* Run for 2us, start saving data at 1us to ensure steady-state settled output
+.tran 0 2u 1u
+
+* Measurements to calculate Gain in dB
+.measure tran out_pp PP V(OUT)
+.measure tran in_pp PP V(IN)
+.measure tran gain_db param 20*log10(out_pp/in_pp)
+
+* Include the standard LTspice library containing the LTC6252
+.lib LTC6.lib
+
+.end

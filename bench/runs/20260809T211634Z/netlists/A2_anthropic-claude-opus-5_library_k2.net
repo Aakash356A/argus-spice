@@ -1,0 +1,35 @@
+* ADP7118 Low-Dropout Regulator: 3.3 V IN -> 1.8 V OUT @ 50 mA
+* -----------------------------------------------------------------
+* Vendor macro-model library (ADP7118 is contained in ADP7102.lib)
+.lib ADP7102.lib
+
+* ---------------- Source and enable ----------------
+VIN   IN  0   DC 3.3
+VEN   EN  0   DC 3.3
+
+* ---------------- Input decoupling ----------------
+CIN   IN  0   1u   IC=0
+
+* ---------------- Regulator ----------------
+* Subcircuit pin order: IN  GND  EN  OUT  SENSE(ADJ)
+X1    IN  0   EN  OUT  SENSE   ADP7118
+
+* Feedback divider for the adjustable output:
+*   VOUT = VREF * (1 + R1/R2), VREF = 1.20 V
+*   1.8 V => R1/R2 = 0.5  (R1 = 10k, R2 = 20k)
+R1    OUT SENSE 10k
+R2    SENSE 0   20k
+
+* ---------------- Output decoupling ----------------
+COUT  OUT 0   1u   IC=0
+
+* ---------------- Resistive load: 1.8 V / 36 ohm = 50 mA ----------------
+RL    OUT 0   36
+
+* ---------------- Analysis ----------------
+.tran 0 5m 0 5u
+.meas TRAN vout_dc AVG V(OUT) FROM 4m TO 5m
+.meas TRAN iload   AVG I(RL)  FROM 4m TO 5m
+
+.options plotwinsize=0 reltol=1e-4
+.end

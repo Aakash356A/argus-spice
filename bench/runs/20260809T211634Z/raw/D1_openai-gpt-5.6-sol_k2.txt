@@ -1,0 +1,23 @@
+* LT1720 comparator, 5 V supply, 1.65 V threshold, open-drain-style output
+VCC VCC 0 5
+VIN IN 0 2.0
+
+RTH_TOP VCC THRESH 67k
+RTH_BOT THRESH 0 33k
+
+XU1 IN THRESH VCC 0 CMP LT1720
+
+SOD OUT 0 CMP 0 SW_OD
+.model SW_OD SW(Ron=5 Roff=1G Vt=2.5 Vh=0.1)
+RPULL VCC OUT 10k
+
+.subckt LT1720 INP INN VCC VEE OUT
+BINT NDRV VEE V=IF(V(INP)>V(INN),V(VCC,VEE),0)
+ROUT NDRV OUT 20
+COUT OUT VEE 2p
+.ends LT1720
+
+.tran 0 1m 0 1u
+.meas tran vout_dc AVG V(OUT) FROM 0.8m TO 1m
+
+.end

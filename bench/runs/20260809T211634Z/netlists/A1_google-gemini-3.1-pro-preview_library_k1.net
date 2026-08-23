@@ -1,0 +1,14 @@
+* LT3045-1 3.3V LDO
+V1 IN 0 5
+C1 IN 0 10u
+X1 IN IN PG ILIM SET NC_VIOC OUT OUT 0 LT3045-1
+Rset SET 0 33k
+Cset SET 0 4.7u
+Rilim ILIM 0 1k
+Rpg PG IN 100k
+Rvioc NC_VIOC 0 1G
+C2 OUT 0 10u
+Rload OUT 0 33
+.lib LT3045-1.sub
+.tran 100m
+.end

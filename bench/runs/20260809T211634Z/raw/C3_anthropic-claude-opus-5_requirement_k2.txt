@@ -1,0 +1,70 @@
+```
+* LT8710 Synchronous SEPIC Converter : 24V IN  ->  12V OUT (1A resistive load)
+* ---------------------------------------------------------------------------
+* Node conventions:  IN  = primary input node,  OUT = primary output node
+* ---------------------------------------------------------------------------
+
+.include LT8710.sub
+
+*** Input source and input capacitors ***********************************
+VIN  IN 0 DC 24
+CIN1 IN 0 10u  IC=24
+CIN2 IN 0 1u
+
+*** SEPIC power stage ***************************************************
+* L1 : input inductor      SW : main N-channel switch node
+L1   IN SW 22u
+* Main switch (N-channel, ground referenced, driven by GATE)
+M1   SW GATE CS 0 NCH
+* Switch current sense resistor (CSP/CSN)
+RCS  CS 0 0.020
+* Coupling capacitor
+CC   SW X 4.7u  IC=24
+* Secondary inductor
+L2   X 0 22u
+* Synchronous rectifier (P-channel, source at output rail, driven by PG)
+M2   X PG OUTP 0 PCH
+DSR  X OUTP DSCH
+* Output current sense resistor (ISP/ISN)
+RIS  OUTP OUT 0.010
+
+*** Output capacitors and resistive load ********************************
+COUT1 OUT 0 100u  IC=0
+COUT2 OUT 0 10u
+RLOAD OUT 0 12
+
+*** Feedback divider : 1.6V * (1 + 130k/20k) = 12.0V *******************
+RFB1 OUT FB 130k
+RFB2 FB  0  20k
+
+*** Enable / input feedback divider (always enabled) ********************
+REN1 IN ENFB 100k
+REN2 ENFB 0  10k
+
+*** Loop compensation, soft-start, oscillator, bias ********************
+RC   VC  VCX 10k
+CC1  VCX 0   10n
+CC2  VC  0   100p
+CSS  SS  0   100n
+RT1  RT  0   41.2k
+CVCC INTVCC 0 4.7u
+RFLG FLAG INTVCC 100k
+
+*** LT8710 controller ***************************************************
+* Pin order: VIN EN/FBIN SYNC RT SS INTVCC VC FB IMON ISP ISN FLAG GND
+*            GATE CSP CSN PG
+XU1 IN ENFB 0 RT SS INTVCC VC FB 0 OUTP OUT FLAG 0 GATE CS 0 PG LT8710
+
+*** Power MOSFET / diode models *****************************************
+.model NCH VDMOS(Vto=2.8 Kp=40 Rd=12m Rs=4m Cgs=2.2n Cgd=0.4n Cjo=0.6n Rg=2 Bv=80 Is=1u)
+.model PCH VDMOS(pchan Vto=-2.5 Kp=30 Rd=20m Rs=5m Cgs=2.5n Cgd=0.5n Cjo=0.7n Rg=2 Bv=-80 Is=1u)
+.model DSCH D(Is=2u Rs=0.02 N=1.05 Cjo=300p Vj=0.5 BV=60 IBV=1m)
+
+*** Analysis ************************************************************
+.tran 0 4m 0 200n startup
+.meas TRAN vout_dc AVG V(OUT) FROM=3m TO=4m
+.meas TRAN vout_ripple PP V(OUT) FROM=3.9m TO=4m
+.options plotwinsize=0 reltol=0.003 trtol=4
+
+.end
+```

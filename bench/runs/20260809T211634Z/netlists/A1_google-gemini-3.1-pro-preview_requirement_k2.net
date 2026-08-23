@@ -1,0 +1,10 @@
+* LT3045-1 3.3V LDO Regulator
+V1 IN 0 5
+C1 IN 0 10u
+X1 IN IN 0 0 0 SET 0 OUT LT3045-1
+R1 SET 0 33k
+C2 SET 0 10n
+C3 OUT 0 10u
+R2 OUT 0 33
+.tran 10m
+.end

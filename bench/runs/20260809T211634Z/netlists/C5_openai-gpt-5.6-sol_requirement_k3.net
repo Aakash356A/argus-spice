@@ -1,0 +1,54 @@
+* LTC4281 12 V hot-swap controller
+* Uses the genuine Analog Devices LTC4281 LTspice macromodel.
+* Expected model pin order:
+* INTVCC VDD SENSE+ SENSE- GATE SOURCE UV OV TIMER FB GND
+.lib LTC4281.sub
+
+VINPUT IN 0 PULSE(0 12 1m 100u 100u 1 2)
+
+* Input bypassing
+CIN IN 0 10u
+CINHF IN 0 100n
+
+* 5 mOhm current-sense resistor
+RSENSE IN SNS 5m
+
+* LTC4281 controller
+XU1 INTVCC IN IN SNS GATE_CTL OUT UV OV TIMER FB 0 LTC4281
+CINTVCC INTVCC 0 1u
+
+* External hot-swap N-channel MOSFET and gate damping
+RGATE GATE_CTL GATE 10
+MHS SNS GATE OUT OUT HSFET
+.model HSFET NMOS(Level=1 VTO=3 KP=50m LAMBDA=2m RD=5m RS=5m)
+CGS GATE OUT 2n
+CGD GATE SNS 300p
+RGS GATE OUT 100k
+
+* Undervoltage threshold: approximately 9.5 V
+RUVTOP IN UV 681k
+RUVBOT UV 0 100k
+CUV UV 0 10n
+
+* Overvoltage threshold: approximately 14.5 V
+ROVTOP IN OV 1.00Meg
+ROVBOT OV 0 100k
+COV OV 0 10n
+
+* Fault timing capacitor
+CTIMER TIMER 0 47n
+
+* Output feedback divider, approximately 10.5 V power-good threshold
+RFBTOP OUT FB 750k
+RFBBOT FB 0 100k
+CFB FB 0 10n
+
+* Output capacitance and 1 A nominal resistive load
+COUT OUT 0 470u
+RLOAD OUT 0 12
+
+.tran 0 100m 0 10u
+.meas tran VOUT_DC AVG V(OUT) FROM 80m TO 100m
+.meas tran ILOAD_DC AVG I(RLOAD) FROM 80m TO 100m
+
+.end

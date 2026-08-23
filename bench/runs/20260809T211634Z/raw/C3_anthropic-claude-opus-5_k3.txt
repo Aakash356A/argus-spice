@@ -1,0 +1,72 @@
+```
+* LT8710 SYNCHRONOUS CONVERTER : 24V INPUT -> 12V REGULATED OUTPUT
+* Behavioral (functional) model of the LT8710 synchronous controller
+* driving a synchronous buck power stage into a resistive load.
+*
+*-------------------------------------------------------------------
+* LT8710 controller macromodel
+*   pins: VIN  FBX  VC  TG  BG  SW  GND
+*-------------------------------------------------------------------
+.subckt LT8710 VIN FBX VC TG BG SW GND
+* internal 1.6V FBX reference with internal soft-start ramp
+BREF   REF  GND  V = 1.6*min(1, time/1m)
+* transconductance error amplifier (gm = 100uA/V), output = VC pin
+BEA    VC   GND  I = 100u*(V(FBX)-V(REF))
+* VC clamp (prevents integrator wind-up)
+VCL    VCL  GND  1.1
+DCLH   VC   VCL  DCLAMP
+DCLL   GND  VC   DCLAMP
+* internal 200kHz sawtooth oscillator
+VRAMP  RAMP GND  PULSE(0 1 0 4.9u 0.1u 1n 5u)
+* limited control voltage
+BCTRL  CTRL GND  V = limit(V(VC),0,1)
+* PWM comparator + complementary gate drivers with ~100ns dead time
+BTG    TG   SW   V = if( V(CTRL)-V(RAMP) > 0.02, 10, 0 )
+BBG    BG   GND  V = if( V(RAMP)-V(CTRL) > 0.02, 10, 0 )
+RTG    TG   SW   1M
+RBG    BG   GND  1M
+.ends LT8710
+*
+*-------------------------------------------------------------------
+* POWER STAGE
+*-------------------------------------------------------------------
+VIN    IN   0    24
+CIN    IN   0    22u
+RCIN   IN   0    1G
+*
+XU1    IN  FB  VC  TG  BG  SW  0  LT8710
+CC     VC   0    220n          ; loop compensation on VC pin
+*
+* synchronous power switches (top / bottom N-channel)
+S1     IN   SW   TG   SW   SWMOD    ; high-side switch
+S2     SW   0    BG   0    SWMOD    ; low-side (synchronous) switch
+DHS    SW   IN   DBODY             ; high-side body diode
+DLS    0    SW   DBODY             ; low-side  body diode
+*
+L1     SW   OUT  47u
+COUT   OUT  OX   100u
+RESR   OX   0    0.15
+*
+* output feedback divider : 1.6V * (1 + 130k/20k) = 12.0V
+R1     OUT  FB   130k
+R2     FB   0    20k
+*
+* resistive load : 12V / 6ohm = 2A
+RLOAD  OUT  0    6
+*
+*-------------------------------------------------------------------
+* MODELS
+*-------------------------------------------------------------------
+.model SWMOD  SW(Ron=20m Roff=1G Vt=5 Vh=0.5)
+.model DBODY  D(Ron=0.02 Roff=1G Vfwd=0.6 epsilon=0.2)
+.model DCLAMP D(Ron=1 Roff=1G Vfwd=0.3 epsilon=0.1)
+*
+*-------------------------------------------------------------------
+* ANALYSIS
+*-------------------------------------------------------------------
+.tran 0 5m 0 100n startup
+.meas TRAN vout_dc AVG V(OUT) FROM=4m TO=5m
+.meas TRAN vout_pp PP  V(OUT) FROM=4.9m TO=5m
+.options plotwinsize=0 reltol=2m
+.end
+```

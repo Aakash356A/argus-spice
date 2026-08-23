@@ -1,0 +1,17 @@
+* AD8092 non-inverting amplifier, gain = 5 V/V
+.lib ADI.lib
+
+VCC VCC 0 5
+VEE VEE 0 -5
+VIN IN 0 SINE(0 100m 1Meg) AC 100m
+
+XU1 IN NFB VCC VEE OUT AD8092
+
+RF OUT NFB 1k
+RG NFB 0 250
+RLOAD OUT 0 1k
+
+.ac dec 100 10k 100Meg
+.tran 0 10u 2u 2n
+
+.end

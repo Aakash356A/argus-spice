@@ -1,0 +1,14 @@
+* LTC6252 High-Speed Amplifier Gain of 2
+V1 VCC 0 5
+V2 VEE 0 -5
+VIN IN 0 SINE(0 1 10Meg)
+R1 OUT IN_MINUS 200
+R2 IN_MINUS 0 200
+C1 VCC 0 0.1u
+C2 VEE 0 0.1u
+X1 IN IN_MINUS VCC VEE OUT LTC6252
+.tran 0 2u 1u
+.meas tran vin_pp PP V(IN)
+.meas tran vout_pp PP V(OUT)
+.meas tran gain_db param 20*log10(vout_pp/vin_pp)
+.end

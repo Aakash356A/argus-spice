@@ -1,0 +1,18 @@
+* LT3045-1 3.3V 100mA LDO
+Vin IN 0 5
+Cin IN 0 10u
+
+* LT3045-1 Pinout: IN EN/UV PG PGFB ILIM VIOC SET GND OUT
+X1 IN IN NC_PG OUT 0 NC_VIOC SET 0 OUT LT3045-1
+
+Rset SET 0 33k
+Cset SET 0 100p
+Cout OUT 0 10u
+Rload OUT 0 33
+
+* Dummy resistors to prevent floating node errors
+R_vioc NC_VIOC 0 1G
+R_pg NC_PG 0 1G
+
+.tran 2m
+.end

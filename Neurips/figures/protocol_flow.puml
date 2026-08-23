@@ -1,0 +1,85 @@
+@startuml protocol_flow
+' Acceptance-protocol figure. Render with:
+'   java -jar plantuml.jar figures/protocol_flow.puml
+
+skinparam shadowing false
+skinparam defaultFontName Helvetica
+skinparam defaultFontSize 12
+skinparam ArrowColor #444444
+skinparam ArrowFontSize 11
+skinparam ActivityBorderColor #444444
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderThickness 1
+skinparam ActivityDiamondBackgroundColor #F2F2F2
+skinparam ActivityDiamondBorderColor #444444
+skinparam ActivityDiamondFontSize 12
+skinparam NoteBackgroundColor #FFFCEF
+skinparam NoteBorderColor #AAAAAA
+skinparam NoteFontSize 11
+skinparam TitleFontSize 14
+
+title Acceptance requires two independent verdicts
+
+start
+
+:**Candidate netlist**
+<size:10>from any generator</size>;
+
+fork
+  :**Layer 1**
+  **provenance & identity audit**
+  ====
+  <size:10>reads: netlist + trusted part metadata</size>
+  <size:10>//not// the generation trace, //not// an LLM</size>
+  ----
+  <size:10>local .subckt shadowing the part?</size>
+  <size:10>behavioural stub (no device content)?</size>
+  <size:10>part never instantiated?</size>
+  <size:10>pin roles vs. reference interface?</size>;
+  note right
+    Static: no simulation.
+    Re-derivable by any
+    reader from released
+    files.
+  end note
+
+fork again
+
+  :**Layer 2**
+  **behavioural verification**
+  ====
+  <size:10>reads: the simulator</size>
+  ----
+  <size:10>converges?</size>
+  <size:10>every metric within tolerance?</size>
+  <size:10>waveform reproduces its input (THD)?</size>;
+  note right
+    The gate used on
+    its own by prior
+    simulator-in-the-loop
+    systems.
+  end note
+
+end fork
+
+if (both verdicts hold?) then (<b>yes</b>)
+  :**ACCEPT**; <<#E9F5EC>>
+else (<b>no</b>)
+  :**REJECT**; <<#FBEBEB>>
+endif
+
+:**Layer 4** — evidence record
+<size:10>SHA-256 of candidate + reference</size>
+<size:10>each measured value against its target</size>
+<size:10>audit flags fired, generation provenance</size>;
+
+stop
+
+legend bottom
+  Layer 1 and Layer 2 are independent: a candidate that passes
+  simulation can still fail provenance, and vice versa. Acceptance
+  requires both. Layer 3 (reference-preserving guard) applies only
+  to adaptation tasks and is omitted here.
+endlegend
+
+@enduml

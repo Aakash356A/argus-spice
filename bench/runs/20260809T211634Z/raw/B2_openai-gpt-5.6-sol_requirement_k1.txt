@@ -1,0 +1,17 @@
+* ADA4177 inverting amplifier, gain = -10 V/V
+.include ADA4177.cir
+
+VCC VPLUS 0 15
+VEE VMINUS 0 -15
+VIN IN 0 SINE(0 50m 1k) AC 50m
+
+RIN IN NINV 1k
+RFB OUT NINV 10k
+
+XU1 0 NINV VPLUS VMINUS OUT ADA4177
+
+.tran 0 10m 5m 1u
+.ac dec 100 10 100k
+.meas AC gain_db FIND db(V(OUT)/V(IN)) AT=1k
+
+.end

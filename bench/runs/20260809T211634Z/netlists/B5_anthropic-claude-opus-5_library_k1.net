@@ -1,0 +1,34 @@
+* MAX44245 Non-Inverting Amplifier, Av = 20 V/V (26.02 dB), +/-15 V supplies
+* -----------------------------------------------------------------------
+.lib MAX44245.lib
+
+* ---- Supplies ----
+VCC VCC 0 DC 15
+VEE VEE 0 DC -15
+
+* ---- Input source: 50 mV amplitude, 1 kHz sine (AC=1 for .AC sweep) ----
+VIN IN 0 SINE(0 50m 1k 0 0 0) AC 1
+
+* ---- Op amp: X<name> OUT IN+ IN- V+ V- MAX44245 ----
+XU1 OUT IN FB VCC VEE MAX44245
+
+* ---- Feedback network: gain = 1 + R1/R2 = 1 + 19k/1k = 20 V/V ----
+R1 OUT FB 19k
+R2 FB 0 1k
+
+* ---- Light load ----
+RL OUT 0 10k
+CL OUT 0 10p
+
+* ---- Analyses ----
+.tran 0 5m 0 1u
+.ac dec 100 10 10Meg
+
+* ---- Measurements ----
+.meas TRAN vout_pp PP V(OUT) FROM 2m TO 5m
+.meas TRAN vin_pp  PP V(IN)  FROM 2m TO 5m
+.meas TRAN gain_db PARAM 20*log10(vout_pp/vin_pp)
+.meas AC   gain_db_ac FIND vdb(OUT) AT 1k
+
+.options plotwinsize=0 numdgt=7
+.end

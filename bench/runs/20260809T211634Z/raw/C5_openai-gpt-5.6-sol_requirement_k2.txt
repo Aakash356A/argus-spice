@@ -1,0 +1,43 @@
+* LTC4281 12 V hot-swap controller
+* Requires the genuine Analog Devices LTC4281.sub macromodel.
+.include LTC4281.sub
+
+VIN IN 0 PULSE(0 12 1m 10u 10u 1 2)
+
+* Input bypass and Kelvin-connected current-sense resistor
+CIN IN 0 10u
+RSENSE IN SNS 10m
+
+* External high-side N-channel pass MOSFET
+MHS SNS GATE OUT OUT HSFET
+.model HSFET VDMOS(VTO=3 KP=40 RD=2m RS=2m RG=2 CGDMAX=1n CGDMIN=50p CGS=2n)
+RGPD GATE OUT 1Meg
+
+* LTC4281 ON threshold divider
+RON1 IN ON 100k
+RON2 ON 0 13.3k
+CON ON 0 10n
+
+* Output-valid/foldback feedback divider
+RFB1 OUT FB 100k
+RFB2 FB 0 11.5k
+CFB FB 0 10n
+
+* Fault timing capacitor
+CTIMER TIMER 0 47n
+
+* Genuine LTC4281 macromodel
+* Vendor model terminal order:
+* VDD SENSE+ SENSE- GATE SOURCE FB ON TIMER GND
+XU1 IN IN SNS GATE OUT FB ON TIMER 0 LTC4281
+
+* Resistive 12 V load and realistic output bulk capacitance
+COUT OUT 0 1000u IC=0
+RLOAD OUT 0 12
+
+.tran 0 100m 0 10u
+.meas tran vout_dc AVG V(OUT) FROM=80m TO=100m
+.meas tran vout_final FIND V(OUT) AT=100m
+
+.options plotwinsize=0
+.end

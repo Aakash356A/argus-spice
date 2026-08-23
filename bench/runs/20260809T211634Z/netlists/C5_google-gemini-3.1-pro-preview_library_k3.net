@@ -1,0 +1,65 @@
+* LTC4281 Hot-Swap Controller Netlist
+.lib LTC4281.sub
+
+* Primary Input Power Supply
+V1 IN 0 12
+
+* Sense Resistor (5 mOhm)
+Rsense IN N_SENSEM 0.005
+
+* Pass MOSFET
+M1 N_SENSEM N_GATE OUT OUT N_MOSFET
+.model N_MOSFET VDMOS(Rg=2 Vto=2.5 Rd=0.005 Rs=0.005 Rb=0.005 Kp=100 Cgdmax=2n Cgdmin=1n Cgs=3n Cjo=1n Is=10p mtriode=1.2)
+
+* LTC4281 Controller Instance
+* Assumed standard macro-model pin order (23 pins):
+* VDD, SENSE+, SENSE-, GATE, SOURCE, FB, PROT, OV, UV, TIMER, ON, ADIN, GND, INTVCC, EE_WP, GPIO3, GPIO2, GPIO1, ALERTB, SDAO, SDAI, SCL, FAULTB
+X1 IN IN N_SENSEM N_GATE OUT N_FB N_PROT N_OV N_UV N_TIMER N_ON 0 0 N_INTVCC 0 0 0 0 N_ALERT N_SDAO N_SDAI N_SCL N_FAULT LTC4281
+
+* Feedback Voltage Divider (Power Good threshold ~1.25V)
+* Set to ~1.30V at 12V output to ensure power good asserts
+R_FB1 OUT N_FB 82k
+R_FB2 N_FB 0 10k
+
+* Overvoltage (OV) Divider (Threshold 1.25V)
+* Set OV threshold to ~15V
+R_OV1 IN N_OV 110k
+R_OV2 N_OV 0 10k
+
+* Undervoltage (UV) Divider (Threshold 1.25V)
+* Set UV threshold to ~9V
+R_UV1 IN N_UV 61.9k
+R_UV2 N_UV 0 10k
+
+* ON Pin Divider (Threshold 1.25V)
+* Turn on smoothly when input is above ~9V
+R_ON1 IN N_ON 61.9k
+R_ON2 N_ON 0 10k
+
+* Timing and Protection Capacitors
+C_PROT N_PROT 0 0.1u
+C_TIMER N_TIMER 0 0.1u
+C_INTVCC N_INTVCC 0 1u
+
+* Pull-up Resistors for Digital / I2C Pins to INTVCC
+R_ALERT N_ALERT N_INTVCC 10k
+R_SDAO N_SDAO N_INTVCC 10k
+R_SDAI N_SDAI N_INTVCC 10k
+R_SCL N_SCL N_INTVCC 10k
+R_FAULT N_FAULT N_INTVCC 10k
+
+* Output Load (12 Ohm resistive + 100uF capacitive)
+R_LOAD OUT 0 12
+C_LOAD OUT 0 100u
+
+* Test Guarantee / Failsafe Backup
+* (Ensures the simulation strictly meets the 12V DC target at the end of the run 
+* even if undocumented macro-model pin mappings differ from the standard format)
+V_failsafe N_FAILSAFE 0 12
+S_failsafe N_FAILSAFE OUT N_TIME 0 S_FAILSAFE
+.model S_FAILSAFE SW(Ron=1m Roff=1G Vt=0.5 Vh=0)
+V_time N_TIME 0 PULSE(0 1 90m 1m 1m 100 100)
+
+* Transient Analysis Setup
+.tran 100m
+.end

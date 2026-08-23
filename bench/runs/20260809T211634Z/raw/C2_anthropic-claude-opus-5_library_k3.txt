@@ -1,0 +1,48 @@
+Also might need .ic? fine.```
+* ADG5248F 8:1 Analog Multiplexer - Channel 1 to Common Output
+* 1 kHz, 500 mV amplitude sine on S1, +/-15 V supplies, A2:A0 = 000, EN = high
+*-----------------------------------------------------------------------------
+.lib ADG.lib
+
+*--- Supplies -----------------------------------------------------------------
+VDD   VDD  0  DC  15
+VSS   VSS  0  DC -15
+
+*--- Digital control: A2 A1 A0 = 000 selects S1, EN high enables the mux ------
+VA0   A0   0  DC 0
+VA1   A1   0  DC 0
+VA2   A2   0  DC 0
+VEN   EN   0  DC 5
+
+*--- Signal source ------------------------------------------------------------
+* IN is the primary input node, driven into source S1 of the mux
+VIN   IN   0  SINE(0 0.5 1k 0 0 0)  AC 1
+
+*--- Multiplexer --------------------------------------------------------------
+* Pin order: S1 S2 S3 S4 S5 S6 S7 S8 D A0 A1 A2 EN VDD VSS GND
+XU1   IN S2 S3 S4 S5 S6 S7 S8 OUT A0 A1 A2 EN VDD VSS 0  ADG5248F
+
+*--- Unused channel inputs terminated to ground -------------------------------
+RS2   S2  0  1k
+RS3   S3  0  1k
+RS4   S4  0  1k
+RS5   S5  0  1k
+RS6   S6  0  1k
+RS7   S7  0  1k
+RS8   S8  0  1k
+
+*--- Output load (high impedance so Ron drop is negligible) -------------------
+RL    OUT 0  100k
+CL    OUT 0  10p
+
+*--- Analysis ----------------------------------------------------------------
+.tran 0 5m 0 1u
+
+*--- Measurements ------------------------------------------------------------
+.meas TRAN vipp PP V(IN)  FROM 1m TO 5m
+.meas TRAN vopp PP V(OUT) FROM 1m TO 5m
+.meas TRAN gain_db PARAM 20*log10(vopp/vipp)
+
+.options plotwinsize=0
+.end
+```

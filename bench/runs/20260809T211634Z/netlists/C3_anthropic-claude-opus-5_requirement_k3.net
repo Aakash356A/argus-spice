@@ -1,0 +1,56 @@
+* ---------------------------------------------------------------
+* LT8710 SYNCHRONOUS CONVERTER (SEPIC TOPOLOGY)
+* 24 V INPUT  ->  12 V / 1 A REGULATED OUTPUT, RESISTIVE LOAD
+* Genuine Linear Technology LT8710 macromodel is instantiated
+* (subcircuit taken from the LTspice vendor library).
+*
+* LT8710 pin order used on the X-line (package order 1..19):
+*  SYNC RT SS VC FBX IMON ISP ISN EN/FBIN FLAG GND SENSE PGND
+*  BG TGRTN TG GATEVCC INTVCC VIN
+* ---------------------------------------------------------------
+.lib LT8710.sub
+
+* ---------------- Source and input capacitor -------------------
+VSRC IN 0 DC 24
+CIN  IN 0 22u Rser=15m
+
+* ---------------- SEPIC power stage ---------------------------
+L1    IN  SWN 47u Rser=30m
+MN    SWN NG  SNSP NCH                ; main N-channel switch (BG driven)
+RSNS  SNSP 0  0.02                    ; switch current sense resistor
+CDC   SWN SWP 4.7u Rser=15m           ; SEPIC coupling capacitor
+L2    SWP 0   47u Rser=30m
+MP    SWP PG  OUT  PCH                ; synchronous P-channel rectifier (TG driven)
+COUT  OUT 0   47u Rser=10m            ; output capacitor
+RLOAD OUT 0   12                      ; resistive load ~1 A at 12 V
+
+* ---------------- LT8710 controller ---------------------------
+XU1 0 RT SS VC FBX IMON OUT OUT EN FLAG 0 SNSP 0 NG OUT PG VCC VCC IN LT8710
+
+CVCC  VCC 0 4.7u                      ; INTVCC / GATEVCC bypass
+RRT   RT  0 41.2k                     ; switching frequency set
+CSS   SS  0 10n                       ; soft-start
+RCMP  VC  VCM 10k                     ; loop compensation
+CCMP  VCM 0   4.7n
+CCMP2 VC  0   47p
+RFB1  OUT FBX 97.6k                   ; 12 V -> 1.6 V FBX
+RFB2  FBX 0   15k
+CFF   OUT FBX 22p
+REN1  IN  EN  100k                    ; EN/FBIN above regulation point (enabled)
+REN2  EN  0   15k
+RIMON IMON 0 10k                      ; output current monitor (not limiting)
+CIMON IMON 0 100p
+RFLG  VCC FLAG 100k                   ; open-collector FLAG pull-up
+
+* ---------------- Discrete power MOSFET models ----------------
+.model NCH VDMOS(nchan Vto=2.2 Kp=25 Lambda=0.01 Rd=20m Rs=5m Rg=2
++ Cgs=1.2n Cgdmax=0.8n Cgdmin=40p Cjo=350p Vds=100 mfg=Generic)
+.model PCH VDMOS(pchan Vto=-2.2 Kp=20 Lambda=0.01 Rd=30m Rs=8m Rg=2
++ Cgs=1.5n Cgdmax=1n Cgdmin=50p Cjo=400p Vds=-60 mfg=Generic)
+
+* ---------------- Analysis ------------------------------------
+.tran 0 5m 0 300n
+.meas TRAN vout_dc AVG V(OUT) FROM 4m TO 5m
+.meas TRAN vout_pp PP V(OUT) FROM 4m TO 5m
+.options plotwinsize=0
+.end

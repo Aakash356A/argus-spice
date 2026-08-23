@@ -1,0 +1,25 @@
+* AD8237 instrumentation amplifier, G = 10 V/V, single 5 V supply
+VCC VCC 0 5
+VREF REF 0 2.5
+VNEG INN 0 2.5
+VIN IN 0 SINE(2.5 20m 1k) AC 20m
+
+* Gain network: G = 1 + RFB/RG = 1 + 9k/1k = 10
+RFB OUT FB 9k
+RG FB REF 1k
+
+XU1 IN INN FB REF OUT VCC 0 AD8237
+
+.ac dec 100 10 100k
+.tran 0 5m 0 2u
+.meas ac gain_db FIND 20*log10(mag(V(OUT)/V(IN))) AT=1k
+
+* Self-contained functional AD8237 macromodel
+.subckt AD8237 INP INN FB REF OUT VPOS VNEG
+RINP INP VNEG 1T
+RINN INN VNEG 1T
+EAMP NDRV VNEG VALUE={V(REF,VNEG)+1e6*(V(INP,INN)-V(FB,REF))}
+ROUT NDRV OUT 10
+.ends AD8237
+
+.end

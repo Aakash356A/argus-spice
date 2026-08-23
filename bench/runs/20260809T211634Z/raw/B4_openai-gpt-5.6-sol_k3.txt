@@ -1,0 +1,22 @@
+* AD8551 non-inverting amplifier, gain = 100 V/V
+VCC VDD 0 5
+VREF VREF 0 2.5
+VIN IN 0 SINE(2.5 10m 1k) AC 10m
+
+RFB OUT NINV 99k
+RG NINV VREF 1k
+CLOAD OUT 0 20p
+XU1 IN NINV VDD 0 OUT AD8551
+
+.ac dec 100 10 100k
+.tran 0 10m 5m 1u
+.meas AC gain_db FIND db(V(OUT)/V(IN)) AT=1k
+
+.subckt AD8551 NP NN VDD VSS OUT
+GERR VSS NINT VALUE={1m*V(NP,NN)}
+RINT NINT VSS 1G
+CINT NINT VSS 106.103p
+BOUT OUT VSS V=limit(V(NINT,VSS),10m,V(VDD,VSS)-10m)
+.ends AD8551
+
+.end

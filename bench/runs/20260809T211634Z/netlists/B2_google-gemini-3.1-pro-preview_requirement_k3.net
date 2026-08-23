@@ -1,0 +1,21 @@
+* ADA4177 Inverting Amplifier
+Vin IN 0 SINE(0 50m 1k) AC 1
+Vcc VCC 0 15
+Vee VEE 0 -15
+
+Rin IN N001 10k
+Rf N001 OUT 100k
+
+X1 0 N001 VCC VEE OUT ADA4177
+
+.tran 0 5m
+.meas tran Vout_pp PP V(OUT) FROM 2m TO 5m
+.meas tran Vin_pp PP V(IN) FROM 2m TO 5m
+.meas tran gain param Vout_pp/Vin_pp
+.meas tran gain_db param 20*log10(gain)
+
+.ac dec 10 100 100k
+.meas ac gain_db_ac MAX 20*log10(mag(V(OUT)/V(IN)))
+
+.lib ADI.lib
+.end

@@ -1,0 +1,825 @@
+{
+  "run_id": "20260809T211634Z",
+  "partition": {
+    "total": 360,
+    "excluded_manual_grade_only": 18,
+    "no_completion": 26,
+    "netlists": 316,
+    "not_converged": 187,
+    "numeric_fail": 29,
+    "numeric_pass": 100,
+    "converged": 129
+  },
+  "guard": {
+    "rejects_of_netlists": 316,
+    "netlists": 316,
+    "rejects_of_numeric_passes": 100,
+    "numeric_passes": 100
+  },
+  "flags": {
+    "substituted": 98,
+    "behavioral_stub": 78,
+    "no_part": 15,
+    "pin_role_mismatch": 53
+  },
+  "pin_count_mismatch": 59,
+  "pin_role": {
+    "by_arm": {
+      "bare": {
+        "total": 22,
+        "converged": 11,
+        "numeric_pass": 11
+      },
+      "library": {
+        "total": 31,
+        "converged": 18,
+        "numeric_pass": 1
+      }
+    },
+    "passing_total": 12
+  },
+  "arms": {
+    "bare": {
+      "attempted": 171,
+      "netlists": 168,
+      "no_completion": 3,
+      "numeric_pass": 73,
+      "false_pass": 71,
+      "false_pass_rate": 97.26027397260275,
+      "false_pass_ci": [
+        91.17647058823529,
+        100.0
+      ],
+      "genuine": 19,
+      "genuine_rate_over_netlists": 11.30952380952381,
+      "genuine_rate_over_attempted": 11.11111111111111,
+      "genuine_ci": [
+        4.320987654320987,
+        19.29824561403509
+      ],
+      "pass_per_attempted": 42.69005847953216,
+      "false_per_attempted": 41.52046783625731,
+      "valid_pass": 2,
+      "valid_pass_per_attempted": 1.1695906432748537
+    },
+    "library": {
+      "attempted": 171,
+      "netlists": 148,
+      "no_completion": 23,
+      "numeric_pass": 27,
+      "false_pass": 8,
+      "false_pass_rate": 29.62962962962963,
+      "false_pass_ci": [
+        12.0,
+        48.0
+      ],
+      "genuine": 146,
+      "genuine_rate_over_netlists": 98.64864864864865,
+      "genuine_rate_over_attempted": 85.38011695906432,
+      "genuine_ci": [
+        96.73202614379085,
+        100.0
+      ],
+      "pass_per_attempted": 15.789473684210526,
+      "false_per_attempted": 4.678362573099415,
+      "valid_pass": 19,
+      "valid_pass_per_attempted": 11.11111111111111
+    }
+  },
+  "models": {
+    "anthropic/claude-opus-5": {
+      "bare": {
+        "attempted": 57,
+        "netlists": 54,
+        "numeric_pass": 37,
+        "false_pass": 37,
+        "false_pass_rate": 100.0,
+        "genuine": 3,
+        "stub": 33
+      },
+      "library": {
+        "attempted": 57,
+        "netlists": 37,
+        "numeric_pass": 8,
+        "false_pass": 0,
+        "false_pass_rate": 0.0,
+        "genuine": 37,
+        "stub": 0
+      }
+    },
+    "google/gemini-3.1-pro-preview": {
+      "bare": {
+        "attempted": 57,
+        "netlists": 57,
+        "numeric_pass": 4,
+        "false_pass": 2,
+        "false_pass_rate": 50.0,
+        "genuine": 12,
+        "stub": 1
+      },
+      "library": {
+        "attempted": 57,
+        "netlists": 57,
+        "numeric_pass": 13,
+        "false_pass": 8,
+        "false_pass_rate": 61.53846153846154,
+        "genuine": 57,
+        "stub": 0
+      }
+    },
+    "openai/gpt-5.6-sol": {
+      "bare": {
+        "attempted": 57,
+        "netlists": 57,
+        "numeric_pass": 32,
+        "false_pass": 32,
+        "false_pass_rate": 100.0,
+        "genuine": 4,
+        "stub": 44
+      },
+      "library": {
+        "attempted": 57,
+        "netlists": 54,
+        "numeric_pass": 6,
+        "false_pass": 0,
+        "false_pass_rate": 0.0,
+        "genuine": 52,
+        "stub": 0
+      }
+    }
+  },
+  "grading": {
+    "numeric_passes": 100,
+    "audit_flagged": 71,
+    "audit_cleared": 29,
+    "cleared_hand_graded": 29,
+    "cleared_graded_fake": 9,
+    "cleared_graded_real": 20,
+    "cleared_measured_only": 0,
+    "cleared_unresolved": 0,
+    "human_confirmed_fake": 9,
+    "audit_flagged_assumed_fake": 71,
+    "false_acceptance_assuming_flagged_fake": 80,
+    "false_acceptance_rate_ci": [
+      65.42056074766356,
+      92.3913043478261
+    ],
+    "audit_recall_vs_confirmed": 88.75
+  },
+  "confusion": {
+    "tp": 70,
+    "fp": 1,
+    "fn": 9,
+    "tn": 20,
+    "labelled_fake": 79,
+    "labelled_real": 21,
+    "precision": 98.59154929577464,
+    "recall": 88.60759493670886,
+    "specificity": 95.23809523809524,
+    "f1": 93.33333333333334,
+    "accuracy": 90.0,
+    "basis": {
+      "author review (mechanical)": 70,
+      "distortion measurement": 10,
+      "hand read": 20
+    }
+  },
+  "full_protocol": {
+    "wave_evaluated": 15,
+    "wave_violations": 1,
+    "wave_beyond_audit": 0
+  },
+  "compute": {
+    "generations_attempted": 360,
+    "total_generation_seconds": 16423.1,
+    "mean_generation_seconds": 45.62,
+    "models": [
+      "anthropic/claude-opus-5",
+      "google/gemini-3.1-pro-preview",
+      "openai/gpt-5.6-sol"
+    ],
+    "netlist_bytes_on_disk": 259836
+  },
+  "corpus": {
+    "total": 540,
+    "excluded_inspection": 27,
+    "scored": 513,
+    "arms": 3,
+    "per_arm_attempted": 180,
+    "per_arm_scored": 171,
+    "cases": 20,
+    "models": 3,
+    "samples_per_cell": 3
+  },
+  "ladder": [
+    {
+      "tp": 0,
+      "fp": 0,
+      "fn": 79,
+      "tn": 21,
+      "n": 100,
+      "precision": null,
+      "recall": 0.0,
+      "flagged": 0,
+      "label": "numeric simulation alone",
+      "active": [],
+      "delta_tp": 0
+    },
+    {
+      "tp": 8,
+      "fp": 0,
+      "fn": 71,
+      "tn": 21,
+      "n": 100,
+      "precision": 100.0,
+      "recall": 10.126582278481013,
+      "flagged": 8,
+      "label": "+ requested-part instance check",
+      "active": [
+        "no_part"
+      ],
+      "delta_tp": 8
+    },
+    {
+      "tp": 70,
+      "fp": 0,
+      "fn": 9,
+      "tn": 21,
+      "n": 100,
+      "precision": 100.0,
+      "recall": 88.60759493670886,
+      "flagged": 70,
+      "label": "+ local same-name \\texttt{.subckt}",
+      "active": [
+        "no_part",
+        "substituted"
+      ],
+      "delta_tp": 62
+    },
+    {
+      "tp": 70,
+      "fp": 0,
+      "fn": 9,
+      "tn": 21,
+      "n": 100,
+      "precision": 100.0,
+      "recall": 88.60759493670886,
+      "flagged": 70,
+      "label": "+ behavioural-stub refinement",
+      "active": [
+        "no_part",
+        "substituted",
+        "behavioral_stub"
+      ],
+      "delta_tp": 0
+    },
+    {
+      "tp": 70,
+      "fp": 0,
+      "fn": 9,
+      "tn": 21,
+      "n": 100,
+      "precision": 100.0,
+      "recall": 88.60759493670886,
+      "flagged": 70,
+      "label": "resolved-binding provenance (alone)",
+      "active": [
+        "resolved_binding"
+      ],
+      "delta_tp": 0
+    },
+    {
+      "tp": 70,
+      "fp": 1,
+      "fn": 9,
+      "tn": 20,
+      "n": 100,
+      "precision": 98.59154929577464,
+      "recall": 88.60759493670886,
+      "flagged": 71,
+      "label": "+ pin-role validation",
+      "active": [
+        "resolved_binding",
+        "pin_role_mismatch"
+      ],
+      "delta_tp": 0
+    },
+    {
+      "tp": 70,
+      "fp": 1,
+      "fn": 9,
+      "tn": 20,
+      "n": 100,
+      "precision": 98.59154929577464,
+      "recall": 88.60759493670886,
+      "flagged": 71,
+      "label": "full audit",
+      "active": [
+        "no_part",
+        "substituted",
+        "behavioral_stub",
+        "resolved_binding",
+        "pin_role_mismatch"
+      ],
+      "delta_tp": 0
+    }
+  ],
+  "grounds": {
+    "fake_local_subckt": 62,
+    "fake_no_instance": 8,
+    "valid_distortion": 10,
+    "fake_read": 9,
+    "valid_read": 11
+  },
+  "stages": [
+    {
+      "stage": "numeric gate",
+      "accepted": 100,
+      "false_accepted": 79,
+      "valid_accepted": 21,
+      "removed": null
+    },
+    {
+      "stage": "$+$ resolved binding",
+      "accepted": 30,
+      "false_accepted": 9,
+      "valid_accepted": 21,
+      "removed": 70
+    },
+    {
+      "stage": "$+$ interface check",
+      "accepted": 29,
+      "false_accepted": 9,
+      "valid_accepted": 20,
+      "removed": 1
+    },
+    {
+      "stage": "$+$ waveform integrity",
+      "accepted": 29,
+      "false_accepted": 9,
+      "valid_accepted": 20,
+      "removed": 0
+    }
+  ],
+  "standalone": {
+    "no_part": {
+      "tp": 8,
+      "fp": 0,
+      "fn": 71,
+      "tn": 21,
+      "n": 100,
+      "precision": 100.0,
+      "recall": 10.126582278481013,
+      "flagged": 8
+    },
+    "substituted": {
+      "tp": 62,
+      "fp": 0,
+      "fn": 17,
+      "tn": 21,
+      "n": 100,
+      "precision": 100.0,
+      "recall": 78.48101265822785,
+      "flagged": 62
+    },
+    "behavioral_stub": {
+      "tp": 46,
+      "fp": 0,
+      "fn": 33,
+      "tn": 21,
+      "n": 100,
+      "precision": 100.0,
+      "recall": 58.22784810126582,
+      "flagged": 46
+    },
+    "resolved_binding": {
+      "tp": 70,
+      "fp": 0,
+      "fn": 9,
+      "tn": 21,
+      "n": 100,
+      "precision": 100.0,
+      "recall": 88.60759493670886,
+      "flagged": 70
+    },
+    "pin_role_mismatch": {
+      "tp": 11,
+      "fp": 1,
+      "fn": 68,
+      "tn": 20,
+      "n": 100,
+      "precision": 91.66666666666667,
+      "recall": 13.924050632911392,
+      "flagged": 12
+    }
+  },
+  "leave_one_out": {
+    "no_part": {
+      "tp": 70,
+      "fp": 1,
+      "fn": 9,
+      "tn": 20,
+      "n": 100,
+      "precision": 98.59154929577464,
+      "recall": 88.60759493670886,
+      "flagged": 71,
+      "unique_tp": 0,
+      "unique_fp": 0,
+      "removed": "no_part"
+    },
+    "substituted": {
+      "tp": 70,
+      "fp": 1,
+      "fn": 9,
+      "tn": 20,
+      "n": 100,
+      "precision": 98.59154929577464,
+      "recall": 88.60759493670886,
+      "flagged": 71,
+      "unique_tp": 0,
+      "unique_fp": 0,
+      "removed": "substituted"
+    },
+    "behavioral_stub": {
+      "tp": 70,
+      "fp": 1,
+      "fn": 9,
+      "tn": 20,
+      "n": 100,
+      "precision": 98.59154929577464,
+      "recall": 88.60759493670886,
+      "flagged": 71,
+      "unique_tp": 0,
+      "unique_fp": 0,
+      "removed": "behavioral_stub"
+    },
+    "resolved_binding": {
+      "tp": 70,
+      "fp": 1,
+      "fn": 9,
+      "tn": 20,
+      "n": 100,
+      "precision": 98.59154929577464,
+      "recall": 88.60759493670886,
+      "flagged": 71,
+      "unique_tp": 0,
+      "unique_fp": 0,
+      "removed": "resolved_binding"
+    },
+    "pin_role_mismatch": {
+      "tp": 70,
+      "fp": 0,
+      "fn": 9,
+      "tn": 21,
+      "n": 100,
+      "precision": 100.0,
+      "recall": 88.60759493670886,
+      "flagged": 70,
+      "unique_tp": 0,
+      "unique_fp": 1,
+      "removed": "pin_role_mismatch"
+    }
+  },
+  "minimal_sufficient": {
+    "tp": 70,
+    "fp": 0,
+    "fn": 9,
+    "tn": 21,
+    "n": 100,
+    "precision": 100.0,
+    "recall": 88.60759493670886,
+    "flagged": 70,
+    "subset": [
+      "resolved_binding"
+    ]
+  },
+  "provenance_only": {
+    "tp": 70,
+    "fp": 0,
+    "fn": 9,
+    "tn": 21,
+    "n": 100,
+    "precision": 100.0,
+    "recall": 88.60759493670886,
+    "flagged": 70
+  },
+  "pass_at_k": {
+    "by_arm": {
+      "bare": {
+        "numeric": {
+          "pass_at_1": 42.69005847953216,
+          "pass_at_3": 56.14035087719298,
+          "cells": 57,
+          "ci_pass_at_1": [
+            32.16374269005848,
+            52.63157894736842
+          ],
+          "ci_pass_at_3": [
+            43.85964912280702,
+            68.42105263157895
+          ]
+        },
+        "provenance": {
+          "pass_at_1": 1.7543859649122806,
+          "pass_at_3": 3.508771929824561,
+          "cells": 57,
+          "ci_pass_at_1": [
+            0.0,
+            4.678362573099415
+          ],
+          "ci_pass_at_3": [
+            0.0,
+            8.771929824561404
+          ]
+        },
+        "full_protocol": {
+          "pass_at_1": 1.7543859649122806,
+          "pass_at_3": 3.508771929824561,
+          "cells": 57,
+          "ci_pass_at_1": [
+            0.0,
+            4.678362573099415
+          ],
+          "ci_pass_at_3": [
+            0.0,
+            8.771929824561404
+          ]
+        },
+        "paired_reduction": {
+          "pass_at_1": [
+            30.994152046783626,
+            50.87719298245614
+          ],
+          "pass_at_3": [
+            40.35087719298246,
+            63.15789473684211
+          ]
+        }
+      },
+      "library": {
+        "numeric": {
+          "pass_at_1": 15.789473684210526,
+          "pass_at_3": 22.807017543859647,
+          "cells": 57,
+          "ci_pass_at_1": [
+            6.432748538011695,
+            26.900584795321635
+          ],
+          "ci_pass_at_3": [
+            10.526315789473685,
+            36.8421052631579
+          ]
+        },
+        "provenance": {
+          "pass_at_1": 15.789473684210526,
+          "pass_at_3": 22.807017543859647,
+          "cells": 57,
+          "ci_pass_at_1": [
+            6.432748538011695,
+            26.900584795321635
+          ],
+          "ci_pass_at_3": [
+            10.526315789473685,
+            36.8421052631579
+          ]
+        },
+        "full_protocol": {
+          "pass_at_1": 15.204678362573098,
+          "pass_at_3": 22.807017543859647,
+          "cells": 57,
+          "ci_pass_at_1": [
+            5.84795321637427,
+            25.73099415204678
+          ],
+          "ci_pass_at_3": [
+            10.526315789473685,
+            36.8421052631579
+          ]
+        },
+        "paired_reduction": {
+          "pass_at_1": [
+            0.0,
+            0.0
+          ],
+          "pass_at_3": [
+            0.0,
+            0.0
+          ]
+        }
+      },
+      "requirement": {
+        "numeric": {
+          "pass_at_1": 3.508771929824561,
+          "pass_at_3": 5.263157894736842,
+          "cells": 57,
+          "ci_pass_at_1": [
+            0.0,
+            9.941520467836257
+          ],
+          "ci_pass_at_3": [
+            0.0,
+            14.035087719298245
+          ]
+        },
+        "provenance": {
+          "pass_at_1": 3.508771929824561,
+          "pass_at_3": 5.263157894736842,
+          "cells": 57,
+          "ci_pass_at_1": [
+            0.0,
+            9.941520467836257
+          ],
+          "ci_pass_at_3": [
+            0.0,
+            14.035087719298245
+          ]
+        },
+        "full_protocol": {
+          "pass_at_1": 3.508771929824561,
+          "pass_at_3": 5.263157894736842,
+          "cells": 57,
+          "ci_pass_at_1": [
+            0.0,
+            9.941520467836257
+          ],
+          "ci_pass_at_3": [
+            0.0,
+            14.035087719298245
+          ]
+        },
+        "paired_reduction": {
+          "pass_at_1": [
+            0.0,
+            0.0
+          ],
+          "pass_at_3": [
+            0.0,
+            0.0
+          ]
+        }
+      }
+    },
+    "by_arm_model": {
+      "bare": {
+        "anthropic/claude-opus-5": {
+          "numeric": {
+            "pass_at_1": 64.91228070175438,
+            "pass_at_3": 78.94736842105263,
+            "cells": 19
+          },
+          "provenance": {
+            "pass_at_1": 0.0,
+            "pass_at_3": 0.0,
+            "cells": 19
+          },
+          "full_protocol": {
+            "pass_at_1": 0.0,
+            "pass_at_3": 0.0,
+            "cells": 19
+          }
+        },
+        "google/gemini-3.1-pro-preview": {
+          "numeric": {
+            "pass_at_1": 7.017543859649122,
+            "pass_at_3": 15.789473684210526,
+            "cells": 19
+          },
+          "provenance": {
+            "pass_at_1": 5.263157894736842,
+            "pass_at_3": 10.526315789473683,
+            "cells": 19
+          },
+          "full_protocol": {
+            "pass_at_1": 5.263157894736842,
+            "pass_at_3": 10.526315789473683,
+            "cells": 19
+          }
+        },
+        "openai/gpt-5.6-sol": {
+          "numeric": {
+            "pass_at_1": 56.14035087719298,
+            "pass_at_3": 73.68421052631578,
+            "cells": 19
+          },
+          "provenance": {
+            "pass_at_1": 0.0,
+            "pass_at_3": 0.0,
+            "cells": 19
+          },
+          "full_protocol": {
+            "pass_at_1": 0.0,
+            "pass_at_3": 0.0,
+            "cells": 19
+          }
+        }
+      },
+      "library": {
+        "anthropic/claude-opus-5": {
+          "numeric": {
+            "pass_at_1": 14.035087719298245,
+            "pass_at_3": 21.052631578947366,
+            "cells": 19
+          },
+          "provenance": {
+            "pass_at_1": 14.035087719298245,
+            "pass_at_3": 21.052631578947366,
+            "cells": 19
+          },
+          "full_protocol": {
+            "pass_at_1": 14.035087719298245,
+            "pass_at_3": 21.052631578947366,
+            "cells": 19
+          }
+        },
+        "google/gemini-3.1-pro-preview": {
+          "numeric": {
+            "pass_at_1": 22.807017543859647,
+            "pass_at_3": 31.57894736842105,
+            "cells": 19
+          },
+          "provenance": {
+            "pass_at_1": 22.807017543859647,
+            "pass_at_3": 31.57894736842105,
+            "cells": 19
+          },
+          "full_protocol": {
+            "pass_at_1": 22.807017543859647,
+            "pass_at_3": 31.57894736842105,
+            "cells": 19
+          }
+        },
+        "openai/gpt-5.6-sol": {
+          "numeric": {
+            "pass_at_1": 10.526315789473683,
+            "pass_at_3": 15.789473684210526,
+            "cells": 19
+          },
+          "provenance": {
+            "pass_at_1": 10.526315789473683,
+            "pass_at_3": 15.789473684210526,
+            "cells": 19
+          },
+          "full_protocol": {
+            "pass_at_1": 8.771929824561402,
+            "pass_at_3": 15.789473684210526,
+            "cells": 19
+          }
+        }
+      },
+      "requirement": {
+        "anthropic/claude-opus-5": {
+          "numeric": {
+            "pass_at_1": 5.263157894736842,
+            "pass_at_3": 10.526315789473683,
+            "cells": 19
+          },
+          "provenance": {
+            "pass_at_1": 5.263157894736842,
+            "pass_at_3": 10.526315789473683,
+            "cells": 19
+          },
+          "full_protocol": {
+            "pass_at_1": 5.263157894736842,
+            "pass_at_3": 10.526315789473683,
+            "cells": 19
+          }
+        },
+        "google/gemini-3.1-pro-preview": {
+          "numeric": {
+            "pass_at_1": 0.0,
+            "pass_at_3": 0.0,
+            "cells": 19
+          },
+          "provenance": {
+            "pass_at_1": 0.0,
+            "pass_at_3": 0.0,
+            "cells": 19
+          },
+          "full_protocol": {
+            "pass_at_1": 0.0,
+            "pass_at_3": 0.0,
+            "cells": 19
+          }
+        },
+        "openai/gpt-5.6-sol": {
+          "numeric": {
+            "pass_at_1": 5.263157894736842,
+            "pass_at_3": 5.263157894736842,
+            "cells": 19
+          },
+          "provenance": {
+            "pass_at_1": 5.263157894736842,
+            "pass_at_3": 5.263157894736842,
+            "cells": 19
+          },
+          "full_protocol": {
+            "pass_at_1": 5.263157894736842,
+            "pass_at_3": 5.263157894736842,
+            "cells": 19
+          }
+        }
+      }
+    },
+    "k": 3
+  }
+}

@@ -1,0 +1,23 @@
+* ADG711 Analog Switch Netlist
+.lib ADG711.sub
+
+* Power supply
+Vdd VDD 0 5V
+
+* Input signal
+Vin IN 0 2V
+
+* Control signal (ADG711 is Normally Closed, 0V = ON)
+Vctrl CTRL 0 0V
+
+* ADG711 Subcircuit Instantiation
+* Typical ADI SPST pinout: S D IN(CTRL) VDD GND
+X1 IN OUT CTRL VDD 0 ADG711
+
+* Load resistor
+Rload OUT 0 10k
+
+* Analysis directive
+.tran 1m
+
+.end

@@ -1,0 +1,25 @@
+* AD8551 Non-Inverting Amplifier
+
+* Power Supply (Single 5V)
+VDD VDD 0 5
+VSS VSS 0 0
+
+* Input Signal: 25mV DC bias to keep single-supply op-amp in linear region, 
+* 10mV amplitude sine at 1kHz for TRAN, AC 1 for AC sweep.
+VIN IN 0 SINE(25m 10m 1k) AC 1
+
+* Feedback Network (Gain = 1 + R2/R1 = 1 + 99k/1k = 100)
+R1 IN_MINUS 0 1k
+R2 OUT IN_MINUS 99k
+
+* Op-Amp Instantiation (Standard 5-pin: IN+ IN- V+ V- OUT)
+X1 IN IN_MINUS VDD VSS OUT AD8551
+
+* Analysis Directives
+.ac dec 10 100 10k
+.tran 0 5m
+
+* Measurement Directives
+.meas AC gain_db FIND 20*log10(mag(V(OUT))) AT 1k
+
+.end

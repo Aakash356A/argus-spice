@@ -1,0 +1,17 @@
+* AD8551 Non-Inverting Amplifier
+Vcc VCC 0 5
+Vin IN 0 SINE(25m 10m 1k) AC 1
+
+R1 IN_NEG 0 1k
+R2 OUT IN_NEG 99k
+
+X1 IN IN_NEG VCC 0 OUT AD8551
+
+.lib ADI1.lib
+
+.ac dec 10 100 10k
+.tran 0 5m
+
+.meas ac gain_db find 20*log10(mag(V(OUT)/V(IN))) at 1k
+
+.end

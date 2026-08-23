@@ -1,0 +1,35 @@
+```spice
+* LT6106 High-Side Current Sense Amplifier
+.lib LTC7.lib
+
+* 12V Power Supply (Primary Input)
+V1 IN 0 12
+
+* 0.1 Ohm Shunt Resistor
+R_shunt IN V_LOAD 0.1
+
+* 100 mA Load Current
+I1 V_LOAD 0 100m
+
+* Gain-setting Input Resistor (Rin = 100 ohms)
+* Connects the supply side of the shunt to the inverting input (-IN)
+R_in IN IN_MINUS 100
+
+* Gain-setting Output Resistor (Rout = 10 kOhms)
+* Connects the output to ground
+* Gain = Rout / Rin = 100
+R_out OUT 0 10k
+
+* LT6106 Subcircuit Instantiation
+* Standard LTspice op-amp/sense-amp pinout: +IN, -IN, V+, V-, OUT
+* +IN connects to the load side of the shunt
+* -IN connects to the supply side via Rin
+* V+ connects to the 12V supply
+* V- connects to ground
+X1 V_LOAD IN_MINUS IN 0 OUT LT6106
+
+* Analysis Directive to measure DC/settled output
+.tran 1m
+
+.end
+```

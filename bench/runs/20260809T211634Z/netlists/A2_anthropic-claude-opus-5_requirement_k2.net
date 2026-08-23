@@ -1,0 +1,30 @@
+* ADP7118 Low-Dropout Regulator: 3.3 V IN -> 1.8 V OUT @ 50 mA
+* ---------------------------------------------------------------
+* Genuine ADI ADP7118 macromodel is instantiated as a subcircuit.
+* Subcircuit pin order: VIN VOUT GND EN SENSE(ADJ)
+.include ADP7118.cir
+
+*** Input source ***
+VIN   IN 0 DC 3.3
+
+*** Input decoupling ***
+CIN   IN 0 1u
+CINHF IN 0 100n
+
+*** LDO: EN tied high to VIN, SENSE tied to OUT (fixed 1.8 V option) ***
+XU1   IN OUT 0 IN OUT ADP7118
+
+*** Output decoupling ***
+COUT  OUT 0 1u
+COHF  OUT 0 100n
+
+*** 50 mA resistive load (1.8 V / 36 ohm = 50 mA) ***
+RL    OUT 0 36
+
+*** Analysis ***
+.tran 10u 5m 0 10u
+.meas TRAN vout_dc AVG V(OUT) FROM 4m TO 5m
+.meas TRAN iload   AVG I(RL)  FROM 4m TO 5m
+
+.options plotwinsize=0 reltol=1e-4
+.end

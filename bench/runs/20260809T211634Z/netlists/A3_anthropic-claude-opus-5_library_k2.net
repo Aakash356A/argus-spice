@@ -1,0 +1,38 @@
+* LT3094 Negative LDO: -7 V input, -5 V / 5 mA output
+* VOUT = -RSET * 50uA  ->  RSET = 100k for -5.0 V
+
+.lib LT3094.sub
+
+*** Input source (negative rail, ramped to help convergence) ***
+VIN IN 0 PWL(0 0 200u -7)
+
+*** Regulator: IN OUT SET ILIM EN/UV PG PGFB GND ***
+XU1 IN OUT SET ILIM ENUV PG PGFB 0 LT3094
+
+*** Enable / UV: tie to IN for always-on operation ***
+RENUV ENUV IN 1
+
+*** Current limit programming (ILIM open = max current limit) ***
+RILIM ILIM 0 1G
+
+*** Power-good pull-up network (not used for measurement) ***
+RPGFB PGFB 0 1G
+RPG PG 0 100k
+
+*** Output voltage programming: 100k * 50uA = 5 V (negative) ***
+RSET SET 0 100k
+CSET SET 0 10n
+
+*** Input and output capacitors ***
+CIN IN 0 10u
+COUT OUT 0 22u
+
+*** Light resistive load: 5 V / 1k = 5 mA ***
+RL OUT 0 1k
+
+*** Analysis ***
+.tran 0 5m 0 1u
+.meas TRAN vout_dc AVG V(OUT) FROM 4m TO 5m
+
+.options plotwinsize=0 reltol=1m
+.end

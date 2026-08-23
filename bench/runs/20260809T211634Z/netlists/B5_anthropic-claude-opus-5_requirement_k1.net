@@ -1,0 +1,32 @@
+* MAX44245 Non-Inverting Amplifier, Av = +20 V/V (26.02 dB)
+* Supplies: +/-15 V, Input: 50 mVpk sine @ 1 kHz
+*
+* ---- Supplies ----
+VCC VCC 0 DC 15
+VEE VEE 0 DC -15
+*
+* ---- Signal source ----
+* SINE(Voffset Vamp Freq)
+VIN IN 0 SINE(0 50m 1k) AC 1
+*
+* ---- Amplifier (genuine Maxim MAX44245 macromodel) ----
+* Pin order: IN+ IN- V+ V- OUT
+XU1 IN FB VCC VEE OUT MAX44245
+*
+* ---- Gain setting network: Av = 1 + Rf/Rg = 1 + 19k/1k = 20 ----
+RF OUT FB 19k
+RG FB 0 1k
+*
+* ---- Load ----
+RL OUT 0 10k
+CL OUT 0 10p
+*
+* ---- Model library (Maxim-supplied MAX44245 subcircuit) ----
+.include MAX44245.lib
+*
+* ---- Analyses ----
+.tran 0 5m 0 1u
+.ac dec 100 1 10Meg
+*
+.options plotwinsize=0
+.end

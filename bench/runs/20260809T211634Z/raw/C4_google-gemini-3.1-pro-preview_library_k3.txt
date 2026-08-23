@@ -1,0 +1,30 @@
+* AD4021 ADC Front End Simulation
+.lib AD4021.sub
+
+* Primary DC Input
+V1 IN 0 1V
+
+* Supplies and Reference
+V2 VREF 0 5V
+V3 VDD 0 1.8V
+V4 VIO 0 1.8V
+
+* Control Signals (1 MSPS Conversion Rate)
+* CNV initiates conversion on rising edge. Held high for 350ns (conversion phase).
+V5 CNV 0 PULSE(0 1.8V 0 1ns 1ns 350ns 1us)
+
+* SCK clocks out the data during the acquisition phase (CNV low).
+* 50 MHz clock, 25 pulses to ensure the 20-bit result is fully shifted out.
+V6 SCK 0 PULSE(0 1.8V 400ns 1ns 1ns 10ns 20ns 25)
+
+* SDI tied low for standard single-ADC 3-wire/4-wire configuration
+V7 SDI 0 0V
+
+* AD4021 Instantiation
+* Standard ADI SAR ADC subcircuit pin order: IN+ IN- REF VDD VIO GND CNV SDI SCK SDO
+X1 IN 0 VREF VDD VIO 0 CNV SDI SCK OUT AD4021
+
+* Transient Analysis to capture one full conversion and data readout phase
+.tran 0 1.5us
+
+.end

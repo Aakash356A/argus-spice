@@ -1,0 +1,42 @@
+* LTC4281 Hot-Swap Controller
+.lib LTC4281.sub
+
+* Input Supply
+V1 IN 0 12
+
+* Power Path: Sense Resistor and MOSFET
+R_sense IN SENSEN 0.005
+M1 SENSEN GATE OUT OUT N_MOS
+.model N_MOS VDMOS(Rg=1 Vto=2 Rd=0.005 Rs=0.005)
+
+* Inrush Control and Load
+C_gate GATE OUT 10nF
+R_load OUT 0 12
+C_out OUT 0 10uF
+
+* Controller Instantiation
+* Pin Order: VDD SENSEP SENSEN GATE SOURCE OUT FB ON TIMER GND ADIN GPIO1 GPIO2 GPIO3 EEWP ADR0 ADR1 ADR2 INTVCC SCL SDAI SDAO ALERTB FAULTB PGOOD VDD33
+X1 IN IN SENSEN GATE OUT OUT FB ON TIMER 0 0 0 0 0 0 0 0 0 INTVCC SCL SDAI SDAO ALERTB FAULTB PGOOD VDD33 LTC4281
+
+* Turn-On and Power-Good Threshold Dividers
+R_on1 IN ON 100k
+R_on2 ON 0 15k
+R_fb1 OUT FB 100k
+R_fb2 FB 0 15k
+
+* Timing and Bypass Capacitors
+C_timer TIMER 0 0.1uF
+C_intvcc INTVCC 0 1uF
+C_vdd33 VDD33 0 1uF
+
+* Digital Pin Pull-Ups
+R_pu_scl INTVCC SCL 10k
+R_pu_sdai INTVCC SDAI 10k
+R_pu1 INTVCC PGOOD 100k
+R_pu2 INTVCC FAULTB 100k
+R_pu3 INTVCC ALERTB 100k
+R_pu4 INTVCC SDAO 100k
+
+* Analysis Directive
+.tran 0.5
+.end

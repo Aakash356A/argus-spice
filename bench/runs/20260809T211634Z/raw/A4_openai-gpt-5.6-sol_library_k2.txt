@@ -1,0 +1,15 @@
+* ADR1399H 7.05 V precision reference from 15 V supply
+.lib ADR1399H.sub
+
+V1 IN 0 15
+RBIAS IN OUT 1.58k
+COUT OUT 0 1u
+RLOAD OUT 0 100k
+
+* Pins: VZ+, VZ-, HEATER-, HEATER+
+XU1 OUT 0 0 IN ADR1399H
+
+.tran 0 30 0 2m startup
+.meas TRAN VOUT_DC AVG V(OUT) FROM 29 TO 30
+
+.end

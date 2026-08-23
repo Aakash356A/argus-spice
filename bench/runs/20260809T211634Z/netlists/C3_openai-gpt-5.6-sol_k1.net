@@ -1,0 +1,38 @@
+* LT8710 synchronous buck converter: 24 V input, regulated 12 V output
+VINPUT IN 0 24
+CIN IN 0 100u Rser=20m
+
+* LT8710 controller with feedback divider
+RFBTOP OUT FB 90k
+RFBBOT FB 0 10k
+XU1 IN FB GH GL 0 LT8710
+
+* Synchronous buck power stage
+SHIGH IN SW GH 0 SWMOD
+SLOW  SW 0  GL 0 SWMOD
+DHIGH SW IN DBODY
+DLOW  0 SW  DBODY
+L1 SW OUT 47u Rser=50m
+
+* Output capacitor and resistive load
+COUT OUT 0 470u Rser=100m
+RLOAD OUT 0 12
+
+.model SWMOD SW(Ron=10m Roff=100Meg Vt=2.5 Vh=0.1)
+.model DBODY D(Is=10n Rs=20m N=1.1 Cjo=100p)
+
+* Self-contained behavioral LT8710 controller model
+* 200 kHz PWM, soft start, feedback regulation, and dead time
+.subckt LT8710 VIN FB GH GL GND
+BCTRL DCTRL GND V=limit(0.5*(1-exp(-time/2m))+0.5*(1.2*(1-exp(-time/2m))-V(FB,GND)),0.03,0.95)
+BHG GH GND V=if(mod(time,5u)>50n,if(mod(time,5u)<5u*V(DCTRL,GND)-50n,5,0),0)
+BLG GL GND V=if(mod(time,5u)>5u*V(DCTRL,GND)+50n,if(mod(time,5u)<4.95u,5,0),0)
+RHG GH GND 1Meg
+RLG GL GND 1Meg
+.ends LT8710
+
+.options plotwinsize=0
+.tran 0 80m 0 200n
+.meas tran vout_dc AVG V(OUT) FROM 70m TO 80m
+
+.end

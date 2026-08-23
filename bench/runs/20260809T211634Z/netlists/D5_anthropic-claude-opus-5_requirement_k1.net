@@ -1,0 +1,38 @@
+* ============================================================
+* Precision 7.05 V Reference Subsystem
+*   ADR1399H buried-Zener reference (heated) + LTC6078 buffer
+*   IN  = raw supply input node
+*   OUT = buffered, low-impedance VREF output (1 k load)
+* ============================================================
+
+* ---------- Model libraries (genuine vendor models) ----------
+.lib ADR1399.lib
+.lib LTC6078.lib
+
+* ---------- Raw supply ----------
+VIN   IN   0   DC 15
+
+* ---------- Zener bias network ----------
+* Ibias = (15 V - 7.05 V) / 4.99k ~ 1.6 mA (within 0.5 mA...5 mA range)
+R1    IN   VZ  4.99k
+CREF  VZ   0   100n
+
+* ---------- ADR1399H reference ----------
+* Pin order: HEATER+  HEATER-  CATHODE(+)  ANODE(-)
+XREF  IN   0    VZ    0   ADR1399H
+
+* ---------- LTC6078 unity-gain buffer ----------
+* Pin order: IN+  IN-  V+  V-  OUT
+XBUF  VZ   OUT  IN    0   OUT  LTC6078
+
+* ---------- Load ----------
+RL    OUT  0   1k
+
+* ---------- Analysis ----------
+.tran 0 100m 0 10u
+.meas TRAN vout_dc AVG V(OUT) FROM 90m TO 100m
+.meas TRAN vref_raw AVG V(VZ) FROM 90m TO 100m
+.meas TRAN iload AVG I(RL) FROM 90m TO 100m
+
+.options plotwinsize=0 reltol=1e-4
+.end

@@ -1,0 +1,26 @@
+```
+* ADR1399H Precision 7.05V Buried-Zener Reference (heated) - 15V supply
+* Pin order of the genuine ADR1399 subcircuit: HTR+ HTR- ANODE(-) CATHODE(+)
+*
+* ---------------- Supply ----------------
+V1 IN 0 DC 15
+*
+* ------------- Zener bias network -------------
+* (15V - 7.05V) / 7.87k  ~= 1.0 mA  -> nominal reverse current for 7.05 V
+R1 IN OUT 7.87k
+*
+* ------------- Reference device -------------
+* Heater powered directly from the 15 V rail, anode to ground,
+* cathode is the 7.05 V reference output.
+XREF IN 0 0 OUT ADR1399
+*
+* ------------- Output bypass and light load -------------
+C1 OUT 0 1u
+RL OUT 0 100k
+*
+* ------------- Analysis -------------
+.tran 0 200m 0 20u
+.meas TRAN vout_dc AVG V(OUT) FROM=150m TO=200m
+.options plotwinsize=0 reltol=1e-5
+.end
+```
