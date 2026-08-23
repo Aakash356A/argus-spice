@@ -82,7 +82,6 @@ bench/
       netlists/         every simulated netlist
       raw/              every raw model response
       verdicts.jsonl    manual grades for all 100 numeric passes
-      netlists_to_grade_*.md   the worksheets those grades came from
 
 mcp_server/         the audit as callable tools (find_template, simulate,
                     audit_netlist, verify_spec, submit) over stdio MCP

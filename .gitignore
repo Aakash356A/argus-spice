@@ -102,3 +102,14 @@ bench/runs/*/raw/*_strict_k*
 # Tables and macros emitted by bench/reconcile.py; build output, not source.
 generated/
 
+# Internal working material: grading worksheets, exploratory drivers and
+# analyses that are not part of the paper, and per-run CSVs that analyze.py
+# rewrites on every invocation.
+netlists_to_grade_*.md
+bench/runs/tools-interactive/
+bench/probe_tools.py
+bench/multimetric.py
+bench/runs/*/multimetric.jsonl
+bench/runs/*/grading.csv
+bench/runs/*/summary.csv
+

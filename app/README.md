@@ -39,12 +39,8 @@ them rather than failing to start.
 
 **`app/available_ics.txt`** — a shortlist of parts with installed macro-models,
 used to suggest ICs for a request. Without it, `_load_ic_database()` returns an
-empty list and suggestions are simply not offered. To restore it, recover the
-file from git history:
-
-```bash
-git show archive/pre-audit-system:app/available_ics.txt > app/available_ics.txt
-```
+empty list and suggestions are simply not offered. Any plain list of part
+numbers, one per line, works.
 
 **`models/gemma3-lora/`** — a LoRA adapter for the optional local-inference
 backend in `ft_mac.py`. Without it, that backend raises a clear
