@@ -1,0 +1,22 @@
+```spice
+* AD8092 Non-Inverting Amplifier
+VCC VCC 0 5
+VEE VEE 0 -5
+VIN IN 0 SINE(0 0.1 1Meg) AC 1
+
+* AD8092 Op-Amp Subcircuit (IN+ IN- V+ V- OUT)
+X1 IN V_minus VCC VEE OUT AD8092
+
+* Feedback Network (Gain = 1 + Rf/Rg = 5)
+Rf OUT V_minus 400
+Rg V_minus 0 100
+
+* Output Load
+RL OUT 0 1k
+
+* Analysis Directives
+.tran 0 5u
+.ac dec 10 100k 10Meg
+
+.end
+```

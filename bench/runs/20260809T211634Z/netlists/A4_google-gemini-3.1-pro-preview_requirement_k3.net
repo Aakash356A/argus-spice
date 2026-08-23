@@ -1,0 +1,14 @@
+* ADR1399H Precision Voltage Reference Circuit
+V1 IN 0 15
+R1 IN OUT 2.5k
+C1 OUT 0 10u
+Rload OUT 0 100k
+
+* ADR1399H Subcircuit instantiation
+* Pins: Zener+ (Cathode), Zener- (Anode), Heater+, Heater-
+X1 OUT 0 IN 0 ADR1399H
+
+* Transient analysis to allow the heater thermal model to reach steady state
+.tran 2
+
+.end

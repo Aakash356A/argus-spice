@@ -1,0 +1,14 @@
+* ADA4177 Inverting Amplifier Gain of -10
+V1 IN 0 SINE(0 50m 1k) AC 1
+R1 IN IN_NEG 1k
+R2 IN_NEG OUT 10k
+V2 VCC 0 15
+V3 VEE 0 -15
+X1 0 IN_NEG VCC VEE OUT ADA4177
+.lib ADA4177.lib
+
+* Analysis Directives
+.tran 0 5m
+.ac dec 10 10 100k
+
+.end

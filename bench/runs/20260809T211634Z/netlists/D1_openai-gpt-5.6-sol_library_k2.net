@@ -1,0 +1,22 @@
+* LT1720 comparator with 1.65 V threshold and open-drain-style output
+.lib LT1720.sub
+
+VCC VCC 0 5
+VIN IN 0 2.0
+
+RTH_TOP VCC THRESH 67k
+RTH_BOT THRESH 0 33k
+
+XU1 IN THRESH VCC 0 CMP_OUT LT1720
+
+M1 OUT CMP_OUT 0 0 NOD
+.model NOD NMOS (VTO=1 KP=100m LAMBDA=0.02)
+
+RPULLUP VCC OUT 10k
+
+CDEC VCC 0 100n
+COUT OUT 0 10p
+
+.tran 0 10u 0 10n startup
+
+.end

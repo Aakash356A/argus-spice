@@ -1,0 +1,27 @@
+* Inverting Amplifier, Av = -10 V/V, ADA4177, +/-15 V supplies
+* --------------------------------------------------------------
+* Supplies
+V1 VP 0 DC 15
+V2 VN 0 DC -15
+
+* Input source: 50 mV amplitude, 1 kHz sine (AC 1 for .ac sweep)
+Vin IN 0 SINE(0 50m 1k 0 0 0) AC 1
+
+* Gain-setting network:  Av = -R2/R1 = -10 k / 1 k = -10
+R1 IN SUMJ 1k
+R2 SUMJ OUT 10k
+
+* Op amp: pin order (+IN  -IN  V+  V-  OUT)
+XU1 0 SUMJ VP VN OUT ADA4177
+
+* Light load
+RL OUT 0 10k
+
+* Genuine ADI model for the ADA4177
+.include ADA4177.cir
+
+* Analyses
+.tran 0 5m 0 1u
+.ac dec 100 1 10Meg
+
+.end

@@ -1,0 +1,24 @@
+* LT6106 high-side current-sense amplifier, 100mA on a 12V rail
+* RSENSE = 0.1 ohm produces 10mV; gain = ROUT/RIN = 100
+
+VRAIL IN 0 12
+RSENSE IN LOAD 0.1
+ILOAD LOAD 0 DC 100m
+
+RIN LOAD NIN 100
+XU1 IN NIN OUT 0 LT6106
+ROUT OUT 0 10k
+COUT OUT 0 10n
+
+.tran 0 10m 0 10u
+.meas TRAN vout_dc AVG V(OUT) FROM=9m TO=10m
+
+* Functional LT6106 macromodel
+* Pins: IN+ IN- OUT V-
+.subckt LT6106 INP INM OUT VEE
+EAMP NX VEE INP VEE 1
+VSENSE NX INM 0
+FOUT VEE OUT VSENSE 1
+.ends LT6106
+
+.end

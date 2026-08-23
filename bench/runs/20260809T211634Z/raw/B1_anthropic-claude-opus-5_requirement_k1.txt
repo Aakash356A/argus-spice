@@ -1,0 +1,36 @@
+```
+* AD8092 Non-Inverting Amplifier, Gain = +5 V/V (13.98 dB)
+* +/-5 V supplies, 100 mV amplitude 1 MHz sine input, 1 k load
+*
+* ---------------- Supplies ----------------
+VCC  VCC  0  DC  5
+VEE  VEE  0  DC -5
+*
+* ---------------- Input source ----------------
+* 100 mV amplitude sine at 1 MHz (AC magnitude 1 for .AC sweep)
+VIN  IN   0  SINE(0 100m 1MEG 0 0 0)  AC 1
+*
+* ---------------- AD8092 (genuine ADI subcircuit) ----------------
+* Pin order: +IN  -IN  V+  V-  OUT
+XU1  IN  FB  VCC  VEE  OUT  AD8092
+*
+* ---------------- Gain-setting network ----------------
+RF   OUT  FB   1k        ; feedback resistor
+RG   FB   0    250       ; gain resistor -> Av = 1 + 1k/250 = 5
+*
+* ---------------- Output load ----------------
+RL   OUT  0    1k
+*
+* ---------------- Model include ----------------
+.include AD8092.cir
+*
+* ---------------- Analyses ----------------
+.tran 0 5u 0 1n
+.ac dec 100 10k 500MEG
+*
+.meas AC gain_db MAX 20*log10(mag(V(OUT)/V(IN)))
+.meas TRAN vout_pp PP V(OUT) FROM=2u TO=5u
+*
+.options plotwinsize=0 numdgt=7
+.end
+```

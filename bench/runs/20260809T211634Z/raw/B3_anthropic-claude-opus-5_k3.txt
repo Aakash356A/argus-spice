@@ -1,0 +1,46 @@
+```
+* LTC6078 Unity-Gain Voltage Follower (Buffer)
+* Single 5 V supply, 1 kHz / 100 mVpk sine input biased at mid-supply
+* Output drives a 10 k load.  Target gain = 0 dB (Av = 1)
+*
+*--------------------------------------------------------------------
+* Supplies
+*--------------------------------------------------------------------
+VCC   VCC 0 DC 5
+*
+*--------------------------------------------------------------------
+* Input source: 2.5 V mid-supply bias + 100 mV, 1 kHz sine
+* (AC 1 amplitude used for the .AC gain measurement)
+*--------------------------------------------------------------------
+VIN   IN  0 DC 2.5 AC 1 SINE(2.5 0.1 1k 0 0 0)
+*
+*--------------------------------------------------------------------
+* Op amp: LTC6078 (rail-to-rail in/out, micropower)
+* Pin order: +IN  -IN  V+  V-  OUT
+* Unity-gain follower: output fed directly back to inverting input
+*--------------------------------------------------------------------
+XU1   IN  OUT VCC 0 OUT LTC6078
+*
+*--------------------------------------------------------------------
+* Load
+*--------------------------------------------------------------------
+RL    OUT 0 10k
+*
+*--------------------------------------------------------------------
+* Models
+*--------------------------------------------------------------------
+.lib LTC.lib
+*
+*--------------------------------------------------------------------
+* Analysis
+*--------------------------------------------------------------------
+.ac dec 200 1 10Meg
+.meas ac gain_db find vdb(OUT) at=1k
+.meas ac gain_mag find mag(V(OUT)/V(IN)) at=1k
+*
+* Time-domain check (uncomment to view 1 kHz sine buffering):
+* .tran 0 5m 0 1u
+*
+.options plotwinsize=0
+.end
+```

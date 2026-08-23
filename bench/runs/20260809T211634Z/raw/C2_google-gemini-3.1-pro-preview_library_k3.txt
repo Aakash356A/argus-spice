@@ -1,0 +1,39 @@
+```spice
+* ADG5248F Analog Multiplexer Netlist
+.lib ADG.lib
+
+* Power Supplies (+/- 15V)
+Vdd VDD 0 15
+Vss VSS 0 -15
+
+* Control Inputs
+* EN = 5V (Active High), A0=A1=A2 = 0V (Selects Channel 1)
+Ven EN 0 5
+Va0 A0 0 0
+Va1 A1 0 0
+Va2 A2 0 0
+
+* Input Signal (1 kHz, 500 mV amplitude sine, AC 1 for sweep)
+Vin IN 0 SINE(0 0.5 1k) AC 1
+
+* ADG5248F Instantiation
+* Assumed standard ADI subcircuit pin order for 8:1 fault-protected mux:
+* S1 S2 S3 S4 S5 S6 S7 S8 D A0 A1 A2 EN SF VDD VSS GND
+X1 IN 0 0 0 0 0 0 0 OUT A0 A1 A2 EN SF VDD VSS 0 ADG5248F
+
+* Pull-up resistor for Source Fault (SF) open-drain output
+Rsf SF VDD 10k
+
+* Output Load
+Rload OUT 0 1Meg
+Cload OUT 0 10p
+
+* Simulation Directives
+.tran 0 5m
+.ac dec 10 100 10k
+
+* Measurement for gain in dB at the target frequency
+.measure ac gain_db MAX 20*log10(mag(V(OUT)/V(IN)))
+
+.end
+```

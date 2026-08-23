@@ -1,0 +1,36 @@
+* LTC6252 High-Speed Amplifier -- Non-Inverting Gain of +2 V/V, +/-5 V Supplies
+* Input: 1 V amplitude sine @ 10 MHz on node IN, output on node OUT
+
+.lib LTC6252.lib
+
+*** Supplies ***
+VCC VCC 0 DC  5
+VEE VEE 0 DC -5
+
+*** Input source: 1 V amplitude, 10 MHz sine (AC=1 for .ac sweep) ***
+VIN IN 0 SINE(0 1 10MEG 0 0 0) AC 1
+
+*** Amplifier: non-inverting, gain = 1 + Rf/Rg = 2 ***
+* Pin order (LTspice opamp symbol): +IN  -IN  V+  V-  OUT
+XU1 IN FB VCC VEE OUT LTC6252
+
+RF OUT FB 1k
+RG FB  0  1k
+
+*** Load ***
+RL OUT 0 1k
+CL OUT 0 2p
+
+*** Analyses ***
+.tran 0 1u 0 100p
+.ac dec 100 10k 1G
+
+*** Measurements ***
+.meas AC gain_db MAX 20*log10(mag(V(OUT)/V(IN)))
+.meas TRAN vout_pp PP V(OUT) FROM 500n TO 1u
+.meas TRAN vin_pp  PP V(IN)  FROM 500n TO 1u
+.meas TRAN gain_db_tran PARAM 20*log10(vout_pp/vin_pp)
+
+.options plotwinsize=0 numdgt=7
+
+.end

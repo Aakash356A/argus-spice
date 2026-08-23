@@ -1,0 +1,19 @@
+* AD8551 non-inverting amplifier, gain = 100 V/V, single 5 V supply
+.include AD8551.cir
+
+VCC VCC 0 5
+VREF VREF 0 2.5
+VIN IN 0 SINE(2.5 10m 1k) AC 10m
+
+RFB OUT NFB 99k
+RG NFB VREF 1k
+
+XU1 IN NFB VCC 0 OUT AD8551
+
+CDEC VCC 0 100n
+
+.tran 0 10m 0 2u
+.ac dec 100 10 1Meg
+.meas AC gain_db FIND 20*log10(mag(V(OUT)/V(IN))) AT=1k
+
+.end

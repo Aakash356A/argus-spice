@@ -1,0 +1,52 @@
+```
+* LTC6078 Unity-Gain Voltage Follower (Single 5 V Supply)
+* Input: 1 kHz, 100 mV amplitude sine, biased at mid-supply
+* Output: OUT, loaded with 10 k to ground
+*------------------------------------------------------------------
+
+*** Supplies and input source ***
+Vcc  VCC 0 DC 5
+V1   IN  0 DC 2.5 AC 1 SINE(2.5 0.1 1k 0 0 0)
+
+*** Unity-gain buffer: output tied back to inverting input ***
+XU1  IN OUT VCC 0 OUT LTC6078
+
+*** Load ***
+RL   OUT 0 10k
+
+*------------------------------------------------------------------
+* LTC6078 macromodel (rail-to-rail in/out, single/dual supply)
+* Pins: 1=IN+  2=IN-  3=V+  4=V-  5=OUT
+* Av(ol) = 120 dB, GBW = 750 kHz, Rout = 50 ohm, output clamps to rails
+*------------------------------------------------------------------
+.subckt LTC6078 1 2 3 4 5
+Rin   1 2 1T
+Cin   1 2 1p
+Ibp   3 1 0.1p
+Ibn   3 2 0.1p
+* Open-loop gain stage with rail clamping
+Bgm   6 0 V=LIMIT(1E6*V(1,2), V(4)+0.02, V(3)-0.02)
+Rp    6 7 1k
+Cp    7 0 212u
+* Output buffer
+Eob   8 0 7 0 1
+Rout  8 5 50
+* Quiescent supply current (approx. 250 uA/amplifier)
+Iq    3 4 250u
+.ends LTC6078
+
+*------------------------------------------------------------------
+* Analysis
+*------------------------------------------------------------------
+.tran 0 5m 0 1u
+* Alternative small-signal check (uncomment to use):
+* .ac dec 100 10 10Meg
+
+.meas tran vin_pp  PP V(IN)  FROM=1m TO=5m
+.meas tran vout_pp PP V(OUT) FROM=1m TO=5m
+.meas tran gain_db PARAM 20*log10(vout_pp/vin_pp)
+.meas tran vout_dc AVG V(OUT) FROM=1m TO=5m
+
+.options plotwinsize=0 numdgt=7
+.end
+```

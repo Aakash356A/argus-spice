@@ -1,0 +1,45 @@
+* AD8551 Non-Inverting Amplifier, Gain = 100 V/V (40 dB), Single +5 V Supply
+* Input: 10 mV amplitude, 1 kHz sine, biased at mid-supply (2.5 V)
+* Genuine ADI AD8551 macromodel is instantiated as a subcircuit below.
+
+*----------------------------------------------------------------
+* Vendor model (Analog Devices AD8551 SPICE macromodel)
+* Pin order: +IN  -IN  V+  V-  OUT
+*----------------------------------------------------------------
+.include AD8551.cir
+
+*----------------------------------------------------------------
+* Supplies and mid-supply reference
+*----------------------------------------------------------------
+VCC   VCC  0   DC 5
+VREF  VREF 0   DC 2.5
+
+*----------------------------------------------------------------
+* Signal source: 10 mV amplitude sine at 1 kHz, 2.5 V DC bias
+*----------------------------------------------------------------
+V1    IN   0   DC 2.5 AC 1 SINE(2.5 10m 1k)
+
+*----------------------------------------------------------------
+* Amplifier: non-inverting, gain = 1 + Rf/Rg = 1 + 99k/1k = 100 V/V
+* Rg returns to the 2.5 V reference so the output sits at mid-supply
+*----------------------------------------------------------------
+XU1   IN   INN  VCC  0   OUT  AD8551
+Rf    OUT  INN  99k
+Rg    INN  VREF 1k
+RL    OUT  0    100k
+CL    OUT  0    10p
+
+*----------------------------------------------------------------
+* Analysis
+*----------------------------------------------------------------
+.tran 0 5m 0 1u
+
+.meas TRAN vinpp  PP V(IN)  FROM 1m TO 5m
+.meas TRAN voutpp PP V(OUT) FROM 1m TO 5m
+.meas TRAN gain      PARAM voutpp/vinpp
+.meas TRAN gain_db   PARAM 20*log10(voutpp/vinpp)
+.meas TRAN vout_dc   AVG V(OUT) FROM 1m TO 5m
+
+.options plotwinsize=0 reltol=1e-4
+
+.end

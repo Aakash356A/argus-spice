@@ -1,0 +1,23 @@
+* AD8551 Non-inverting Amplifier
+.lib ADI.lib
+
+* Single 5V Power Supply
+VCC VCC 0 5
+
+* 10 mV amplitude sine at 1 kHz, 25mV DC bias to center output at 2.5V
+VIN IN 0 SINE(25m 10m 1k) AC 1
+
+* AD8551 Op-Amp (IN+, IN-, V+, V-, OUT)
+X1 IN IN_MINUS VCC 0 OUT AD8551
+
+* Feedback Network for Gain = 100 (1 + 99k / 1k)
+R1 OUT IN_MINUS 99k
+R2 IN_MINUS 0 1k
+
+* Analysis and Measurements
+.tran 0 10m
+.meas TRAN out_pp PP V(OUT) FROM 2m TO 10m
+.meas TRAN in_pp PP V(IN) FROM 2m TO 10m
+.meas TRAN gain_db PARAM 20*log10(out_pp/in_pp)
+
+.end

@@ -1,0 +1,48 @@
+* ================================================================
+* AD4021 - 20-bit, 1 MSPS SAR ADC front end
+* 1 V DC input, 5 V reference, 1.8 V core / 1.8 V interface supply,
+* CNV conversion clock and SPI (CS mode, 3-wire) read-back
+* ================================================================
+* Genuine Analog Devices AD4021 model (do not redefine):
+.lib AD4021.lib
+*.include AD4021.cir      ; use this form if the model is a .cir file
+
+* ---------------- Analog input source -------------------------
+VIN     IN      0       DC 1
+* RC charge-kickback filter between driver and ADC input
+RFLT    IN      INP     22
+CFLT    INP     0       1.8n
+* Pseudo-differential negative input referenced to GND
+RINN    INN     0       0.1
+
+* ---------------- Reference and supplies ----------------------
+VREF    REF     0       DC 5
+CREF    REF     0       10u
+VDD     VDD     0       DC 1.8
+CVDD    VDD     0       100n
+VVIO    VIO     0       DC 1.8
+CVIO    VIO     0       100n
+
+* ---------------- Conversion clock (1 MSPS) -------------------
+* CNV rising edge starts the conversion, 1 us period
+VCNV    CNV     0       PULSE(0 1.8 100n 1n 1n 300n 1u)
+
+* ---------------- SPI interface -------------------------------
+* SDI held high -> CS mode, 3-wire, no busy indicator
+VSDI    SDI     VIO     DC 0
+* 40 MHz serial clock for data read-back
+VSCK    SCK     0       PULSE(0 1.8 450n 1n 1n 11n 25n)
+
+* ---------------- ADC instance --------------------------------
+* Pin order: REF VDD IN+ IN- GND CNV SDI SCK SDO VIO
+XU1     REF VDD INP INN 0 CNV SDI SCK OUT VIO AD4021
+
+* Serial data output load
+CLOAD   OUT     0       10p
+RLOAD   OUT     0       1MEG
+
+* ---------------- Analysis ------------------------------------
+.tran 0 5u 0 1n
+.options plotwinsize=0 numdgt=7
+
+.end

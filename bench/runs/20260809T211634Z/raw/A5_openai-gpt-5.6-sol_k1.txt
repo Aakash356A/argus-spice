@@ -1,0 +1,17 @@
+* LT6654-1.25 precision 1.25V reference
+V1 IN 0 5
+CIN IN 0 0.1u
+
+XU1 IN OUT 0 LT6654-1.25
+COUT OUT 0 1u
+
+.subckt LT6654-1.25 VIN VOUT GND
+BREF NREF GND V=IF(V(VIN,GND)>2.7,1.25,0)
+ROUT NREF VOUT 0.1
+RQUIESCENT VIN GND 8.33k
+.ends LT6654-1.25
+
+.tran 0 5m
+.meas tran vout_dc AVG V(OUT) FROM=4m TO=5m
+
+.end

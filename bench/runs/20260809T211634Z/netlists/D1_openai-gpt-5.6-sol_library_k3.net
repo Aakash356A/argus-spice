@@ -1,0 +1,23 @@
+* LT1720 comparator with 1.65V threshold and open-drain output
+.lib LT1720.sub
+
+VCC VCC 0 5
+VIN IN 0 2.2
+
+RTH_TOP VCC THRESH 20.3030303k
+RTH_BOT THRESH 0 10k
+
+* Pin order: noninverting, inverting, V+, V-, output
+XU1 IN THRESH VCC 0 COMP_OUT LT1720
+
+* Open-drain-style output stage
+MOUT OUT COMP_OUT 0 0 MOPEN
+.model MOPEN NMOS (VTO=1 KP=100m LAMBDA=0.02)
+
+RPULLUP VCC OUT 10k
+COUT OUT 0 10p
+
+.tran 0 10u 0 10n
+.meas tran vout_dc AVG V(OUT) FROM 9u TO 10u
+
+.end

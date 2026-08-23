@@ -1,0 +1,17 @@
+* LT1720 Comparator Circuit
+V1 VCC 0 5V
+V2 IN 0 3V
+
+* Resistor divider setting a 1.65V threshold
+R1 VCC THRESH 67k
+R2 THRESH 0 33k
+
+* Pull-up resistor for open-drain style output
+R3 OUT VCC 10k
+
+* LT1720 Comparator (In+ In- V+ V- OUT)
+X1 THRESH IN VCC 0 OUT LT1720
+
+.tran 1m
+.lib cmp.lib
+.end

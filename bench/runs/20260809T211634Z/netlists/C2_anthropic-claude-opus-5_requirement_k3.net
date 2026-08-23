@@ -1,0 +1,38 @@
+* ADG5248F 8:1 Analog Multiplexer -- Channel 1 Signal Pass-Through Test
+* 1 kHz, 500 mV amplitude sine applied to S1 (node IN), measured at D (node OUT)
+* Supplies: VDD = +15 V, VSS = -15 V, GND = 0 V, logic = 5 V CMOS
+*
+* -------------------------------------------------------------------------
+* Genuine ADI device model (ADG5248F.cir from the Analog Devices SPICE
+* model library).  Place ADG5248F.cir in the same directory as this file.
+* Model pin order:
+*   D S1 S2 S3 S4 S5 S6 S7 S8 A0 A1 A2 EN VDD VSS GND
+* -------------------------------------------------------------------------
+.include ADG5248F.cir
+
+XMUX OUT IN 0 0 0 0 0 0 0 A0 A1 A2 EN VDD VSS 0 ADG5248F
+
+* ---------------- Power supplies ----------------
+VDD  VDD 0 DC  15
+VSS  VSS 0 DC -15
+
+* ---------------- Channel select: A2 A1 A0 = 000 -> S1, EN = high ----------
+VA0  A0  0 DC 0
+VA1  A1  0 DC 0
+VA2  A2  0 DC 0
+VEN  EN  0 DC 5
+
+* ---------------- Signal source and load ----------------
+VIN  IN  0 SINE(0 0.5 1k 0 0 0)
+RL   OUT 0 1Meg
+CL   OUT 0 5p
+
+* ---------------- Analysis ----------------
+.tran 0 5m 0 1u
+
+.meas TRAN vinpp  PP V(IN)  FROM=1m TO=5m
+.meas TRAN voutpp PP V(OUT) FROM=1m TO=5m
+.meas TRAN gain_db PARAM 20*log10(voutpp/vinpp)
+
+.options plotwinsize=0 reltol=1e-4
+.end

@@ -1,0 +1,46 @@
+* LT8710 24V-to-12V synchronous buck converter
+.lib LT8710.sub
+
+VINPUT IN 0 PULSE(0 24 0 10u 10u)
+CIN IN 0 47u Rser=20m
+
+* LT8710 bias, compensation, and feedback
+VEN EN 0 2.5
+VMODE MODE 0 0
+RRT RT 0 100k
+CSS SS 0 100n
+CVREF VREF 0 1u
+RCTRL CTRL VREF 10
+CINTVCC VCC 0 4.7u
+RFBTOP OUT FB 88.7k
+RFBBOT FB 0 10k
+RGP GP 0 1Meg
+RGN GN 0 1Meg
+
+* Vendor LT8710 macro-model
+* Pins: VIN EN/FBIN SYNC RT SS FBX VREF CTRL ISP ISN
+*       CSP CSN GATEP GATEN SW INTVCC BIAS MODE GND
+XU1 IN EN 0 RT SS FB VREF CTRL OUT OUT SW SW GP GN SW VCC OUT MODE 0 LT8710
+
+* Nominal 200kHz synchronous PWM power stage
+BHG HG 0 V=IF(MOD(TIME,5u)<2.5u,5,0)
+BLG LG 0 V=IF(MOD(TIME,5u)>=2.5u,5,0)
+
+SHIGH IN SW HG 0 SWMOD
+SLOW  SW 0  LG 0 SWMOD
+.model SWMOD SW(Ron=5m Roff=100Meg Vt=2 Vh=0.1)
+
+* MOSFET body-diode equivalents
+DHIGH SW IN DBODY
+DLOW 0 SW DBODY
+.model DBODY D(Is=1n Rs=10m N=1 Cjo=100p)
+
+L1 SW OUT 47u Rser=20m
+COUT OUT 0 470u Rser=20m
+RLOAD OUT 0 6
+
+.tran 0 20m 0 20n startup
+.meas tran vout_dc AVG V(OUT) FROM=15m TO=20m
+.options plotwinsize=0
+
+.end

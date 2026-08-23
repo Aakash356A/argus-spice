@@ -1,0 +1,38 @@
+```
+* ADA4177 Inverting Amplifier, Gain = -10 V/V (20 dB)
+* Supplies: +/-15 V, Input: 50 mV amplitude sine @ 1 kHz
+
+.lib ADA4177.lib
+
+* ---------------- Power supplies ----------------
+VCC  VCC  0  DC  15
+VEE  VEE  0  DC -15
+
+* ---------------- Input source ------------------
+* 50 mV amplitude (100 mVpp) 1 kHz sine, also 1 V AC for .AC sweep
+VIN  IN   0  SINE(0 50m 1k) AC 1
+
+* ---------------- Gain setting network -----------
+RIN  IN   INM  1k
+RF   INM  OUT  10k
+
+* ---------------- Amplifier ---------------------
+* Pin order: IN+  IN-  V+   V-   OUT
+XU1  0    INM  VCC  VEE  OUT  ADA4177
+
+* Light load
+RL   OUT  0    10k
+
+* ---------------- Analyses ----------------------
+.tran 0 5m 0 1u
+.ac dec 100 1 10Meg
+
+.meas AC gain_db MAX 20*log10(V(OUT)/V(IN))
+.meas TRAN vout_pk PP V(OUT) FROM=2m TO=5m
+.meas TRAN vin_pk  PP V(IN)  FROM=2m TO=5m
+.meas TRAN gain_db_tran PARAM 20*log10(vout_pk/vin_pk)
+
+.options plotwinsize=0
+
+.end
+```

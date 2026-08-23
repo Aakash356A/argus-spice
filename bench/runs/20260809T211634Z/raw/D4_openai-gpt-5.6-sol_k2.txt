@@ -1,0 +1,25 @@
+* LT6106 high-side current-sense amplifier, 100mA on 12V rail
+VRAIL IN 0 12
+RSHUNT IN SENSE 0.1
+ILOAD SENSE 0 DC 0.1
+
+* Gain = ROUT/RIN = 10k/100 = 100V/V
+RIN SENSE NIN 100
+ROUT OUT 0 10k
+COUT OUT 0 10n
+
+XU1 IN IN NIN OUT 0 LT6106
+
+* Self-contained functional LT6106 model
+* Pins: VCC IN+ IN- OUT V-
+.subckt LT6106 VCC INP INM OUT VEE
+VSNS INP INM 0
+FOUT VEE OUT VSNS 1
+RQUIESCENT VCC VEE 12Meg
+RLEAK OUT VEE 1G
+.ends LT6106
+
+.tran 0 5m 0 1u
+.meas tran vout_dc FIND V(OUT) AT=4m
+
+.end

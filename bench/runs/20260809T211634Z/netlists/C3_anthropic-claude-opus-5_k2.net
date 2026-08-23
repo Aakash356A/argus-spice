@@ -1,0 +1,58 @@
+* LT8710-based Synchronous Step-Down (Buck) Converter: 24 V IN -> 12 V OUT
+* -----------------------------------------------------------------------
+* The LT8710 synchronous controller is represented by an equivalent
+* behavioral model of its internal blocks:
+*   - 1.6 V FBX reference with internal soft-start ramp
+*   - transconductance error amplifier driving the VC (COMP) pin
+*   - 200 kHz oscillator / PWM comparator
+*   - complementary GATE / SGATE drivers with dead time
+* Power stage: synchronous switches, inductor, Cin, Cout, resistive load.
+* Output programming:  VOUT = 1.6V * (1 + RFB1/RFB2) = 1.6 * (1 + 65k/10k) = 12.0 V
+* -----------------------------------------------------------------------
+
+*** Input source and input capacitor ***
+V1   IN 0 DC 24
+Cin  IN 0 22u  Rser=10m
+
+*** Power stage: synchronous switches (top = GATE, bottom = SGATE) ***
+S1   IN SW  PG 0 SWN          ; high-side (main) switch
+S2   SW 0   NG 0 SWN          ; low-side (synchronous) switch
+Dbody 0 SW DFW                ; low-side body / freewheel diode
+L1   SW OUT 22u  Rser=25m     ; power inductor with DCR
+Cout OUT 0 100u  Rser=100m    ; output capacitor with ESR
+Rload OUT 0 12                ; resistive load (~1 A at 12 V)
+
+*** Output feedback divider to FBX pin (1.6 V reference) ***
+RFB1 OUT FB 65k
+RFB2 FB  0  10k
+
+*** LT8710 internal 1.6 V reference with soft-start (1 ms) ***
+Bref REF 0 V=min(1.6, 1600*time)
+
+*** Error amplifier (gm = 200 uA/V) and VC-pin compensation ***
+G1    0 COMP VALUE={200u*(V(REF)-V(FB))}
+Ccomp COMP 0 470n
+Rcz   COMP CZ 200
+Ccz   CZ 0 10n
+Dhi   COMP VCL DCL             ; VC clamp high (max duty)
+Vcl   VCL 0 1.0
+Dlo   0 COMP DCL               ; VC clamp low (min duty)
+
+*** 200 kHz oscillator ramp and PWM comparator with dead time ***
+Vramp RAMP 0 PULSE(0 1 0 4.8u 0.1u 0.01u 5u)
+Bpg   PG 0 V=if(V(COMP)>V(RAMP), 5, 0)
+Bng   NG 0 V=if(V(RAMP)>V(COMP)+0.03, 5, 0)
+
+*** Device models ***
+.model SWN SW(Ron=25m Roff=1Meg Vt=2.5 Vh=0.2)
+.model DFW D(Ron=20m Roff=1G Vfwd=0.4 epsilon=0.05)
+.model DCL D(Ron=1 Roff=1G Vfwd=0 epsilon=0.01)
+
+*** Analysis ***
+.tran 0 10m 0 200n
+.meas TRAN vout_dc AVG V(OUT) FROM=8m TO=10m
+.meas TRAN vout_ripple PP V(OUT) FROM=8m TO=10m
+.meas TRAN iout AVG I(Rload) FROM=8m TO=10m
+
+.options plotwinsize=0 reltol=1m
+.end

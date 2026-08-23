@@ -1,0 +1,28 @@
+* AD8092 non-inverting amplifier, gain = 5 V/V
+VCC VCC 0 5
+VEE VEE 0 -5
+VIN IN 0 SINE(0 100m 1Meg) AC 100m
+
+RFB OUT NINV 4k
+RG NINV 0 1k
+RLOAD OUT 0 1k
+
+XU1 IN NINV VCC VEE OUT AD8092
+
+* AD8092 representative 110 MHz voltage-feedback macromodel
+.subckt AD8092 INP INM VPLUS VMINUS OUT
+EOL NDRV 0 INP INM 100k
+RDOM NDRV NDOM 1k
+CDOM NDOM 0 144.7n
+BBUF NBUF 0 V=limit(V(NDOM),V(VMINUS)+0.15,V(VPLUS)-0.15)
+ROUT NBUF OUT 10
+RINP INP 0 100Meg
+RINM INM 0 100Meg
+.ends AD8092
+
+.options plotwinsize=0
+.tran 0 10u 5u 2n
+.ac dec 100 10k 100Meg
+.meas AC gain_db FIND db(V(OUT)/V(IN)) AT=1Meg
+
+.end

@@ -1,0 +1,16 @@
+* ADG711 passing 2 V DC into a 10 kOhm load
+.include ADG711.cir
+
+VSUPPLY VDD 0 5
+VIN IN 0 2
+VCONTROL CTRL 0 5
+
+* ADG711 pin order: IN(control), D, S, GND/VSS, VDD
+XSW CTRL OUT IN 0 VDD ADG711
+
+RLOAD OUT 0 10k
+
+.tran 0 10m 0 10u
+.meas tran vout_dc AVG V(OUT) FROM 9m TO 10m
+
+.end

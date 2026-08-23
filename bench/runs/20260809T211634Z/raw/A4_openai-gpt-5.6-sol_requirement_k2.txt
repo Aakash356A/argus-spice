@@ -1,0 +1,14 @@
+* ADR1399H 7.05 V precision reference
+.include ADR1399H.lib
+
+V1 IN 0 15
+RBIAS IN OUT 4.02k
+COUT OUT 0 1u
+RLOAD OUT 0 100k
+
+XU1 OUT 0 IN 0 ADR1399H
+
+.tran 0 30 0 10m startup
+.meas tran vout_dc AVG V(OUT) FROM=25 TO=30
+
+.end

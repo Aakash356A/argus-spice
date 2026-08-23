@@ -1,0 +1,11 @@
+* ADG711 Analog Switch Circuit
+VDD VDD 0 5V
+VIN IN 0 2V
+VCTRL CTRL 0 0V
+
+X1 CTRL OUT IN 0 0 0 0 0 0 0 0 0 VDD 0 0 0 ADG711
+
+RL OUT 0 10k
+
+.tran 1m
+.end

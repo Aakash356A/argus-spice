@@ -1,0 +1,26 @@
+* Precision reference subsystem using ADR1399H and LTC6078
+* Primary input node: IN
+* Primary output node: OUT
+
+* Input Supply (15V provides enough headroom for the 7.05V reference and powers the heater)
+VIN IN 0 15
+
+* Bias resistor for the ADR1399H Zener (Targeting ~3mA operating current)
+* (15V - 7.05V) / 3mA ≈ 2.65k -> Using 2.67k
+R1 IN N_Zener 2.67k
+
+* ADR1399H Precision Reference
+* Pins: Zener+, Zener-, Heater+, Heater-
+X1 N_Zener 0 IN 0 ADR1399H
+
+* LTC6078 Op Amp configured as a unity-gain buffer
+* Pins: IN+, IN-, V+, V-, OUT
+X2 N_Zener OUT IN 0 OUT LTC6078
+
+* 1k Load on the buffered VREF output
+Rload OUT 0 1k
+
+* Transient analysis to allow the heater thermal model to settle to the 7.05V DC target
+.tran 1
+
+.end

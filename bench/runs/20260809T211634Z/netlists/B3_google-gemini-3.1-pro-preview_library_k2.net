@@ -1,0 +1,14 @@
+* LTC6078 Unity-Gain Follower
+.lib LTC5.lib
+
+VCC VCC 0 5
+VIN IN 0 SINE(2.5 0.1 1k) AC 1
+
+X1 IN OUT VCC 0 OUT LTC6078
+RL OUT 0 10k
+
+.ac dec 10 100 10k
+.tran 0 5m
+.meas ac gain_db FIND 20*log10(mag(V(OUT)/V(IN))) AT 1k
+
+.end

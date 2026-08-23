@@ -1,0 +1,61 @@
+* LTC4281 12V hot-swap controller
+.lib LTC4281.sub
+
+* 12V input rail with controlled startup
+VIN IN 0 PWL(0 0 1m 0 1.1m 12)
+
+* Current-sense resistor: 10mOhm, 0.5A nominal load current
+RSENSE IN SNS 10m
+
+* External N-channel hot-swap MOSFET
+MHS SNS GATE OUT OUT N_HOTSWAP
+.model N_HOTSWAP NMOS (LEVEL=1 VTO=3 KP=50 LAMBDA=1m RD=2m RS=2m)
+RGATE GATE OUT 100k
+
+* Output capacitance and 24Ohm resistive load
+COUT OUT 0 470u Rser=20m
+RLOAD OUT 0 24
+
+* Undervoltage and overvoltage dividers
+RUVTOP IN UV 68.1k
+RUVBOT UV 0 10k
+ROVTOP IN OV 100k
+ROVBOT OV 0 10k
+
+* Startup slew-rate and fault timing components
+CSS SS 0 10n
+CTIMER TIMER 0 100n
+
+* Internal regulator bypass
+CINTVCC INTVCC 0 1u
+
+* Enable and ON control
+REN EN IN 10k
+RON ON IN 10k
+
+* Digital-interface biasing
+RSCL SCL INTVCC 10k
+RSDA SDA INTVCC 10k
+RALERT ALERT INTVCC 10k
+RGPIO1 GPIO1 0 100k
+RGPIO2 GPIO2 0 100k
+RGPIO3 GPIO3 0 100k
+RADR0 ADR0 0 10k
+RADR1 ADR1 0 10k
+RADR2 ADR2 0 10k
+
+* Unused ADC inputs
+RADCP ADCP 0 100k
+RADCN ADCN 0 100k
+
+* LTC4281 pin order:
+* VDD SENSE+ SENSE- GATE SOURCE DRAIN SS TIMER UV OV EN ON
+* GPIO1 GPIO2 GPIO3 ADC+ ADC- ALERT SDA SCL ADR0 ADR1 ADR2 INTVCC GND
+XU1 IN IN SNS GATE OUT SNS SS TIMER UV OV EN ON \
+    GPIO1 GPIO2 GPIO3 ADCP ADCN ALERT SDA SCL ADR0 ADR1 ADR2 INTVCC 0 LTC4281
+
+.tran 0 100m 0 10u
+.meas tran vout_dc AVG V(OUT) FROM=80m TO=100m
+
+.options plotwinsize=0 reltol=1e-4
+.end

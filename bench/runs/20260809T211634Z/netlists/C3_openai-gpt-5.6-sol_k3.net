@@ -1,0 +1,31 @@
+LT8710 synchronous 24V-to-12V converter
+V1 IN 0 PULSE(0 24 100u 10u 10u 100m 200m)
+RCIN IN CIN 20m
+CIN CIN 0 100u
+
+XU1 IN OUT GH GL LT8710
+
+SH IN SW GH 0 SWMOD
+SL SW 0 GL 0 SWMOD
+DH SW IN DBODY
+DL 0 SW DBODY
+
+L1 SW LX 47u
+RL LX OUT 10m
+RESR OUT CO 20m
+COUT CO 0 220u
+RLOAD OUT 0 12
+
+.model SWMOD SW(Ron=5m Roff=10Meg Vt=2 Vh=0.2)
+.model DBODY D(Is=1u Rs=10m N=1.2 Cjo=200p)
+
+.subckt LT8710 VIN FB GH GL PARAMS: FSW=500k VSET=12 KP=10m TDEAD=50n
+BHG GH 0 V=if(mod(time,1/FSW)<(1/FSW)*limit(0.5+KP*(VSET-V(FB)),0.2,0.8),5,0)
+BGL GL 0 V=if(mod(time,1/FSW)>((1/FSW)*limit(0.5+KP*(VSET-V(FB)),0.2,0.8)+TDEAD),5,0)
+.ends LT8710
+
+.tran 0 25m 0 50n
+.meas tran vout_dc AVG V(OUT) FROM=20m TO=25m
+.options plotwinsize=0
+
+.end

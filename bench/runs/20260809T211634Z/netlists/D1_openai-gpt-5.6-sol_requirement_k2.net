@@ -1,0 +1,19 @@
+* LT1720 comparator, 5 V supply, 1.65 V threshold
+.include LT1720.sub
+
+VCC VCC 0 5
+VIN IN 0 2
+
+RTH_TOP VCC VTH 20.3k
+RTH_BOT VTH 0 10k
+
+* Pin order: +IN -IN V+ V- OUT
+XU1 VTH IN VCC 0 OUT LT1720
+
+RPU VCC OUT 4.7k
+CDEC VCC 0 100n
+
+.tran 0 10u 0 10n
+.meas tran vout_dc FIND V(OUT) AT=9u
+
+.end

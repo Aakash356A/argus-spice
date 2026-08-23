@@ -1,0 +1,38 @@
+* AD8551 Non-Inverting Amplifier, Gain = 100 V/V (40 dB), Single +5 V Supply
+* Input: 10 mV amplitude, 1 kHz sine, biased at mid-supply (2.5 V)
+* -------------------------------------------------------------------------
+.lib ADI.lib
+
+* ---------------- Supplies / references ----------------
+VCC   VCC  0   DC 5
+VREF  VREF 0   DC 2.5          ; mid-supply reference (AC ground) for gain network
+
+* ---------------- Signal source ------------------------
+* 10 mV amplitude sine at 1 kHz, sitting on a 2.5 V DC bias
+V1    IN   0   SINE(2.5 10m 1k) AC 1
+
+* ---------------- Amplifier ---------------------------
+* AD8551 pin order: +IN  -IN  V+  V-  OUT
+XU1   NP   NM   VCC  0   OUT   AD8551
+
+Rs    IN   NP   100             ; small source series resistance
+R1    NM   VREF 1k              ; gain resistor to mid-supply reference
+R2    OUT  NM   99k             ; feedback resistor -> G = 1 + 99k/1k = 100
+RL    OUT  0    10k             ; load
+CL    OUT  0    10p
+
+* ---------------- Analysis ----------------------------
+.tran 0 5m 0 1u
+
+* Gain measurement (peak-to-peak ratio over settled interval)
+.meas TRAN vo_pp  PP V(OUT) FROM 1m TO 5m
+.meas TRAN vi_pp  PP V(IN)  FROM 1m TO 5m
+.meas TRAN gain      PARAM vo_pp/vi_pp
+.meas TRAN gain_db   PARAM 20*log10(vo_pp/vi_pp)
+
+* Optional small-signal check (uncomment to run AC sweep instead)
+*.ac dec 100 1 1M
+*.meas AC gain_db_ac MAX 20*log10(V(OUT)/V(IN))
+
+.options plotwinsize=0
+.end

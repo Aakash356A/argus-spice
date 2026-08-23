@@ -1,0 +1,40 @@
+* AD8237 Instrumentation Amplifier -- G = 10 V/V, single +5 V supply
+* 20 mV amplitude differential sine at 1 kHz, REF = mid-supply (2.5 V)
+* ---------------------------------------------------------------
+* Vendor macro-model library
+.lib AD8237.lib
+
+* ---------------- Supplies / references -------------------------
+VS    VCC 0 DC 5
+VMID  MID 0 DC 2.5            ; mid-supply reference / input common mode
+
+* ---------------- Differential input drive ----------------------
+* V(IN) is the DIFFERENTIAL input signal (20 mV amplitude, 1 kHz).
+* It is split +/-0.5*V(IN) about the 2.5 V common-mode level.
+VIN   IN  0 SINE(0 20m 1k) AC 1
+EP    INP MID IN 0  0.5
+EN    INN MID IN 0 -0.5
+
+* ---------------- AD8237 in-amp ---------------------------------
+* Pin order (vendor subckt): -IN  +IN  V-  REF  FB  OUT  V+
+XU1   INN INP 0 MID FB OUT VCC AD8237
+
+* Gain network:  G = 1 + R2/R1 = 1 + 9k/1k = 10 V/V (20 dB)
+R1    MID FB  1k
+R2    FB  OUT 9k
+
+* Light output load
+RL    OUT 0 100k
+CL    OUT 0 10p
+
+* ---------------- Analysis --------------------------------------
+.tran 0 5m 0 1u
+
+.meas TRAN vin_pp  PP V(IN)  FROM 1m TO 5m
+.meas TRAN vout_pp PP V(OUT) FROM 1m TO 5m
+.meas TRAN gain    PARAM vout_pp/vin_pp
+.meas TRAN gain_db PARAM 20*log10(vout_pp/vin_pp)
+.meas TRAN vout_dc AVG V(OUT) FROM 1m TO 5m
+
+.options plotwinsize=0
+.end

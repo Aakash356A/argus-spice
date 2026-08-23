@@ -1,0 +1,25 @@
+* LTC6078 Unity-Gain Follower
+.lib LTC5.lib
+
+* Single 5V Power Supply
+VCC VCC 0 5V
+
+* Input Signal: 1 kHz, 100 mV amplitude sine wave
+* Biased at 2.5V DC to accommodate the single 5V supply
+VIN IN 0 SINE(2.5 0.1 1k) AC 1
+
+* LTC6078 configured as a unity-gain voltage follower
+* Pinout: IN+ IN- V+ V- OUT
+X1 IN OUT VCC 0 OUT LTC6078
+
+* 10k Load Resistor
+RL OUT 0 10k
+
+* Analyses
+.tran 0 5m
+.ac dec 20 10 100k
+
+* Measurement for gain in dB at 1 kHz
+.meas AC gain_db FIND 20*log10(mag(V(OUT)/V(IN))) AT 1k
+
+.end

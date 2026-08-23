@@ -1,0 +1,14 @@
+* LTC6078 unity-gain follower, 5 V single supply
+.include LTC6078.sub
+
+VCC VCC 0 5
+VIN IN 0 SINE(2.5 100m 1k) AC 100m
+
+XU1 IN OUT VCC 0 OUT LTC6078
+RLOAD OUT 0 10k
+
+.tran 0 10m 5m 2u
+.ac dec 100 10 100k
+.meas AC gain_db FIND db(V(OUT)/V(IN)) AT=1k
+
+.end

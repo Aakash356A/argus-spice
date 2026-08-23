@@ -1,0 +1,25 @@
+* ADG711 Analog Switch Circuit
+.lib ADG711.sub
+
+* 5V Power Supply
+Vdd VDD 0 5V
+
+* 2V DC Input Signal
+Vin IN 0 2V
+
+* Control signal
+* The ADG711 is a normally closed (NC) switch. 
+* A logic low (0V) on the control pin closes the switch.
+Vctrl CTRL 0 0V
+
+* ADG711 Switch Instance
+* Typical ADI SPST subcircuit pinout: Source, Drain, Control_In, VDD, GND
+X1 IN OUT CTRL VDD 0 ADG711
+
+* 10k Load Resistor
+Rload OUT 0 10k
+
+* Transient analysis to allow the DC output to settle and be measured
+.tran 1m
+
+.end

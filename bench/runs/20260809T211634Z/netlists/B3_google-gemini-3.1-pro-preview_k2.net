@@ -1,0 +1,8 @@
+* LTC6078 Unity-Gain Voltage Follower
+V1 IN 0 SINE(2.5 0.1 1k) AC 1
+V2 VCC 0 5
+X1 IN OUT VCC 0 OUT LTC6078
+R1 OUT 0 10k
+
+.ac dec 10 100 10k
+.end

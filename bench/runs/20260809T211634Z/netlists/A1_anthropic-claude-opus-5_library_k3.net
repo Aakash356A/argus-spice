@@ -1,0 +1,46 @@
+* LT3045-1 Low Dropout Regulator: 5V IN -> 3.3V OUT @ 100mA
+* --------------------------------------------------------------
+* Vout = 100uA (SET pin reference current) x R_SET
+*      = 100uA x 33k = 3.3V
+* --------------------------------------------------------------
+
+.lib LT3045-1.sub
+
+* ---- Input source ----
+VIN IN 0 PWL(0 0 100u 5)          ; 5V input with short ramp for clean startup
+
+* ---- Input capacitor ----
+CIN IN 0 10u
+RCIN IN 0 1MEG                    ; keeps node IN referenced (DC path)
+
+* ---- Regulator ----
+* Subcircuit pin order: IN OUT SET ILIM PG EN GND OUTS
+XU1 IN OUT SET ILIM PG EN 0 OUT LT3045-1
+
+* Output voltage programming resistor (100uA * 33k = 3.3V)
+RSET SET 0 33k
+
+* Current limit pin: tie to GND for internal (default) current limit
+RILIM ILIM 0 1m
+
+* Enable / UV pin: tied high to IN for always-on operation
+REN EN IN 1m
+
+* Power Good open-collector output with pull-up
+RPG OUT PG 100k
+
+* ---- Output capacitor ----
+COUT OUT 0 10u
+RESR OUT 0 1G                     ; DC leakage path (numerical aid)
+
+* ---- Resistive load: 3.3V / 33 ohm = 100mA ----
+RLOAD OUT 0 33
+
+* ---- Analysis ----
+.tran 10u 5m 0 10u startup
+.meas TRAN vout_dc AVG V(OUT) FROM=4m TO=5m
+.meas TRAN iload  AVG I(RLOAD) FROM=4m TO=5m
+
+.options plotwinsize=0 reltol=1e-4
+
+.end

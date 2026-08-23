@@ -1,0 +1,35 @@
+```
+* AD8092 Non-Inverting Amplifier, Av = +5 V/V, +/-5 V Supplies
+* ---------------------------------------------------------------
+* Genuine ADI SPICE macromodel for the AD8092 is instantiated below.
+* Pin order of the ADI model subcircuit: (+IN  -IN  V+  V-  OUT)
+* Place AD8092.cir (ADI model file) in the simulation directory or
+* in the LTspice library search path.
+.include AD8092.cir
+
+* ---------------- Supplies ----------------
+VCC  VCC 0 DC  5
+VEE  VEE 0 DC -5
+
+* ---------------- Input signal ----------------
+* 100 mV amplitude sine at 1 MHz (AC 1 also set for optional .ac sweep)
+VIN  IN 0 DC 0 AC 1 SINE(0 0.1 1MEG)
+
+* ---------------- Amplifier ----------------
+XU1  IN FB VCC VEE OUT AD8092
+
+* Non-inverting gain = 1 + RF/RG = 1 + 1k/250 = 5 (13.98 dB)
+RF   OUT FB 1k
+RG   FB  0  250
+
+* ---------------- Load ----------------
+RL   OUT 0 1k
+
+* ---------------- Analysis ----------------
+.tran 0 5u 0 100p
+* Optional small-signal frequency response:
+* .ac dec 100 10k 500MEG
+
+.options plotwinsize=0 numdgt=7
+.end
+```

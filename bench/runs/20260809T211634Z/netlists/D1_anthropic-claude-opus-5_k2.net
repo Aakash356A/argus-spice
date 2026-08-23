@@ -1,0 +1,38 @@
+* LT1720 single-supply comparator: 1.65V threshold, open-drain style output with pull-up
+* Input held above threshold -> OUT pulled LOW (~0 V)
+
+*--------------------- Supplies / Input ---------------------
+VCC   VCC  0   DC 5
+VIN   IN   0   DC 2.5          ; input held above the 1.65 V threshold
+
+*--------------------- Threshold divider --------------------
+* 5 V * 3.3k/(6.7k+3.3k) = 1.65 V
+R1    VCC  REF  6.7k
+R2    REF  0    3.3k
+CBYP  REF  0    100n           ; reference bypass
+
+*--------------------- Comparator ---------------------------
+* Pin order: IN+  IN-  V+  V-  OUT
+* IN drives the inverting input, so IN > 1.65 V forces OUT low
+XU1   REF  IN   VCC  0   OUT  LT1720
+
+*--------------------- Open-drain style pull-up -------------
+RPU   VCC  OUT  1k
+
+*--------------------- Analysis -----------------------------
+.tran 0 1m 0 1u
+.meas TRAN vout_dc FIND V(OUT) AT=1m
+
+*--------------------- LT1720 model -------------------------
+* Behavioral equivalent of the LT1720 dual 4.5ns single-supply comparator
+* (single section shown): high-impedance inputs, low-impedance rail-to-rail
+* output stage that sinks hard when IN- > IN+.
+.subckt LT1720 INP INN VP VN OUT
+RIN1  INP  VN   1G
+RIN2  INN  VN   1G
+BOUT  NI   VN   V = if(V(INP,INN) > 0, V(VP,VN) - 0.4, 0.1)
+CDEL  NI   VN   5p
+ROUT  NI   OUT  8
+.ends LT1720
+
+.end

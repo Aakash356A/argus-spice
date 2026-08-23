@@ -1,0 +1,54 @@
+```
+* MAX44245 Non-Inverting Amplifier, Gain = 20 V/V (26.02 dB), +/-15 V supplies
+* Input: 50 mV amplitude, 1 kHz sine at node IN;  Output at node OUT
+*------------------------------------------------------------------
+* Supplies
+V1 VCC 0 DC 15
+V2 VEE 0 DC -15
+*
+* Signal source (AC=1 also allows an .ac sweep if desired)
+Vin IN 0 SINE(0 50m 1k) AC 1
+*
+* Amplifier: non-inverting, gain = 1 + Rf/Rg = 1 + 19k/1k = 20 V/V
+XU1 IN FB VCC VEE OUT MAX44245
+Rf OUT FB 19k
+Rg FB 0 1k
+*
+* Light load
+RL OUT 0 10k
+CL OUT 0 10p
+*
+*------------------------------------------------------------------
+* Simplified behavioral macromodel for MAX44245 precision op amp
+* (Avol = 120 dB, GBW ~ 10 MHz, rail-to-rail-ish output clamp, Rout = 20 ohm)
+.subckt MAX44245 INP INN VCC VEE OUT
+Rin  INP INN 1T
+Rcm1 INP 0   1T
+Rcm2 INN 0   1T
+* Input offset voltage (typ. 3 uV)
+Vos  INP INA DC 3u
+* Transconductance / open-loop gain stage with supply-referenced clamping
+Egm  G 0 VALUE={ LIMIT( 1E6*V(INA,INN), V(VEE)+0.15, V(VCC)-0.15 ) }
+Rp   G P 1k
+Cp   P 0 15.9u       ; dominant pole at ~10 Hz  ->  GBW ~ 10 MHz
+* Unity-gain output buffer with output impedance
+Ebuf B 0 P 0 1
+Rout B OUT 20
+* Quiescent supply current (typ.)
+Iq   VCC VEE 1.5m
+.ends MAX44245
+*------------------------------------------------------------------
+* Analysis: transient with 1 kHz sine (gain measured from output/input swing)
+.tran 0 5m 0 1u
+*
+.meas TRAN vout_pp PP V(OUT) FROM 2m TO 5m
+.meas TRAN vin_pp  PP V(IN)  FROM 2m TO 5m
+.meas TRAN gain_vv PARAM vout_pp/vin_pp
+.meas TRAN gain_db PARAM 20*log10(vout_pp/vin_pp)
+*
+* Optional AC check of the same gain:
+*.ac dec 100 1 10meg
+*
+.options plotwinsize=0 numdgt=7
+.end
+```

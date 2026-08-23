@@ -1,0 +1,25 @@
+* LT1720 Comparator Circuit
+.lib LT1720.sub
+
+* 5V Power Supply
+V1 VCC 0 5V
+
+* Resistor divider setting the 1.65V threshold
+R1 VCC N001 33.5k
+R2 N001 0 16.5k
+
+* Input held above the 1.65V threshold
+VIN IN 0 3V
+
+* LT1720 instance (IN+ IN- V+ V- OUT)
+* Threshold is connected to IN+, Input is connected to IN-
+* When IN > Threshold, OUT goes low (0V)
+X1 N001 IN VCC 0 OUT LT1720
+
+* Pull-up resistor for open-drain style output requirement
+R3 OUT VCC 10k
+
+* Analysis directive
+.tran 1m
+
+.end

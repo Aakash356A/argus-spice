@@ -1,0 +1,11 @@
+.lib ADG711.sub
+
+VDD    VDD   0   5
+VIN    IN    0   2
+VCTRL  CTRL  0   5
+
+XU1    IN OUT CTRL VDD 0 ADG711
+RLOAD  OUT   0   10k
+
+.tran 0 1m
+.end

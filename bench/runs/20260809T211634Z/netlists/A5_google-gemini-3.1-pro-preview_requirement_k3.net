@@ -1,0 +1,14 @@
+* LT6654-1.25 Voltage Reference Circuit
+V1 IN 0 5V
+C1 IN 0 1uF
+C2 OUT 0 1uF
+X1 IN 0 OUT LT6654AHS6-1.25
+R1 OUT 0 100k
+
+* Analysis
+.tran 5m
+
+* Library inclusion for standard LTspice components
+.lib LTC.lib
+
+.end

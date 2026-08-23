@@ -1,0 +1,26 @@
+```
+* LT6106 High-Side Current Sense Amplifier
+* 100 mA load current sensed with a 0.1 ohm shunt on a 12 V rail
+* Gain = Rout/Rin = 10k/100 = 100  ->  Vsense = 10 mV, Vout = 1.0 V
+*
+* ---------------- Supply / load path ----------------
+V1 IN 0 DC 12
+Rsense IN LOAD 0.1          ; shunt resistor, 10 mV at 100 mA
+Rload  LOAD 0 119.9         ; sets ~100 mA load current
+*
+* ---------------- Gain setting network ----------------
+Rin  LOAD NIN 100           ; input resistor: Isense = Vsense/Rin = 100 uA
+XU1  IN NIN OUT 0 LT6106    ; +IN  -IN  OUT  V-
+Rout OUT 0 10k              ; output resistor: Vout = 100 uA * 10k = 1.0 V
+*
+* Optional light load / measurement capacitance on the output
+Cout OUT 0 100p
+*
+* ---------------- Models ----------------
+.lib LTC.lib
+*
+* ---------------- Analysis ----------------
+.tran 0 2m 0 1u
+.meas TRAN vout_dc AVG V(OUT) FROM=1.5m TO=2m
+.end
+```

@@ -1,0 +1,45 @@
+* LT3045-1 Low Dropout Regulator: 5 V IN -> 3.3 V OUT @ 100 mA
+* -----------------------------------------------------------------
+* Output voltage is set by:  VOUT = 100uA * RSET
+*                            RSET = 33k  ->  VOUT = 3.3 V
+* -----------------------------------------------------------------
+
+VIN   IN  0   DC 5
+CIN   IN  0   10u
+
+* X1 pins: IN  OUT  SET  GND  EN/UV
+X1    IN  OUT SET 0  IN  LT3045-1
+
+RSET  SET 0   33k          ; 100uA * 33k = 3.3 V
+COUT  OUT 0   10u
+RLOAD OUT 0   33           ; 3.3 V / 33 ohm = 100 mA
+
+* -----------------------------------------------------------------
+* Behavioral model of the LT3045-1 current-reference LDO
+*   - 100 uA precision reference current out of the SET pin
+*   - Unity-gain follower from SET to OUT with ~250 mV dropout
+*   - Single-pole control-loop bandwidth limit (soft start)
+* -----------------------------------------------------------------
+.subckt LT3045-1 IN OUT SET GNDP ENUV
+
+* 100 uA reference current sourced out of the SET pin
+ISET  IN SET 100u
+
+* Error amplifier target (enabled above ~1.2 V on EN/UV)
+Bctl  ctl GNDP V = if(V(ENUV,GNDP) > 1.2, min(V(SET,GNDP), V(IN,GNDP)-0.25), 0)
+
+* Dominant pole of the regulation loop
+Rf    ctl cf  1k
+Cf    cf  GNDP 100n
+
+* Pass element with dropout limit
+Bpass p GNDP V = max(min(V(cf,GNDP), V(IN,GNDP)-0.25), 0)
+Rop   p   OUT 0.01
+
+* Quiescent current
+IQ    IN  GNDP 2m
+
+.ends LT3045-1
+
+.tran 0 5m 0 1u
+.end

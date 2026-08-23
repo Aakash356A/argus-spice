@@ -1,0 +1,34 @@
+* ADP7118 3.3V to 1.8V LDO Circuit
+
+* Input Voltage Source
+VIN IN 0 3.3
+
+* Input Decoupling Capacitor (2.2uF recommended minimum)
+CIN IN 0 2.2u
+
+* LDO Subcircuit Instantiation
+* Pin Order: IN EN GND SS BYP ADJ OUT
+XU1 IN IN 0 SS BYP ADJ OUT ADP7118
+
+* Soft-Start and Bypass Capacitors
+CSS SS 0 1n
+CBYP BYP 0 1u
+
+* Output Decoupling Capacitor (2.2uF recommended minimum)
+COUT OUT 0 2.2u
+
+* Feedback Resistor Divider (Vref = 1.2V)
+* VOUT = 1.2V * (1 + R1/R2) => 1.8V = 1.2V * (1 + 50k/100k)
+R1 OUT ADJ 50k
+R2 ADJ 0 100k
+
+* 50mA Resistive Load (1.8V / 50mA = 36 ohms)
+RLOAD OUT 0 36
+
+* Library Inclusion
+.lib ADP7102.lib
+
+* Transient Analysis (5ms to allow for soft-start and settling)
+.tran 5m
+
+.end

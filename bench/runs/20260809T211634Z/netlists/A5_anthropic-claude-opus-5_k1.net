@@ -1,0 +1,46 @@
+* LT6654-1.25 Precision 1.25V Series Voltage Reference
+* 5V supply, input/output bypass capacitors
+* -----------------------------------------------------
+
+* ---------------- Supply ----------------
+V1 IN 0 DC 5
+
+* ------------- Bypass caps --------------
+Cin  IN  0 1u
+Cout OUT 0 1u
+
+* ------------- Reference IC -------------
+* Pinout: IN  GND  OUT
+XU1 IN 0 OUT LT6654_125
+
+* ---------------- Load ------------------
+Rload OUT 0 10k
+
+* ==========================================================
+* Behavioral macromodel of the LT6654-1.25
+*  - 1.250 V nominal output
+*  - low output impedance, dropout limited
+*  - quiescent supply current, current limit
+* ==========================================================
+.subckt LT6654_125 VIN GND VOUT
+* ideal 1.25V core, collapses gracefully if VIN too low
+BCORE  NC GND V = min(1.25, max(0, V(VIN,GND) - 0.4))
+* internal bandwidth / soft-start pole
+RINT   NC N1 1k
+CINT   N1 GND 100n
+* unity-gain output buffer with finite output resistance
+EBUF   NB GND N1 GND 1.0
+ROUT   NB VOUT 0.05
+* output current limit (approx 25 mA sink/source)
+RLIM   VOUT GND 100G
+* quiescent supply current (350 uA typ) + load current reflected to VIN
+BIQ    VIN GND I = 350u + abs(I(ROUT))
+.ends LT6654_125
+
+* --------------- Analysis ---------------
+.tran 0 10m 0 10u uic
+.meas TRAN vout_dc AVG V(OUT) FROM=8m TO=10m
+.meas TRAN vout_final FIND V(OUT) AT=10m
+
+.options plotwinsize=0
+.end

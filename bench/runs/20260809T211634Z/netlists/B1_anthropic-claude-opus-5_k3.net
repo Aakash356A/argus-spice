@@ -1,0 +1,61 @@
+* AD8092 Non-Inverting Amplifier, Gain = +5 V/V, +/-5 V Supplies
+* Vin = 100 mV amplitude sine @ 1 MHz, RL = 1 kOhm to ground
+*------------------------------------------------------------------
+
+*--- Supplies ---
+VCC VCC 0 DC  5
+VEE VEE 0 DC -5
+
+*--- Input source: 100 mV amplitude (200 mVpp) 1 MHz sine ---
+VIN IN 0 SINE(0 0.1 1MEG) AC 1
+
+*--- Amplifier: non-inverting, G = 1 + Rf/Rg = 1 + 4k/1k = 5 ---
+XU1 IN FB VCC VEE OUT AD8092
+Rf  OUT FB 4k
+Rg  FB  0  1k
+
+*--- Output load ---
+RL  OUT 0 1k
+
+*------------------------------------------------------------------
+* AD8092 macromodel (single amplifier of the dual)
+* Pins:  IN+  IN-  V+  V-  OUT
+* Aol = 66 dB, GBW ~ 110 MHz, Ro = 5 ohm, rail-limited output
+*------------------------------------------------------------------
+.subckt AD8092 1 2 3 4 5
+Rin   1 2 10T
+Cin   1 2 1.4p
+Ib1   1 0 1.5u
+Ib2   2 0 1.5u
+* transconductance input stage (gm = 1 mA/V)
+G1    0 7 1 2 1m
+R1    7 0 2Meg
+C1    7 0 1.447p
+* second (high-frequency) pole ~ 300 MHz
+R2    7 8 100
+C2    8 0 5.3p
+* rail-limited output buffer with series output resistance
+B1    9 0 V = LIMIT( V(8), V(4)+0.35, V(3)-0.35 )
+Ro    9 5 5
+* keep supply pins referenced
+Rvp   3 0 1G
+Rvn   4 0 1G
+.ends AD8092
+
+*------------------------------------------------------------------
+* Analyses
+*------------------------------------------------------------------
+.tran 0 5u 0 200p
+
+* Gain measurement from the transient sine (last 2 cycles)
+.meas TRAN vin_pp  PP V(IN)  FROM=3u TO=5u
+.meas TRAN vout_pp PP V(OUT) FROM=3u TO=5u
+.meas TRAN gain    PARAM vout_pp/vin_pp
+.meas TRAN gain_db PARAM 20*log10(vout_pp/vin_pp)
+
+* Alternative small-signal check (uncomment to run AC sweep):
+* .ac dec 100 10k 500MEG
+* .meas AC gain_db_ac FIND 20*log10(mag(V(OUT)/V(IN))) AT=1MEG
+
+.options plotwinsize=0 numdgt=7
+.end

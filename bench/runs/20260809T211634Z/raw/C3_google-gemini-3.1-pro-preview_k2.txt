@@ -1,0 +1,99 @@
+```spice
+* LT8710 Synchronous SEPIC Converter 24V to 12V
+
+* Input Supply
+VIN IN 0 PWL(0 0 100u 24)
+
+* Input Capacitor
+Cin IN 0 47u Rser=5m
+
+* Primary Inductor
+L1 IN SW1 10u Rser=20m
+
+* Main Switch (N-channel)
+M1 SW1 BG CSP N_MOS
+
+* Coupling Capacitor
+Cc SW1 SW2 4.7u Rser=5m
+
+* Secondary Inductor
+L2 SW2 0 10u Rser=20m
+
+* Synchronous Switch (P-channel)
+M2 SW2 TG ISP P_MOS
+
+* Switch Current Sense (CSP to GND, limits at ~5A)
+R_sense_bot CSP 0 0.01
+
+* Output Current Sense (ISP to ISN/OUT, limits at ~5A)
+R_sense_top ISP OUT 0.01
+
+* Output Capacitor
+Cout OUT 0 47u Rser=5m
+
+* Load (12V / 12 ohm = 1A)
+Rload OUT 0 12
+
+* Enable / Undervoltage Lockout (~1.2V threshold)
+R_en1 IN EN_FBIN 1Meg
+R_en2 EN_FBIN 0 100k
+
+* RT (100k = ~300kHz switching frequency)
+R_rt RT 0 100k
+
+* Soft-Start
+Css SS 0 22n
+
+* Compensation Network
+R_vc VC VC_C 10k
+C_vc VC_C 0 2.2n
+C_vc2 VC 0 100p
+
+* Feedback Divider (1.3V reference for 12V output)
+R_fb1 OUT FBX 107k
+R_fb2 FBX 0 13k
+
+* IMON and FLAG (Left floating via high value resistor to GND)
+R_imon IMON 0 1Meg
+R_flag FLAG 0 1Meg
+
+* INTVCC Capacitor
+C_intvcc INTVCC 0 4.7u
+
+* SWEN (Switch Enable)
+R_swen SWEN IN 100k
+
+* LT8710 Controller Subcircuit
+* Pin Mapping:
+* 1: EN/FBIN
+* 2: SYNC (0 - Pulse Skipping Mode)
+* 3: RT
+* 4: SS
+* 5: VC
+* 6: FBX
+* 7: IMON
+* 8: FLAG
+* 9: ISN (OUT)
+* 10: ISP
+* 11: CSN (0)
+* 12: CSP
+* 13: BG
+* 14: GND (0)
+* 15: INTVCC
+* 16: TG
+* 17: BIAS (OUT)
+* 18: SWEN
+* 19: VIN (IN)
+* 20: GND (0)
+* 21: EP (0)
+X1 EN_FBIN 0 RT SS VC FBX IMON FLAG OUT ISP 0 CSP BG 0 INTVCC TG OUT SWEN IN 0 0 LT8710
+
+* MOSFET Models
+.model N_MOS VDMOS(Rg=1 Vto=2 Rd=10m Rs=1m Rb=1m Cgdo=100p Cgso=500p)
+.model P_MOS VDMOS(pchan Rg=1 Vto=-2 Rd=10m Rs=1m Rb=1m Cgdo=100p Cgso=500p)
+
+* Simulation Directives
+.tran 0 6m
+.options trtol=1
+.end
+```

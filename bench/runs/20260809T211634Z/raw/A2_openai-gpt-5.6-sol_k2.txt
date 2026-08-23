@@ -1,0 +1,20 @@
+* ADP7118 1.8 V LDO from 3.3 V with 50 mA resistive load
+
+VIN IN 0 PWL(0 0 100u 0 110u 3.3)
+CIN IN 0 2.2u Rser=30m
+
+XU1 IN OUT IN 0 ADP7118_1V8
+
+COUT OUT 0 2.2u Rser=20m
+RLOAD OUT 0 36
+
+.subckt ADP7118_1V8 VIN VOUT EN GND
+BREG NREG GND V=if(V(EN,GND)>1.1,min(1.8,max(V(VIN,GND)-0.2,0)),0)
+ROUT NREG VOUT 20m
+RIQ VIN GND 66k
+.ends ADP7118_1V8
+
+.tran 0 10m 0 1u
+.meas tran vout_dc AVG V(OUT) FROM=8m TO=10m
+
+.end

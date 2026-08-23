@@ -1,0 +1,55 @@
+* LT3045-1 Low-Dropout Regulator Stage : 5V IN -> 3.3V OUT @ 100mA
+* -----------------------------------------------------------------
+* Behavioral LT3045-1 macromodel (precision 100uA SET reference,
+* error amplifier, low-dropout pass element).
+* Vout = 100uA * Rset  ->  Rset = 33k  ->  Vout = 3.3V
+* -----------------------------------------------------------------
+
+*** Input source ***
+V1 IN 0 DC 5
+
+*** Input capacitor ***
+Cin IN 0 10u
+Rcin_esr IN 0 1G          ; keeps node well defined (negligible leakage)
+
+*** Regulator ***
+XU1 IN OUT SET LT3045_1
+
+*** Output voltage programming resistor (100uA * 33k = 3.3V) ***
+Rset SET 0 33k
+Cset SET 0 10n            ; reference noise-reduction capacitor
+
+*** Output capacitor ***
+Cout OUT 0 10u
+Resr OUT OUTX 5m
+Vsense OUTX 0 0           ; ESR return path (0V, no effect on DC)
+
+*** 100 mA resistive load (3.3V / 33ohm = 100mA) ***
+Rload OUT 0 33
+
+* -----------------------------------------------------------------
+* LT3045-1 behavioral subcircuit
+* Pins:  1=IN  2=OUT  3=SET
+* -----------------------------------------------------------------
+.subckt LT3045_1 IN OUT SET
+* 100uA precision current reference sourced out of the SET pin
+Iset IN SET 100u
+* Error amplifier (transconductance stage + compensation cap)
+Gea 0 CTL VALUE={1m*(V(SET)-V(OUT))}
+Cea CTL 0 100n
+Rea CTL 0 1G
+* Pass device: follows CTL, clamped by input rail minus dropout (~250mV)
+Bpass PDRV 0 V=limit(V(CTL),0,V(IN)-0.25)
+Rpass PDRV OUT 20m
+* Quiescent current
+Iq IN 0 2.3m
+.ends LT3045_1
+
+* -----------------------------------------------------------------
+* Analysis
+* -----------------------------------------------------------------
+.tran 10u 5m 0 10u
+.meas TRAN vout_dc AVG V(OUT) FROM=4m TO=5m
+.meas TRAN iload  AVG I(Rload) FROM=4m TO=5m
+.options plotwinsize=0
+.end

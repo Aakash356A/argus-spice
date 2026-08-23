@@ -1,0 +1,17 @@
+* ADR1399H precision 7.05 V reference from 15 V supply
+V1 IN 0 15
+RBIAS IN OUT 1k
+COUT OUT 0 1u
+RLOAD OUT 0 100k
+
+XU1 OUT 0 IN 0 ADR1399H
+
+.subckt ADR1399H K A HP HM params: VREF=7.05 RDYN=0.25
+BREF K A I={if(V(K,A)>VREF,(V(K,A)-VREF)/RDYN,0)}
+RHEATER HP HM 1.2k
+.ends ADR1399H
+
+.tran 0 100m 0 10u startup
+.meas tran vout_dc AVG V(OUT) FROM 80m TO 100m
+
+.end

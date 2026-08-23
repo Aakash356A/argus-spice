@@ -1,0 +1,14 @@
+* ADR1399H Precision Voltage Reference
+V1 IN 0 15
+R1 IN OUT 2.7k
+X1 OUT 0 IN 0 ADR1399H
+C1 OUT 0 1u
+R2 OUT 0 100k
+
+* The ADR1399 incorporates a heater that takes time to reach thermal equilibrium.
+* We run the simulation for 5 seconds and only save the last 100ms to ensure 
+* the output voltage is measured after the heater has fully stabilized.
+.tran 0 5 4.9
+
+.lib ADR1399H.sub
+.end

@@ -1,0 +1,23 @@
+* AD4021 ADC Front End
+VVDD VDD 0 1.8
+VVIO VIO 0 1.8
+VREF REF 0 5
+VIN IN 0 1
+
+* Conversion clock (1 MSPS, 50ns pulse width)
+VCNV CNV 0 PULSE(0 1.8 0 1n 1n 50n 1u)
+
+* Serial clock (50 MHz, continuous)
+VSCK SCK 0 PULSE(0 1.8 0 1n 1n 10n 20n)
+
+* Serial data input (tied low for single ADC operation)
+VSDI SDI 0 0
+
+* AD4021 Instance
+* Pin order: IN+ IN- REF VDD VIO GND CNV SDI SCK SDO
+X1 IN 0 REF VDD VIO 0 CNV SDI SCK OUT AD4021
+
+* Analysis directive
+.tran 0 5u 0 10n
+
+.end

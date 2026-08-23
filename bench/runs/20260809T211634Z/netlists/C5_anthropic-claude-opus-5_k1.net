@@ -1,0 +1,57 @@
+* LTC4281 12V Hot-Swap Controller - behavioral application circuit
+* -----------------------------------------------------------------
+*  IN  : 12 V backplane input
+*  OUT : load side of the external N-channel pass FET
+*  Rsense = 5 mohm  -> 25 mV current-limit threshold = 5 A
+*  Load   = 4 ohm   -> 3 A steady state, 220 uF output cap (inrush)
+* -----------------------------------------------------------------
+
+*** Input supply ***
+V1 IN 0 PWL(0 0 100u 12)
+RIN IN 0 1MEG
+
+*** Sense resistor (IN -> SENSE-, drain of pass FET) ***
+RSNS IN SW 5m
+
+*** External N-channel pass MOSFET (GATE driven by LTC4281) ***
+M1 SW GATE OUT OUT NFET L=1u W=1
+.model NFET NMOS(Level=1 Vto=2.5 Kp=20 Lambda=0 Cgso=1n Cgdo=1n)
+
+*** LTC4281 internal charge pump / gate pull-up (24 uA typ) ***
+VCP CP 0 24
+IGATE CP GATE 24u
+CGATE GATE 0 10n
+RGL GATE 0 20MEG
+
+*** Gate clamp (internal ~10 V Vgs clamp) ***
+VCLMP CLAMP 0 22
+D1 GATE CLAMP DIDEAL
+.model DIDEAL D(Ron=1 Roff=1G Vfwd=0.4)
+
+*** Active current-limit amplifier: servo Vsense to 25 mV (5 A) ***
+BLIM GATE 0 I=10*max(0,(V(IN)-V(SW))-25m)
+
+*** UV / OV comparator divider (real-design resistors) ***
+RA IN NOV 100k
+RB NOV NUV 10k
+RC NUV 0 15k
+
+*** TIMER pin capacitor (fault / inrush timing) ***
+CT TIMER 0 100n
+RT TIMER 0 1G
+
+*** ISET / ADC decoupling ***
+CVDD IN 0 100n
+
+*** Output bulk capacitance and resistive load ***
+COUT OUT 0 220u
+RLOAD OUT 0 4
+
+*** Analysis ***
+.ic V(GATE)=0 V(OUT)=0
+.tran 0 30m 0 10u uic
+.meas TRAN vout_dc AVG V(OUT) FROM 25m TO 30m
+.meas TRAN iinrush MAX I(COUT) FROM 0 TO 25m
+.options plotwinsize=0 reltol=1m
+
+.end

@@ -1,0 +1,42 @@
+```
+* LTC6252 High-Speed Op Amp -- Non-Inverting Gain of 2 (+6.02 dB), +/-5 V Supplies
+* Primary input node: IN     Primary output node: OUT
+
+*---------------- Supplies ----------------
+VCC VCC 0 DC 5
+VEE VEE 0 DC -5
+
+*---------------- Input source: 1 V amplitude, 10 MHz sine ----------------
+VIN IN 0 SINE(0 1 10MEG) AC 1
+
+*---------------- Amplifier ----------------
+* LTC6252 pin order: +IN  -IN  V+  V-  OUT
+XU1 IN FB VCC VEE OUT LTC6252
+
+*---------------- Gain-setting network: Av = 1 + Rf/Rg = 2 ----------------
+RF OUT FB 249
+RG FB 0 249
+
+*---------------- Supply decoupling and load ----------------
+CBP1 VCC 0 100n
+CBP2 VEE 0 100n
+RL OUT 0 1k
+CL OUT 0 2p
+
+*---------------- Model library ----------------
+.lib LTC.lib
+
+*---------------- Analysis ----------------
+.tran 0 1u 0 100p
+* Gain measurement from settled portion of the transient
+.meas TRAN vinpp  PP V(IN)  FROM 500n TO 1u
+.meas TRAN voutpp PP V(OUT) FROM 500n TO 1u
+.meas TRAN gain   PARAM voutpp/vinpp
+.meas TRAN gain_db PARAM 20*log10(voutpp/vinpp)
+
+* Optional small-signal frequency response check
+* .ac dec 100 10k 1G
+
+.options plotwinsize=0
+.end
+```

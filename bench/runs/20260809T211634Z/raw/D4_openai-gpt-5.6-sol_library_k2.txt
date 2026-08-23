@@ -1,0 +1,18 @@
+LT6106 High-Side Current Sense, 100mA on 12V Rail
+.lib LTC7.lib
+
+VRAIL IN 0 12
+RSENSE IN SENSE_LO 0.1
+ILOAD SENSE_LO 0 DC 100m
+
+RIN SENSE_LO NINV 1k
+ROUT OUT 0 100k
+COUT OUT 0 10n
+CDEC IN 0 100n
+
+* LT6106 pin order: OUT, V-, +IN, -IN, V+
+XU1 OUT 0 IN NINV IN LT6106
+
+.tran 0 10m 0 10u
+
+.end

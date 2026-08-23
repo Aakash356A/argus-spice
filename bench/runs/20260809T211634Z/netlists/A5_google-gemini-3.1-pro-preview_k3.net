@@ -1,0 +1,15 @@
+* LT6654-1.25 Voltage Reference Circuit
+V1 IN 0 5V
+C1 IN 0 1uF
+C2 OUT 0 1uF
+
+* LT6654-1.25 (Using the standard LTspice A-grade, HS6 package model)
+X1 IN 0 OUT LT6654AHS6-1.25
+
+* Optional light load to ensure stable operation
+R1 OUT 0 100k
+
+* Simulation directive to measure DC settled output
+.tran 2m
+
+.end

@@ -1,0 +1,41 @@
+* AD4021 front end digitising a 1 V DC input
+.lib AD4021.sub
+
+* Analog input and charge-kickback filter
+VINPUT VIN_SRC 0 1
+RINPUT VIN_SRC IN 20
+CINPUT IN 0 2.7n
+
+* 5 V reference with local decoupling
+VREF REF 0 5
+CREF1 REF 0 10u
+CREF2 REF 0 100n
+
+* 1.8 V core and digital-interface supplies
+VDD_SRC VDD 0 1.8
+CVDD1 VDD 0 1u
+CVDD2 VDD 0 100n
+
+VVIO_SRC VIO 0 1.8
+CVIO1 VIO 0 1u
+CVIO2 VIO 0 100n
+
+* Conversion-start pulse: one conversion every 2 us
+VCNV CNV 0 PULSE(0 1.8 100n 1n 1n 300n 2u)
+
+* Twenty 25 MHz serial-clock cycles from 0.5 us to 1.3 us each frame
+BCLK SCK 0 V=if(mod(time,2u)>500n,if(mod(time,2u)<1300n,if(mod(time-500n,40n)<20n,1.8,0),0),0)
+
+* Serial-interface mode input held low
+VSDI SDI 0 0
+
+* REF VDD IN+ IN- GND CNV SDO SCK SDI VIO
+XU1 REF VDD IN 0 0 CNV OUT SCK SDI VIO AD4021
+
+* Light digital output loading
+COUT OUT 0 5p
+
+.options plotwinsize=0
+.tran 0 10u 0 1n
+
+.end

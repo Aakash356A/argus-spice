@@ -1,0 +1,23 @@
+* AD8551 non-inverting amplifier, gain = 100 V/V, single 5 V supply
+VCC VCC 0 5
+VIN IN 0 SINE(25m 10m 1k) AC 10m
+
+RFB OUT NFB 99k
+RG NFB 0 1k
+
+XU1 IN NFB VCC 0 OUT AD8551
+
+.ac dec 100 10 1Meg
+.tran 0 5m 2m 1u
+.meas AC GAIN_DB FIND 20*log10(mag(V(OUT)/V(IN))) AT=1k
+
+* Self-contained dominant-pole AD8551 macromodel
+.subckt AD8551 NONINV INV VCC VEE OUTPUT
+RIN NONINV INV 10T
+GGM VEE NINT NONINV INV 1m
+RDOM NINT VEE 1G
+CDOM NINT VEE 106.1p
+BOUT OUTPUT VEE V=limit(V(NINT,VEE),5m,V(VCC,VEE)-5m)
+.ends AD8551
+
+.end

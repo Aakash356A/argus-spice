@@ -1,0 +1,49 @@
+* AD8237 Instrumentation Amplifier Circuit
+.lib AD8237.lib
+
+* Power Supplies (Single 5V supply)
+VCC VCC 0 5V
+VEE VEE 0 0V
+
+* Reference voltage at mid-supply
+VREF REF 0 2.5V
+
+* Inverting input biased at mid-supply
+VINN INN 0 2.5V
+
+* Primary input: 20 mV amplitude sine at 1 kHz, biased at mid-supply
+* This creates a 20 mV amplitude differential signal between IN and INN
+VIN IN 0 SINE(2.5 20m 1k)
+
+* Gain Setting Resistors
+* AD8237 uses indirect current mode architecture where G = 1 + R2/R1
+* For G = 10 V/V, R2/R1 = 9
+R1 FB REF 1k
+R2 FB OUT 9k
+
+* Light load resistor
+RL OUT REF 100k
+
+* AD8237 Instance
+* Standard LTspice subcircuit pin order for AD8237 matches the 8-lead physical package:
+* 1: BW (Bandwidth, tied to VCC for high BW mode)
+* 2: -IN (Inverting Input)
+* 3: +IN (Non-Inverting Input)
+* 4: -VS (Negative Supply)
+* 5: REF (Reference)
+* 6: FB (Feedback)
+* 7: OUT (Output)
+* 8: +VS (Positive Supply)
+X1 VCC INN IN VEE REF FB OUT VCC AD8237
+
+* Analysis Directives
+* Run transient analysis for 5ms, saving data from 2ms to 5ms to allow settling
+.tran 0 5m 2m
+
+* Measure peak-to-peak voltages to calculate AC gain
+.measure tran in_pp PP V(IN)
+.measure tran out_pp PP V(OUT)
+.measure tran gain param out_pp/in_pp
+.measure tran gain_db param 20*log10(gain)
+
+.end

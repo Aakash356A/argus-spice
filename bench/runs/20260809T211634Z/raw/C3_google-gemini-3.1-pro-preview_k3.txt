@@ -1,0 +1,54 @@
+```spice
+* LT8710 Synchronous SEPIC Converter (24V to 12V)
+
+* Input Voltage Source
+Vin IN 0 24
+
+* Power Stage Components
+Cin IN 0 10u Rser=5m
+L1 IN SW1 33u Rser=20m
+L2 SW2 0 33u Rser=20m
+Cc SW1 SW2 4.7u Rser=5m
+Cout OUT 0 47u Rser=5m
+
+* Main and Synchronous Switches
+M1 SW1 BG CSP N_MOS
+M2 SW2 TG OUT P_MOS
+
+* Switch Current Sense
+Rsense CSP 0 0.01
+
+* Feedback Network (Target 12.0V, Vref = 1.213V)
+Rfb1 OUT FBX 88.9k
+Rfb2 FBX 0 10k
+
+* Loop Compensation
+Rc VC N_Cc 20k
+Cc_comp N_Cc 0 2.2n
+Cp_comp VC 0 100p
+
+* Controller Configuration
+Ren IN N_EN 10k
+Css SS 0 0.1u
+Rrt RT 0 100k
+Rimon IMON 0 100k
+Rflag INTVCC FLAG 100k
+Cintvcc INTVCC 0 4.7u
+
+* Resistive Load (12 ohms for 1A load)
+Rload OUT 0 12
+
+* LT8710 Controller Subcircuit
+* Pin Order: EN_FBIN SS IMON ISN ISP FBX VC RT SYNC FLAG CSN CSP BG GND TG INTVCC BIAS VIN
+X1 N_EN SS IMON OUT OUT FBX VC RT 0 FLAG 0 CSP BG 0 TG INTVCC OUT IN LT8710
+
+* MOSFET Models
+.model N_MOS VDMOS(Ron=10m Vto=2 Cgdmax=1n Cgdmin=0.5n Cgs=2n Cjo=1n)
+.model P_MOS VDMOS(pchan Ron=15m Vto=-2 Cgdmax=1n Cgdmin=0.5n Cgs=2n Cjo=1n)
+
+* Simulation and Measurement Directives
+.tran 0 30m 20m 1u
+.meas tran vout_dc AVG V(OUT) FROM 20m TO 30m
+
+.end
+```

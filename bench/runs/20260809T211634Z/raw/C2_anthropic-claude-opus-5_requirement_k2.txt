@@ -1,0 +1,45 @@
+```
+* ADG5248F 8:1 Analog Multiplexer -- Channel 1 to Common Output (D)
+* 1 kHz, 500 mV amplitude sine input, +/-15 V supplies, A0=A1=A2=0, EN=high
+*
+* --- Genuine vendor model (ADI LTspice/PSpice model file) ---
+.include ADG5248F.cir
+*
+* --- Supplies ---
+VDD  VDD 0 DC  15
+VSS  VSS 0 DC -15
+*
+* --- Digital control: address 000 selects S1, EN high enables the mux ---
+VEN  EN  0 DC 5
+VA0  A0  0 DC 0
+VA1  A1  0 DC 0
+VA2  A2  0 DC 0
+*
+* --- Signal source into channel 1 ---
+VIN  IN  0 SINE(0 0.5 1k)
+*
+* --- Multiplexer ---
+* Pin order: S1 S2 S3 S4 S5 S6 S7 S8 D A0 A1 A2 EN VDD VSS GND
+XMUX IN S2 S3 S4 S5 S6 S7 S8 OUT A0 A1 A2 EN VDD VSS 0 ADG5248F
+*
+* --- Unused source channels terminated to ground (no floating nodes) ---
+RS2 S2 0 1k
+RS3 S3 0 1k
+RS4 S4 0 1k
+RS5 S5 0 1k
+RS6 S6 0 1k
+RS7 S7 0 1k
+RS8 S8 0 1k
+*
+* --- Output load (high impedance so Ron loss is negligible: 0 dB gain) ---
+RL  OUT 0 100k
+CL  OUT 0 10p
+*
+* --- Analysis: 5 ms of 1 kHz sine for gain (Vout/Vin) measurement ---
+.tran 0 5m 0 1u
+.meas TRAN vin_pp  PP V(IN)  FROM=1m TO=5m
+.meas TRAN vout_pp PP V(OUT) FROM=1m TO=5m
+.meas TRAN gain_db PARAM 20*LOG10(vout_pp/vin_pp)
+.options plotwinsize=0
+.end
+```

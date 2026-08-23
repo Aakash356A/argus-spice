@@ -1,0 +1,24 @@
+* AD8092 Non-inverting Amplifier
+V1 VCC 0 5
+V2 VEE 0 -5
+V3 IN 0 SINE(0 100m 1Meg) AC 1
+
+* AD8092 Op-Amp (Pinout: IN+ IN- V+ V- OUT)
+X1 IN VM VCC VEE OUT AD8092
+
+* Feedback Network (Gain = 1 + Rf/Rg = 5 V/V)
+Rf OUT VM 400
+Rg VM 0 100
+
+* Output Load
+RL OUT 0 1k
+
+* Transient Analysis (5 cycles at 1 MHz)
+.tran 0 5u 0 1n
+
+* Measurements for Gain
+.meas tran in_pp PP V(IN) FROM=2u TO=5u
+.meas tran out_pp PP V(OUT) FROM=2u TO=5u
+.meas tran gain_db param 20*log10(out_pp/in_pp)
+
+.end

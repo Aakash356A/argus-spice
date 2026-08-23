@@ -258,8 +258,19 @@ def run_spice(
             except Exception as error:
                 detail = str(error).strip() or "no AC frequency data; bandwidth requires a .ac sweep"
                 diagnostics.append(f"bandwidth_hz unavailable: {detail}")
+        if "vout_dc" in requested:
+            # Settled DC level at the output. Regulators, references, switches
+            # and hot-swap parts are scored on this rather than on gain, and
+            # without it those cases cannot be measured at all.
+            try:
+                measurements["vout_dc"] = measure_raw.measure_tran_final_value(
+                    traces, out_node
+                )
+            except Exception as error:
+                detail = str(error).strip() or "no transient waveform data; vout_dc requires a .tran run"
+                diagnostics.append(f"vout_dc unavailable: {detail}")
 
-        unsupported = requested - {"gain_db", "bandwidth_hz"}
+        unsupported = requested - {"gain_db", "bandwidth_hz", "vout_dc"}
         for name in sorted(unsupported):
             diagnostics.append(f"{name} unavailable: no extractor is implemented for this metric.")
 

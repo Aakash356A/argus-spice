@@ -1,0 +1,71 @@
+```
+* ============================================================
+* LT8710 Synchronous Converter : 24 V IN --> 12 V OUT @ 2 A
+* Synchronous SEPIC power stage (N-ch main switch + P-ch
+* synchronous rectifier driven by SGATE), resistive load,
+* input and output capacitors.
+* ============================================================
+.lib LT8710.sub
+
+* ---------------- Source and input filter -------------------
+VIN     IN   0    DC 24
+CIN1    IN   0    10u
+CIN2    IN   0    0.1u
+RESR_IN IN   0    10k          ; light bleeder / DC path
+
+* ---------------- SEPIC power stage -------------------------
+L1      IN   SW   22u
+CDC     SW   MID  4.7u
+L2      MID  0    22u
+
+* Main N-channel power switch and current-sense resistor
+MN1     SW   GATE NS   0     NMOSSW
+RSNS    NS   0    0.010
+
+* Synchronous P-channel rectifier (source at output rail)
+MP1     MID  SGATE OUTS OUTS PMOSSW
+
+* Output current-sense resistor (ISP/ISN monitor)
+RISNS   OUTS OUT  0.010
+
+* ---------------- Output filter and load --------------------
+COUT1   OUT  0    100u
+COUT2   OUT  0    1u
+RLOAD   OUT  0    6
+
+* ---------------- Feedback network (FBX = 1.6 V) ------------
+RFB1    OUT  FBX  97.6k
+RFB2    FBX  0    15k
+
+* ---------------- Small-signal / bias components ------------
+RT1     RT   0    41.2k        ; ~300 kHz switching frequency
+CSS     SS   0    100n         ; soft-start
+RC      VC   VCX  10k          ; loop compensation
+CC      VCX  0    4.7n
+CVC     VC   0    100p
+CVCC    INTVCC 0  4.7u
+VSYNC   SYNC 0    0            ; SYNC tied low (internal osc.)
+RIMON   IMON 0    10k          ; output current monitor/limit
+RPU1    SRVO_FBX  INTVCC 100k
+RPU2    SRVO_IMON INTVCC 100k
+
+* ---------------- LT8710 controller -------------------------
+* Pin order: SYNC RT SS VC FBX IMON ISP ISN SRVO_FBX SRVO_IMON
+*            GND EN/FBIN VIN INTVCC GATE SENSE PGND SGATE CSP CSN
+XU1 SYNC RT SS VC FBX IMON OUTS OUT SRVO_FBX SRVO_IMON
++   0 IN IN INTVCC GATE NS 0 SGATE OUT MID LT8710
+
+* ---------------- Discrete power MOSFET models --------------
+.model NMOSSW NMOS(Vto=2.2 Kp=60 Lambda=0.01 Rd=8m Rs=2m
++ Cgso=1.2n Cgdo=0.3n Cjo=1.5n)
+.model PMOSSW PMOS(Vto=-2.2 Kp=40 Lambda=0.01 Rd=12m Rs=3m
++ Cgso=1.5n Cgdo=0.4n Cjo=2n)
+
+* ---------------- Analysis ----------------------------------
+.tran 0 5m 0 200n
+.meas TRAN vout_dc AVG V(OUT) FROM 4m TO 5m
+.meas TRAN vout_ripple PP V(OUT) FROM 4.5m TO 5m
+.options plotwinsize=0 gmin=1e-11 abstol=1e-9 reltol=0.003 itl4=200
+
+.end
+```

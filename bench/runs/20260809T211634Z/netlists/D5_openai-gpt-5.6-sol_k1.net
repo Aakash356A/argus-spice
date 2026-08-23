@@ -1,0 +1,36 @@
+* ADR1399H bias and heater connections
+RBIAS IN NREF 1k
+XREF NREF 0 IN 0 ADR1399H
+CREF NREF 0 100n
+
+* Floating 5 V supply keeps the LTC6078 within its supply rating
+EVSS VSS 0 IN 0 0.3
+EVDD VDD VSS IN 0 0.3333333333
+CSUP VDD VSS 100n
+
+* Unity-gain reference buffer
+XU1 NREF OUT VDD VSS OUT LTC6078
+RLOAD OUT 0 1k
+CLOAD OUT 0 100p
+
+.tran 0 20m 0 10u
+.meas TRAN vout_dc AVG V(OUT) FROM 15m TO 20m
+.options plotwinsize=0
+
+* ADR1399H functional model: 7.05 V reference plus heater
+.subckt ADR1399H K A HP HM
+VCORE NZ A 7.05
+RDYN K NZ 0.5
+RHEATER HP HM 1.5k
+.ends ADR1399H
+
+* LTC6078 single-channel functional macromodel
+* Pin order: noninverting, inverting, positive supply, negative supply, output
+.subckt LTC6078 NP NM VP VM O
+BAMP NDRV VM V=limit(1e6*V(NP,NM),-0.1,V(VP,VM)+0.1)
+ROUT NDRV O 2
+RINP NP VM 10T
+RINM NM VM 10T
+.ends LTC6078
+
+.end

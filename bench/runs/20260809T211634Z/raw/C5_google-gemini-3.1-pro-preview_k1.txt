@@ -1,0 +1,42 @@
+* Complete LTspice netlist for LTC4281 12V Hot Swap Controller
+V1 IN 0 PWL(0 0 1m 12)
+
+* Load
+Rload OUT 0 12
+Cout OUT 0 100u
+
+* Sense Resistor (10mOhm sets 2.5A current limit)
+Rsense IN SENSEN 0.01
+
+* MOSFET
+M1 SENSEN GATE OUT Mymos
+.model Mymos VDMOS(Rg=2 Vto=2.0 Rd=5m Rs=1m Rb=5m Kp=60 Cgdmax=1n Cgdmin=100p Cgs=2n Cjo=1n Is=10p mfg=Generic Vds=30 Ron=5m Qg=30n)
+
+* UV / OV Dividers
+* UV threshold 1.22V -> sets UV to ~9.9V
+R1 IN UV 71.5k
+R2 UV 0 10k
+
+* OV threshold 1.22V -> sets OV to ~15.0V
+R3 IN OV 113k
+R4 OV 0 10k
+
+* Controller IC (29 pins, assuming pin 29 is the exposed pad tied to GND)
+* Pins: 1:VDD 2:SENSEP 3:SENSEN 4:GATE 5:SOURCE 6:OUT 7:UV 8:OV 9:GND 10:INTVCC 
+*       11:TIMER 12:ON 13:FAULTB 14:PWRGDB 15:VDDIO 16:SCL 17:SDAI 18:SDAO 19:ADIN 
+*       20:ADR0 21:ADR1 22:ADR2 23:ALERTB 24:GPIO1 25:GPIO2 26:GPIO3 27:EEWP 28:GND 29:EP(GND)
+X1 IN IN SENSEN GATE OUT OUT UV OV 0 INTVCC TIMER IN FAULTB PWRGDB INTVCC 0 0 SDAO 0 0 0 0 ALERTB 0 0 0 0 0 0 LTC4281
+
+* Timing and Bypass Capacitors
+Ctimer TIMER 0 0.1u
+Cintvcc INTVCC 0 1u
+
+* Pull-ups and Dummy Resistors for open-drain/floating outputs
+R_fault FAULTB INTVCC 10k
+R_pwrgd PWRGDB INTVCC 10k
+R_sdao SDAO 0 1Meg
+R_alertb ALERTB 0 1Meg
+
+* Analysis (0.5s is enough to clear the 100ms internal delay and inrush)
+.tran 0.5
+.end

@@ -1,0 +1,34 @@
+* Precision 7.05V Reference Subsystem
+* The ADR1399 provides a highly stable 7.05V shunt reference.
+* The LTC6078 is a precision CMOS op-amp with a maximum supply of 5.5V.
+* To safely buffer the 7.05V reference without exceeding the op-amp's 
+* maximum supply rating, the LTC6078 is powered from floating rails (10V and 5V).
+
+* Primary Power Supply (15V)
+V1 IN 0 15
+
+* Floating op-amp supplies (V+ = 10V, V- = 5V, Total VDD = 5V)
+V2 VCC_OP 0 10
+V3 VEE_OP 0 5
+
+* ADR1399 Bias
+* R1 provides approximately 3mA of bias current to the Zener ( (15V - 7.05V) / 2.67k )
+R1 IN VZ 2.67k
+
+* Genuine ADR1399 instantiation
+* Pinout: Zener Cathode (+), Zener Anode (-), Heater+, Heater-
+* The heater is powered directly from the 15V IN supply.
+X1 VZ 0 IN 0 ADR1399
+
+* LTC6078 Unity-Gain Buffer
+* Pinout: IN+ IN- V+ V- OUT
+* The input (7.05V) is well within the 5V to 10V supply range.
+X2 VZ OUT VCC_OP VEE_OP OUT LTC6078
+
+* 1k Load on the output
+R_LOAD OUT 0 1k
+
+* Analysis directive to measure the settled DC output
+.tran 10m
+
+.end

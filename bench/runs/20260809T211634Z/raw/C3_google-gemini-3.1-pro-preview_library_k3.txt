@@ -1,0 +1,52 @@
+* LT8710 Synchronous SEPIC Converter 24V to 12V
+V1 IN 0 24
+
+* Input and Output Capacitors
+C_IN IN 0 10u
+C_OUT OUT 0 47u
+
+* SEPIC Power Stage
+L1 IN SW1 22u
+L2 SW2 0 22u
+C_CPL SW1 SW2 4.7u
+
+* Primary Switch (N-Channel)
+M1 SW1 BG_pin CSP_node CSP_node MyNMOS
+R_SENSE CSP_node 0 0.01
+
+* Secondary Switch (P-Channel)
+M2 SW2 TG_pin OUT OUT MyPMOS
+
+* Load (12V / 6 Ohm = 2A)
+R_LOAD OUT 0 6
+
+* LT8710 Controller Subcircuit Instantiation
+* Pin Mapping:
+* 1:EN/PINV 2:SYNC 3:RT 4:SS 5:VC 6:FBX 7:IMON 8:ISN 9:ISP 10:CSN 11:CSP 12:GND 13:BG 14:INTVCC 15:TG 16:SWEN 17:BIAS 18:VIN 19:FLAG 20:MODE 21:EP_GND
+X1 IN 0 RT_pin SS_pin VC_pin FBX_pin 0 OUT OUT 0 CSP_node 0 BG_pin INTVCC_node TG_pin INTVCC_node OUT IN FLAG_pin INTVCC_node 0 LT8710
+
+* Controller Peripheral Components
+R_RT RT_pin 0 100k
+C_SS SS_pin 0 10n
+R_VC VC_pin VC_cap 10k
+C_VC VC_cap 0 2.2n
+C_VC2 VC_pin 0 100p
+
+* Feedback Divider (Target ~12.04V)
+R_FB1 OUT FBX_pin 100k
+R_FB2 FBX_pin 0 11.2k
+
+* INTVCC Bypass
+C_INTVCC INTVCC_node 0 4.7u
+
+* FLAG Pull-up (Dummy)
+R_FLAG FLAG_pin 0 1Meg
+
+* MOSFET Models
+.model MyNMOS VDMOS(Vto=2 Rs=0.01 Rg=1 Cgd=200p Cgs=1n Cds=500p)
+.model MyPMOS VDMOS(pchan Vto=-2 Rs=0.01 Rg=1 Cgd=200p Cgs=1n Cds=500p)
+
+* Simulation Directives
+.lib LT8710.sub
+.tran 0 15m
+.end

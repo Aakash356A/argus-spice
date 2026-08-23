@@ -1,0 +1,48 @@
+* ADG711 Quad SPST Analog Switch (normally closed) - single channel used
+* Application: pass 2 V DC input to OUT through a 10 k load on a +5 V supply
+* Control line held LOW (logic 0) -> normally-closed switch is ON (closed)
+*
+*--------------------------------------------------------------------
+* Supplies
+*--------------------------------------------------------------------
+VDD   VDD   0   DC 5
+VGND  GNDA  0   DC 0
+*
+*--------------------------------------------------------------------
+* Signal source (analog input to switch S1)
+*--------------------------------------------------------------------
+VIN   IN    0   DC 2
+*
+*--------------------------------------------------------------------
+* Digital control input IN1 of ADG711
+* ADG711 channels are NORMALLY CLOSED: logic LOW = switch closed (ON)
+*--------------------------------------------------------------------
+VCTRL CTRL  0   DC 0
+*
+*--------------------------------------------------------------------
+* Behavioral ADG711 channel model
+* Internal logic inversion: switch conducts when CTRL is low
+*--------------------------------------------------------------------
+E1    CTRLB 0   VALUE={5 - V(CTRL)}
+RCB   CTRLB 0   1G
+S1    IN    OUT CTRLB 0 ADG711SW
+.model ADG711SW SW(Ron=5 Roff=1G Vt=2.5 Vh=0.2)
+*
+* Off-state / on-channel leakage and switch capacitance (typ, 5 V supply)
+CD    IN    0   8p
+CS    OUT   0   9p
+RLKG  OUT   VDD 1G
+*
+*--------------------------------------------------------------------
+* Load
+*--------------------------------------------------------------------
+RL    OUT   0   10k
+*
+*--------------------------------------------------------------------
+* Analysis
+*--------------------------------------------------------------------
+.tran 10u 2m 0 10u
+.meas TRAN vout_dc AVG V(OUT) FROM=1.5m TO=2m
+.meas TRAN vin_dc  AVG V(IN)  FROM=1.5m TO=2m
+.options plotwinsize=0
+.end

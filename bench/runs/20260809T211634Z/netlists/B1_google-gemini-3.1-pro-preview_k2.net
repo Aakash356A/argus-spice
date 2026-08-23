@@ -1,0 +1,30 @@
+* AD8092 Non-Inverting Amplifier
+V1 IN 0 SINE(0 100m 1Meg) AC 1
+V2 VCC 0 5
+V3 VEE 0 -5
+
+* AD8092 Op-Amp Subcircuit (IN+ IN- V+ V- OUT)
+X1 IN IN_MINUS VCC VEE OUT AD8092
+
+* Feedback Network for Gain of 5 V/V (1 + R1/R2 = 5)
+R1 OUT IN_MINUS 400
+R2 IN_MINUS 0 100
+
+* Output Load Resistor
+R3 OUT 0 1k
+
+* Transient Analysis for 5 cycles of 1 MHz
+.tran 0 5u 0 1n
+
+* Measure Peak-to-Peak voltages over the last 2 cycles to ensure settling
+.meas tran Vout_pp pp V(OUT) from=3u to=5u
+.meas tran Vin_pp pp V(IN) from=3u to=5u
+
+* Calculate Closed-Loop Gain in dB
+.meas tran gain_db param 20*log10(Vout_pp/Vin_pp)
+
+* Include Standard Analog Devices Libraries
+.lib ADI.lib
+.lib ADI1.lib
+
+.end

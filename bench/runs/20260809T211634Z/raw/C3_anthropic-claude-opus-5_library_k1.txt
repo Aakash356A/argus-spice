@@ -1,0 +1,80 @@
+```
+* LT8710 Synchronous SEPIC Converter: 24 V IN --> 12 V OUT (1 A resistive load)
+* Vout = 1.6V * (1 + R1/R2) = 1.6 * (1 + 64.9k/10k) = 12.0 V
+.lib LT8710.sub
+
+**** Input source and input capacitors ****
+V1 IN 0 DC 24
+Cin1 IN 0 10u Rser=5m
+Cin2 IN 0 1u
+
+**** SEPIC power stage ****
+L1  IN SW 10u Rser=15m
+Ccp SW B  4.7u Rser=5m
+L2  B  0  10u Rser=15m
+
+* Main N-channel switch + current sense resistor
+M1  SW NG SNS 0 NFET
+Rsns SNS 0 0.010
+
+* Synchronous P-channel switch (replaces catch diode)
+M2  B SG OUT OUT PFET
+
+**** Output capacitor and load ****
+Cout1 OUT 0 47u Rser=5m
+Cout2 OUT 0 1u
+Rload OUT 0 12
+
+**** LT8710 controller ****
+* pins: SYNC RT SS VC FBX SRVO_FBX SRVO_IMON IMON ISN ISP CTRL EN/UVLO VIN INTVCC SGATE PGND SENSE GATE SGND
+XU1 SYNC RT SS VC FBX SRVOF SRVOI IMON OUT OUT CTRL EN IN INTVCC SG 0 SNS NG 0 LT8710
+
+* Output voltage feedback divider (FBX regulates to 1.6 V)
+R1 OUT FBX 64.9k
+R2 FBX 0  10k
+
+* Switching frequency set resistor (~400 kHz)
+RT1 RT 0 41.2k
+
+* Soft-start
+Css SS 0 10n
+
+* Loop compensation
+Rc VC VCX 20k
+Cc VCX 0 4.7n
+Cc2 VC 0 100p
+
+* Enable / UVLO divider from IN
+Ren1 IN EN 100k
+Ren2 EN 0 33k
+
+* CTRL tied high for maximum current limit
+Rctrl CTRL INTVCC 1
+
+* Output current monitor / limit programming (current regulation not used)
+Rimon IMON 0 10k
+
+* Servo flag pull-ups (open-collector outputs)
+Rsf SRVOF INTVCC 100k
+Rsi SRVOI INTVCC 100k
+
+* Internal regulator bypass, SYNC tied low (Burst Mode)
+Cvcc INTVCC 0 4.7u Rser=10m
+Rsync SYNC 0 1
+
+**** Power MOSFET models ****
+.model NFET VDMOS(Rg=2 Rd=9m Rs=2m Vto=2.8 Kp=70 lambda=0.05
++ Cgdmax=1.6n Cgdmin=50p Cgs=1.8n Cjo=0.6n Is=2p Rb=15m
++ mfg=Generic Vds=60 Ron=11m Qg=27n)
+.model PFET VDMOS(pchan Rg=3 Rd=16m Rs=3m Vto=-2.8 Kp=45 lambda=0.05
++ Cgdmax=1.2n Cgdmin=40p Cgs=1.9n Cjo=0.5n Is=2p Rb=25m
++ mfg=Generic Vds=-60 Ron=19m Qg=32n)
+
+**** Analysis ****
+.ic V(OUT)=0
+.tran 0 3m 0 1u startup
+.meas TRAN vout_dc AVG V(OUT) FROM=2m TO=3m
+.meas TRAN vout_ripple PP V(OUT) FROM=2.5m TO=3m
+.options plotwinsize=0 reltol=0.003 trtol=4
+.end
+```

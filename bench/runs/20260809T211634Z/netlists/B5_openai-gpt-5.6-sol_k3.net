@@ -1,0 +1,26 @@
+* MAX44245 non-inverting amplifier, gain = 20 V/V
+VCC VCC 0 15
+VEE VEE 0 -15
+VIN IN 0 SINE(0 50m 1k) AC 1
+
+RG NFB 0 1k
+RF OUT NFB 19k
+
+XU1 IN NFB VCC VEE OUT MAX44245
+
+.ac dec 100 10 10Meg
+.tran 0 5m 0 1u
+.meas AC gain_db FIND VDB(OUT) AT=1k
+.options plotwinsize=0
+
+.subckt MAX44245 INP INN VDD VSS OUT
+GERR 0 NDOM INP INN 10m
+RDOM NDOM 0 100Meg
+CDOM NDOM 0 159.155p
+BCLAMP NBUF 0 V=limit(V(NDOM),V(VSS)+50m,V(VDD)-50m)
+ROUT NBUF OUT 10
+RINP INP 0 1T
+RINN INN 0 1T
+.ends MAX44245
+
+.end

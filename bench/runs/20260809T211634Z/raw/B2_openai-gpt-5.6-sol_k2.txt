@@ -1,0 +1,23 @@
+* ADA4177 inverting amplifier, gain = -10 V/V
+VCC VPLUS 0 15
+VEE VMINUS 0 -15
+VIN IN 0 SINE(0 50m 1k) AC 1
+
+RIN IN NINV 10k
+RFB OUT NINV 100k
+
+XU1 0 NINV VPLUS VMINUS OUT ADA4177
+
+* Simplified ADA4177 macromodel: 1e6 DC gain, 3.5 MHz GBW
+.subckt ADA4177 INP INM VPLUS VMINUS OUT
+GDOM 0 NINT INP INM 1m
+RDOM NINT 0 1G
+CDOM NINT 0 45.473p
+EBUF OUT 0 NINT 0 1
+.ends ADA4177
+
+.tran 0 5m 0 1u
+.ac dec 100 10 10Meg
+.meas AC gain_db FIND 20*log10(mag(V(OUT)/V(IN))) AT=1k
+
+.end

@@ -1,0 +1,26 @@
+* ADR1399H Precision Reference Subsystem buffered by LTC6078
+* Primary input (IN) is set to 15V to power both the reference and the op-amp buffer.
+
+* 15V DC Supply
+V1 IN 0 15
+
+* ADR1399H Zener Bias Resistor
+* (15V - 7.05V) / 2.7kOhm ~= 2.94mA, well within the 1mA to 3mA recommended range.
+R1 IN CATHODE 2.7k
+
+* ADR1399H Precision Reference
+* Pin order for standard LTspice model: HTR+ HTR- CATHODE ANODE
+X1 IN 0 CATHODE 0 ADR1399
+
+* LTC6078 Op-Amp Buffer
+* Configured as a unity-gain voltage follower.
+* Pin order for standard LTspice op-amp: IN+ IN- V+ V- OUT
+X2 CATHODE OUT IN 0 OUT LTC6078
+
+* 1kOhm Load as specified
+Rload OUT 0 1k
+
+* Transient analysis to allow the heater thermal model to reach steady-state
+.tran 2
+
+.end

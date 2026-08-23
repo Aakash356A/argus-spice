@@ -1,0 +1,35 @@
+* AD4021 20-bit SAR ADC digitising a 1 V DC input
+.lib AD4021.sub
+
+* Analog input
+VIN     IN      0       DC 1
+
+* ADC supplies and reference
+VREF    REF     0       DC 5
+VDD1    VDD     0       DC 1.8
+VVIO    VIO     0       DC 1.8
+VTURBO  TURBO   0       DC 0
+
+* Supply and reference bypassing
+CREF1   REF     0       10u
+CREF2   REF     0       100n
+CVDD    VDD     0       100n
+CVIO    VIO     0       100n
+
+* Conversion-start pulse: one conversion every 10 us
+VCNV    CNV     0       PULSE(0 1.8 1u 2n 2n 500n 10u)
+
+* Twenty serial-clock cycles after each conversion
+BSCK    SCK     0       V=1.8*(mod(time,10u)>1.7u)*(mod(time,10u)<5.7u)*(mod(time-1.7u,200n)<100n)
+
+* AD4021 pin order: REF VDD IN+ IN- GND VIO SDO SCK CNV TURBO
+XU1     REF VDD IN 0 0 VIO OUT SCK CNV TURBO AD4021
+
+* Serial-output loading
+ROUT    OUT     0       100k
+COUT    OUT     0       5p
+
+.tran 0 35u 0 5n
+.options plotwinsize=0
+
+.end

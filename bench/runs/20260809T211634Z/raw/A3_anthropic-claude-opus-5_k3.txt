@@ -1,0 +1,46 @@
+* LT3094 Negative LDO: -7V IN -> -5.0V OUT, light resistive load
+*------------------------------------------------------------------
+* Top level circuit
+*------------------------------------------------------------------
+V1 IN 0 PWL(0 0 100u -7)          ; -7 V input (ramped for clean startup)
+Cin IN 0 10u                       ; input capacitor
+Cout OUT 0 10u                     ; output capacitor
+Rload OUT 0 500                    ; light load: -5V/500 = -10 mA
+Rset SET 0 100k                    ; VOUT = -ISET*RSET = -50uA*100k = -5.0 V
+
+XU1 IN OUT SET 0 ILIM ENUV PG PGFB LT3094
+
+Rilim ILIM 0 1Meg                  ; ILIM left open (full current limit)
+Renuv ENUV 0 1Meg                  ; EN/UV left open (device enabled)
+Rpgfb PGFB 0 1Meg                  ; PGFB unused
+Rpg PG 0 1Meg                      ; PG unused
+
+*------------------------------------------------------------------
+* Behavioral model of the LT3094 negative LDO
+*   - 50 uA SET pin reference current (flows out of SET pin)
+*   - unity-gain buffer from SET to OUT
+*   - integrating error amp with Rz-Cc compensation
+*   - 0.15 ohm pass device, 0.8 A current limit
+*------------------------------------------------------------------
+.subckt LT3094 IN OUT SET GND ILIM EN PG PGFB
+Iset SET GND 50u                   ; 50 uA pulled out of the SET pin
+Gerr GND ERR OUT SET 1m            ; error amp transconductance
+Rz  ERR EZ 1k                      ; compensation zero
+Cc  EZ GND 1u                      ; integrating capacitor
+Rlk ERR GND 100G                   ; DC path for solver
+Bpass OUT IN I = min( limit(V(ERR,GND),0,0.8) , max((V(OUT,GND)-V(IN,GND))/0.15,0) )
+Iq GND IN 2m                       ; quiescent current
+Ren  EN   GND 10Meg
+Rilm ILIM GND 10Meg
+Rpgi PG   GND 10Meg
+Rpgf PGFB GND 10Meg
+.ends LT3094
+
+*------------------------------------------------------------------
+* Analysis
+*------------------------------------------------------------------
+.tran 0 5m 0 1u
+.meas TRAN vout_dc AVG V(OUT) FROM 4m TO 5m
+.meas TRAN vin_dc  AVG V(IN)  FROM 4m TO 5m
+.options plotwinsize=0 reltol=1e-4
+.end

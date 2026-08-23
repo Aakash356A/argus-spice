@@ -1,0 +1,27 @@
+* LT3045-1 3.3V LDO Regulator
+.lib LT3045-1.sub
+
+V1 IN 0 5
+Cin IN 0 10u
+Cout OUT 0 10u
+
+* 100mA load at 3.3V
+Rload OUT 0 33
+
+* Current limit set to ~500mA
+Rilim ILIM 0 400
+
+* Set pin resistor for 3.3V output (100uA * 33k = 3.3V)
+Rset SET 0 33k
+
+* Set pin capacitor required for stability and noise reduction
+* Note: 4.7uF with 100uA charges in ~155ms, requiring a >155ms tran simulation
+Cset SET 0 4.7u
+
+* LT3045-1 Subcircuit Instantiation
+* Pin order: IN, EN/UV, PG, ILIM, VIOC, SET, GND, OUTS, OUT
+X1 IN IN NC_PG ILIM 0 SET 0 OUT OUT LT3045-1
+
+* Transient analysis long enough to allow the 4.7uF SET capacitor to fully charge
+.tran 250m
+.end

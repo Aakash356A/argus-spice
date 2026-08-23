@@ -1,0 +1,22 @@
+* AD4021 ADC Front End Netlist
+V_IN IN 0 1.0
+R_flt IN IN_filt 20
+C_flt IN_filt 0 1n
+
+V_REF REF 0 5.0
+V_VDD VDD 0 1.8
+V_VIO VIO 0 1.8
+
+* Conversion Clock (CNV): 1 MSPS, 50 ns high pulse
+V_CNV CNV 0 PULSE(0 1.8 0 1n 1n 50n 1u)
+
+* Serial Clock (SCK): 40 MHz clock, delayed to start after max conversion time (~320ns)
+V_SCK SCK 0 PULSE(0 1.8 400n 1n 1n 12.5n 25n)
+
+* AD4021 Instance
+* Pinout maps to standard LTspice AD4021 symbol:
+* IN+  IN-  REF  VDD  VIO  SDI  SCK  CNV  SDO  GND
+X1 IN_filt 0 REF VDD VIO VIO SCK CNV OUT 0 AD4021
+
+.tran 0 5u
+.end

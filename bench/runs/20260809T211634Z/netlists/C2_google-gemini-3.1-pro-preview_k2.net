@@ -1,0 +1,39 @@
+* ADG5248F Analog Multiplexer Netlist
+
+* Power Supplies
+V1 VDD 0 15V
+V2 VSS 0 -15V
+V3 VLOGIC 0 5V
+
+* Primary Input Signal on Channel 1
+Vin IN 0 SINE(0 500mV 1kHz) AC 1
+
+* Grounding unused input channels to prevent floating nodes
+R2 S2 0 1k
+R3 S3 0 1k
+R4 S4 0 1k
+R5 S5 0 1k
+R6 S6 0 1k
+R7 S7 0 1k
+R8 S8 0 1k
+
+* Output Load
+Rload OUT 0 1Meg
+
+* Fault Flag Pull-up (Open-drain output)
+Rff FF VLOGIC 10k
+
+* ADG5248F Instance
+* Pinout follows the sequential functional pins of the 20-lead TSSOP/LFCSP package (skipping NCs):
+* S8 S7 S6 S5 S4 S3 S2 S1 VDD VSS GND FF D EN A0 A1 A2
+* A0=0, A1=0, A2=0, EN=VLOGIC selects Channel 1 (S1) to D (OUT).
+X1 S8 S7 S6 S5 S4 S3 S2 IN VDD VSS 0 FF OUT VLOGIC 0 0 0 ADG5248F
+
+* Analysis Directives
+.tran 0 5m
+.ac dec 10 100 100k
+
+* Measurement for automatic verification
+.measure ac gain_db MAX vdb(OUT)
+
+.end

@@ -1,0 +1,36 @@
+```
+* ADG711 Quad SPST CMOS Analog Switch - single channel signal pass-through
+* Behavioral macromodel: Ron ~4 ohm (5 V supply), switch ON for logic LOW control
+* (ADG711 switches are normally closed: IN logic low -> switch ON)
+*
+* ---------------- Supplies ----------------
+VDD   VDD  0   DC 5
+VSS   VSS  0   DC 0
+*
+* ---------------- Signal source ----------------
+V1    IN   0   DC 2
+*
+* ---------------- Digital control (drive LOW to close ADG711 switch) ----------------
+VCTRL CTRL 0   PWL(0 5  10u 5  11u 0  1 0)
+*
+* ---------------- Switch channel S1 -> D1 ----------------
+* Control comparison: (V(VDD) - V(CTRL)) > Vt  =>  switch closed
+S1    IN   SW1  VDD CTRL ADGSW
+* On-resistance / channel parasitics of ADG711
+RON   SW1  OUT  4
+CDON  OUT  0    35p
+CSON  IN   0    35p
+* Off-state leakage path to ground (nA-level, negligible)
+RLEAK OUT  0    1000Meg
+*
+.model ADGSW SW(Ron=1m Roff=10G Vt=2.5 Vh=0.2)
+*
+* ---------------- Load ----------------
+RL    OUT  0   10k
+*
+* ---------------- Analysis ----------------
+.tran 0 2m 0 1u
+.measure TRAN vout_dc AVG V(OUT) FROM 1m TO 2m
+*
+.end
+```

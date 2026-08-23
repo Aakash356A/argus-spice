@@ -1,0 +1,35 @@
+```
+* ADP7118 Low-Dropout Regulator: 3.3 V IN -> 1.8 V OUT @ 50 mA
+* --------------------------------------------------------------
+* Genuine ADI ADP7118 SPICE model is used as a subcircuit.
+* Model library (from the Analog Devices LTspice library) must be on the
+* search path.  Pin order matches the ADI ADP7118 symbol/subckt:
+*        IN  GND  EN  OUT  ADJ(SENSE)
+.lib ADP7118.lib
+
+*--- Supplies -------------------------------------------------
+VIN   IN  0   DC 3.3
+VEN   EN  0   DC 3.3          ; regulator enabled
+
+*--- Regulator ------------------------------------------------
+XU1   IN  0  EN  OUT  ADJ  ADP7118
+
+*--- Output voltage programming (VADJ = 1.2 V nominal) ---------
+* VOUT = 1.2 * (1 + R1/R2) = 1.2 * (1 + 10k/20k) = 1.8 V
+R1    OUT ADJ 10k
+R2    ADJ 0   20k
+
+*--- Decoupling / stability capacitors -------------------------
+CIN   IN  0   1u
+COUT  OUT 0   1u
+
+*--- Resistive load: 1.8 V / 36 ohm = 50 mA --------------------
+RLOAD OUT 0   36
+
+*--- Analysis -------------------------------------------------
+.tran 0 5m 0 1u
+.meas TRAN vout_dc AVG V(OUT) FROM 4m TO 5m
+.meas TRAN iload   AVG I(RLOAD) FROM 4m TO 5m
+
+.end
+```

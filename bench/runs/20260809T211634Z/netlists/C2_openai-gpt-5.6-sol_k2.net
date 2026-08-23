@@ -1,0 +1,41 @@
+* ADG5248F 8:1 analog multiplexer, channel 1 selected
+VDD VDD 0 15
+VSS VSS 0 -15
+VEN EN 0 5
+VA0 A0 0 0
+VA1 A1 0 0
+VA2 A2 0 0
+
+VIN IN 0 SINE(0 0.5 1k)
+RLOAD OUT 0 100k
+
+XU1 IN 0 0 0 0 0 0 0 OUT A0 A1 A2 EN VDD VSS 0 ADG5248F
+
+.tran 0 5m 0 1u
+.meas tran VIN_PP PP V(IN) FROM 1m TO 5m
+.meas tran VOUT_PP PP V(OUT) FROM 1m TO 5m
+.meas tran GAIN_DB PARAM 20*log10(VOUT_PP/VIN_PP)
+
+.subckt ADG5248F S1 S2 S3 S4 S5 S6 S7 S8 D A0 A1 A2 EN VDD VSS GND
+BSEL1 C1 GND V=5*if(V(EN)>2,1,0)*if(V(A0)<2,1,0)*if(V(A1)<2,1,0)*if(V(A2)<2,1,0)
+BSEL2 C2 GND V=5*if(V(EN)>2,1,0)*if(V(A0)>2,1,0)*if(V(A1)<2,1,0)*if(V(A2)<2,1,0)
+BSEL3 C3 GND V=5*if(V(EN)>2,1,0)*if(V(A0)<2,1,0)*if(V(A1)>2,1,0)*if(V(A2)<2,1,0)
+BSEL4 C4 GND V=5*if(V(EN)>2,1,0)*if(V(A0)>2,1,0)*if(V(A1)>2,1,0)*if(V(A2)<2,1,0)
+BSEL5 C5 GND V=5*if(V(EN)>2,1,0)*if(V(A0)<2,1,0)*if(V(A1)<2,1,0)*if(V(A2)>2,1,0)
+BSEL6 C6 GND V=5*if(V(EN)>2,1,0)*if(V(A0)>2,1,0)*if(V(A1)<2,1,0)*if(V(A2)>2,1,0)
+BSEL7 C7 GND V=5*if(V(EN)>2,1,0)*if(V(A0)<2,1,0)*if(V(A1)>2,1,0)*if(V(A2)>2,1,0)
+BSEL8 C8 GND V=5*if(V(EN)>2,1,0)*if(V(A0)>2,1,0)*if(V(A1)>2,1,0)*if(V(A2)>2,1,0)
+
+SW1 S1 D C1 GND SWMUX
+SW2 S2 D C2 GND SWMUX
+SW3 S3 D C3 GND SWMUX
+SW4 S4 D C4 GND SWMUX
+SW5 S5 D C5 GND SWMUX
+SW6 S6 D C6 GND SWMUX
+SW7 S7 D C7 GND SWMUX
+SW8 S8 D C8 GND SWMUX
+
+.model SWMUX SW(Ron=4 Roff=1T Vt=2.5 Vh=0.1)
+.ends ADG5248F
+
+.end

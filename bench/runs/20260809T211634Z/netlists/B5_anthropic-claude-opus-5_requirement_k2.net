@@ -1,0 +1,36 @@
+* MAX44245 Non-Inverting Amplifier, Av = +20 V/V (26.02 dB)
+* Supplies: +/-15 V, Input: 50 mV amplitude sine @ 1 kHz
+*------------------------------------------------------------------
+* Genuine Maxim MAX44245 macromodel (quad, 36V precision op amp).
+* Place MAX44245.lib (from the Maxim/ADI product page) next to this file.
+* Subcircuit pin order: IN+ IN- VDD VSS OUT
+.include MAX44245.lib
+*------------------------------------------------------------------
+
+* ---- Supplies ----
+VDD VDD 0 DC 15
+VSS VSS 0 DC -15
+
+* ---- Source: 50 mV amplitude (100 mVpp) sine at 1 kHz ----
+VIN IN 0 SINE(0 50m 1k) AC 1
+
+* ---- Amplifier: non-inverting, gain = 1 + R2/R1 = 1 + 19k/1k = 20 ----
+XU1 IN FB VDD VSS OUT MAX44245
+R1 FB 0 1k
+R2 OUT FB 19k
+
+* ---- Light load ----
+RL OUT 0 10k
+CL OUT 0 10p
+
+* ---- Analysis ----
+.tran 0 5m 0 1u
+
+* ---- Measurements ----
+.meas TRAN vin_pp  PP V(IN)  FROM 1m TO 5m
+.meas TRAN vout_pp PP V(OUT) FROM 1m TO 5m
+.meas TRAN gain_vv PARAM vout_pp/vin_pp
+.meas TRAN gain_db PARAM 20*log10(vout_pp/vin_pp)
+
+.options plotwinsize=0
+.end

@@ -1,0 +1,14 @@
+VDD VDD 0 5
+VIN IN 0 2
+VCTRL CTRL 0 5
+XU1 IN OUT CTRL VDD 0 ADG711
+RLOAD OUT 0 10k
+
+.subckt ADG711 S D CTRL VDD GND
+S1 S D CTRL GND ADG711_SW
+.model ADG711_SW SW(Ron=2.5 Roff=1G Vt=2.5 Vh=0.1)
+.ends ADG711
+
+.tran 0 1m 0 1u
+.meas tran vout_dc FIND V(OUT) AT=1m
+.end

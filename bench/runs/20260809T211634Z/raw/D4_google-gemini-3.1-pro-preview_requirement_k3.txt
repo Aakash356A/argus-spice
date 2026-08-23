@@ -1,0 +1,37 @@
+* LTspice netlist for LT6106 High-Side Current Sense Amplifier
+* Monitoring 100 mA through a 0.1 ohm shunt on a 12 V rail
+* Target VOUT = 1.0 V
+
+* Power Supply (12V rail)
+V1 IN 0 12
+
+* Load drawing 100 mA
+I1 LOAD 0 100m
+
+* Shunt Resistor (0.1 ohm)
+* Voltage drop = 100mA * 0.1ohm = 10mV
+Rsense IN LOAD 0.1
+
+* LT6106 Gain Setting Resistors
+* The internal amplifier forces the -IN pin to the same voltage as the +IN pin.
+* With +IN connected to the supply side and -IN to the load side via Rin, 
+* the 10mV sense voltage is impressed across Rin.
+* I_Rin = 10mV / 100 ohms = 100 uA
+Rin LOAD IN_MINUS 100
+
+* The 100 uA current is mirrored/passed to the OUT pin.
+* Vout = I_Rin * Rout = 100 uA * 10k = 1.0 V
+Rout OUT 0 10k
+
+* LT6106 Subcircuit Instantiation
+* Pin order typically: +IN -IN V+ V- OUT
+* +IN is tied to the supply side of the shunt (IN)
+* -IN is tied to Rin (IN_MINUS)
+* V+ is tied to the 12V supply (IN)
+* V- is tied to GND (0)
+X1 IN IN_MINUS IN 0 OUT LT6106
+
+* Analysis directive to calculate the DC operating point and allow settling
+.tran 1m
+
+.end

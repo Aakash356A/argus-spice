@@ -1,0 +1,42 @@
+```
+* LT6106 High-Side Current Sense Amplifier
+* 12 V rail, 0.1 ohm shunt, 100 mA load  ->  Vsense = 10 mV
+* Gain = ROUT/RIN = 10k/100 = 100  ->  VOUT = 1.0 V
+*
+*------------------- Power / shunt / load -------------------
+V1   IN 0 12                ; 12 V monitored rail (primary input node)
+Rsense IN LOAD 0.1          ; 0.1 ohm high-side shunt
+Iload  LOAD 0 100m          ; 100 mA load current (exact test current)
+*
+*------------------- Gain-setting resistors -----------------
+Rin  IN  INP  100           ; input (gain) resistor, sets Isense = Vsense/Rin = 100uA
+Rout OUT 0    10k           ; output resistor, Vout = Isense*Rout = 1.0 V
+Cf   OUT 0    100p          ; small output filter cap
+*
+*------------------- Current sense amplifier ----------------
+* pins: +IN  -IN  OUT  V-
+X1 INP LOAD OUT 0 LT6106
+*
+*===========================================================
+* Behavioural macromodel of the LT6106:
+* internal op amp forces V(+IN) = V(-IN) by drawing the shunt
+* current signal through RIN and sourcing it out of the OUT pin
+* (unidirectional, single dominant pole, ~16 MHz loop bandwidth).
+*===========================================================
+.subckt LT6106 INP INN OUT VN
+Vos  INN INNI 0.25m                        ; 250 uV input offset
+Gerr 0 CMP VALUE={1m*LIMIT(V(INP)-V(INNI),-1,1)} ; gm stage, 1 mS
+Ccomp CMP 0 1n                             ; dominant pole
+Rleak CMP 0 1G
+Gout INP OUT VALUE={LIMIT(1*V(CMP),0,0.1)} ; output current mirror (0..100 mA)
+Rgnd VN 0 1G
+Rocm OUT VN 100G
+.ends LT6106
+*
+*------------------- Analysis -------------------------------
+.tran 0 500u 0 20n
+.meas TRAN vout_dc AVG V(OUT) FROM 400u TO 500u
+.meas TRAN vsense AVG (V(IN)-V(LOAD)) FROM 400u TO 500u
+.options plotwinsize=0
+.end
+```

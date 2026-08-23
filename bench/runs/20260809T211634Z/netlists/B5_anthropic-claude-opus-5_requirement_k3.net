@@ -1,0 +1,38 @@
+*  MAX44245 Non-Inverting Amplifier, Gain = +20 V/V (26.02 dB)
+*  Supplies: +/-15 V, Input: 50 mV amplitude sine @ 1 kHz
+
+*----------------------------------------------------------------
+*  Genuine manufacturer macromodel for the MAX44245
+*  (subckt pin order: IN+  IN-  V+  V-  OUT)
+*----------------------------------------------------------------
+.include MAX44245.lib
+
+*---------------- Supplies --------------------------------------
+VCC VCC 0 DC 15
+VEE VEE 0 DC -15
+
+*---------------- Input source ----------------------------------
+VIN IN 0 DC 0 AC 1 SINE(0 50m 1k)
+
+*---------------- Amplifier ------------------------------------
+XU1 IN FB VCC VEE OUT MAX44245
+
+*---------------- Gain-setting network: 1 + 19k/1k = 20 --------
+RF OUT FB 19k
+RG FB  0  1k
+
+*---------------- Light load -----------------------------------
+RL OUT 0 10k
+
+*---------------- Analyses -------------------------------------
+.tran 0 5m 0 1u
+.ac dec 101 10 1M
+
+*---------------- Measurements ---------------------------------
+.meas TRAN vout_pp PP V(OUT) FROM 1m TO 5m
+.meas TRAN vin_pp  PP V(IN)  FROM 1m TO 5m
+.meas TRAN gain_db PARAM 20*LOG10(vout_pp/vin_pp)
+.meas AC  gain_db_ac FIND 20*LOG10(MAG(V(OUT))) AT 1k
+
+.options plotwinsize=0 numdgt=7
+.end

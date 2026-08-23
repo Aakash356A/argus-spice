@@ -1,0 +1,41 @@
+```
+* ================================================================
+* AD8237 Micropower Zero-Drift Instrumentation Amplifier
+* Gain = 10 V/V, single +5 V supply, REF at mid-supply (2.5 V)
+* Differential input: 20 mV amplitude sine @ 1 kHz
+* ================================================================
+* Genuine Analog Devices AD8237 macromodel must be available:
+.include AD8237.cir
+* (subckt pin order: +IN -IN +VS -VS OUT REF FB)
+
+* ---------------- Supplies ----------------
+VCC     VCC   0     DC 5
+* Mid-supply reference for single-supply operation
+VREF    VREF  0     DC 2.5
+
+* ---------------- Differential signal source ----------------
+* 20 mV amplitude (40 mV p-p) differential, 1 kHz, riding on VREF
+VIN     IN    VREF  SINE(0 20m 1k)
+
+* ---------------- Instrumentation amplifier ----------------
+* Gain = 1 + R2/R1 = 1 + 9k/1k = 10 V/V (20 dB)
+XU1     IN    VREF  VCC   0     OUT   VREF  FB   AD8237
+R1      FB    VREF  1k
+R2      OUT   FB    9k
+
+* ---------------- Load ----------------
+RL      OUT   0     100k
+CL      OUT   0     100p
+
+* ---------------- Analysis ----------------
+.tran 0 5m 0 1u
+
+.meas TRAN vout_pp PP V(OUT)      FROM 1m TO 5m
+.meas TRAN vin_pp  PP V(IN,VREF)  FROM 1m TO 5m
+.meas TRAN gain_vv PARAM vout_pp/vin_pp
+.meas TRAN gain_db PARAM 20*log10(vout_pp/vin_pp)
+.meas TRAN vout_dc AVG V(OUT)     FROM 1m TO 5m
+
+.options plotwinsize=0 numdgt=7
+.end
+```

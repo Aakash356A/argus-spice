@@ -1,0 +1,58 @@
+* ============================================================
+* AD4021 : 20-bit, 1 MSPS SAR ADC front end (behavioural model)
+* 1 V DC input -> ADC driver -> RC anti-alias / charge-kickback
+* filter -> internal T/H -> 20-bit quantiser referred to REF
+* Supplies (VDD, VIO), reference (REF + decoupling) and the
+* CNV conversion clock / SCK serial clock are all included.
+* ============================================================
+
+* ---------------- Analog input (1 V DC) ---------------------
+V1   IN 0 DC 1
+Rsrc IN 0 1G                  ; keeps node IN referenced
+
+* ---------------- Supplies ---------------------------------
+VDD  VDD 0 DC 1.8             ; AD4021 VDD = 1.8 V
+VIO  VIO 0 DC 1.8             ; digital interface supply
+Cvdd VDD 0 100n
+Cvio VIO 0 100n
+
+* ---------------- Reference (e.g. ADR4550 + decoupling) -----
+VREF REFS 0 DC 5              ; 5 V external reference
+Rref REFS REF 0.1             ; reference source impedance
+Cref1 REF 0 10u
+Cref2 REF 0 100n
+
+* ---------------- Conversion clock (1 MSPS) -----------------
+* CNV high = conversion, CNV low = acquisition
+VCNV CNV 0 PULSE(0 1.8 100n 1n 1n 100n 1u)
+* Serial clock for the data read-back (SPI, 60 MHz)
+VSCK SCK 0 PULSE(0 1.8 250n 1n 1n 8.33n 16.66n)
+
+* ---------------- ADC driver (unity-gain buffer) ------------
+EDRV NDRV 0 IN 0 1
+Rout NDRV DRVO 10             ; amplifier output impedance
+
+* ---------------- RC filter at the ADC input ---------------
+Rflt DRVO ADCIN 200
+Cflt ADCIN 0 120p
+Cpin ADCIN 0 5p               ; ADC input pin capacitance
+
+* ---------------- Internal track-and-hold ------------------
+BINV  CNVB 0 V=if(V(CNV)>0.9, 0, 1.8)      ; acquire when CNV low
+S1    ADCIN SAMP CNVB 0 SWMOD
+Chold SAMP 0 40p IC=0
+.model SWMOD SW(Ron=100 Roff=1G Vt=0.9 Vh=0.05)
+
+* ---------------- 20-bit quantiser (code -> analog) --------
+* OUT = V(REF)/2^20 * round( 2^20 * V(SAMP)/V(REF) )
+BADC OUT 0 V=limit( V(REF)/1048576 * floor(1048576*V(SAMP)/V(REF)+0.5), 0, V(REF) )
+Rload OUT 0 1G
+
+* ---------------- Analysis ---------------------------------
+.tran 0 5u 0 10n uic
+.meas TRAN vin_dc   FIND V(IN)  AT=4.9u
+.meas TRAN vout_dc  FIND V(OUT) AT=4.9u
+.meas TRAN vsamp    FIND V(SAMP) AT=4.9u
+.meas TRAN vout_avg AVG V(OUT) FROM=4u TO=5u
+
+.end

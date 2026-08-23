@@ -1,0 +1,30 @@
+* MAX44245 Non-Inverting Amplifier
+.lib MAX44245.lib
+
+* Power Supplies (+/-15V)
+VCC VCC 0 15
+VEE VEE 0 -15
+
+* Input Signal: 50 mV amplitude sine at 1 kHz
+VIN IN 0 SINE(0 50m 1k) AC 1
+
+* Op-Amp Instantiation
+* Standard pinout: IN+ IN- V+ V- OUT
+X1 IN FB VCC VEE OUT MAX44245
+
+* Feedback Network for Gain = 20 V/V
+* Gain = 1 + (RF / RG) = 1 + (19k / 1k) = 20
+RF OUT FB 19k
+RG FB 0 1k
+
+* Simulation Directives
+* Run transient analysis for 10ms, start saving data at 5ms to ensure settled output
+.tran 0 10m 5m 100n
+.options plotwinsize=0 numdgt=7
+
+* Measurements to calculate gain in dB
+.meas tran Vin_pp PP V(IN)
+.meas tran Vout_pp PP V(OUT)
+.meas tran gain_db param 20*log10(Vout_pp/Vin_pp)
+
+.end

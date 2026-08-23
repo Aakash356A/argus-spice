@@ -1,0 +1,29 @@
+```spice
+* LT1720 Comparator Circuit
+
+* 5V Supply
+V1 VCC 0 5
+
+* Input held above the 1.65V threshold
+V2 IN 0 3
+
+* Resistor divider setting the 1.65V threshold (5V * 33k / (67k + 33k) = 1.65V)
+R1 VCC N001 67k
+R2 N001 0 33k
+
+* LT1720 Comparator (In+ In- V+ V- Out)
+* Non-inverting input tied to threshold, inverting input tied to IN.
+* Since IN (3V) > Threshold (1.65V), the output will be driven LOW (~0.0V).
+X1 N001 IN VCC 0 OUT LT1720
+
+* Open-drain style pull-up resistor to 5V
+R3 OUT VCC 10k
+
+* Analysis directive for DC/settled output measurement
+.tran 1m
+
+* Include standard comparator library
+.lib cmp.lib
+
+.end
+```

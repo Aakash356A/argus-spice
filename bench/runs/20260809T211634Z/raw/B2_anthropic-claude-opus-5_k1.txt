@@ -1,0 +1,48 @@
+```
+* ADA4177 Inverting Amplifier, Gain = -10 V/V (20 dB)
+* Vin = 50 mV amplitude sine @ 1 kHz, Supplies = +/-15 V
+********************************************************
+
+* ---------------- Signal source ----------------
+V1 IN 0 SINE(0 50m 1k) AC 1
+
+* ---------------- Supplies ----------------
+VCC VP 0 DC 15
+VEE VN 0 DC -15
+
+* ---------------- Amplifier ----------------
+XU1 0 SUMJ VP VN OUT ADA4177
+RG IN   SUMJ  1k
+RF SUMJ OUT   10k
+
+* Light load
+RL OUT 0 10k
+
+********************************************************
+* Behavioral macromodel of ADA4177 precision op amp
+*  Av(dc) ~ 120 dB, GBW ~ 3.5 MHz, rail-limited output
+********************************************************
+.subckt ADA4177 INP INN VCC VEE OUT
+RIN   INP INN 1T
+CINP  INP 0   3p
+CINN  INN 0   3p
+IB1   INP 0   0.5n
+IB2   INN 0   0.5n
+VOS   INP NP  DC 15u
+G1    0 N1 NP INN 1m
+R1    N1 0   1G
+C1    N1 0   45.5p
+BOUT  N2 0   V=limit(V(N1),V(VEE)+0.15,V(VCC)-0.15)
+ROUT  N2 OUT 25
+.ends ADA4177
+
+********************************************************
+* ---------------- Analyses ----------------
+.tran 0 5m 0 1u
+.ac dec 100 10 10Meg
+
+.meas AC gain_db MAX 20*log10(V(OUT)/V(IN))
+.meas TRAN vout_pp PP V(OUT) FROM=1m TO=5m
+********************************************************
+.end
+```

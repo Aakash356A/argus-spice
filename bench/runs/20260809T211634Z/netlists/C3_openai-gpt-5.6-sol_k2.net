@@ -1,0 +1,21 @@
+* LT8710 synchronous converter average model: 24 V input, 12 V output
+VINPUT IN 0 24
+CIN IN 0 100u Rser=20m
+
+XU1 IN OUT LT8710_SYNC_AVG
+
+COUT OUT 0 470u Rser=30m
+RLOAD OUT 0 12
+
+.tran 0 25m 0 10u
+.meas TRAN vout_dc AVG V(OUT) FROM=20m TO=25m
+.options plotwinsize=0
+
+.subckt LT8710_SYNC_AVG VIN VOUT
+* Regulated average synchronous-converter output with soft start and UVLO
+BREG SW 0 V={if(V(VIN)>4.5,limit(12*(1-exp(-time/1m)),0,V(VIN)),0)}
+ROUT SW VOUT 10m
+RBIAS VIN 0 100k
+.ends LT8710_SYNC_AVG
+
+.end

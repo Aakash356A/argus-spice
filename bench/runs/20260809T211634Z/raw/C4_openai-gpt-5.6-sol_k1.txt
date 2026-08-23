@@ -1,0 +1,75 @@
+* AD4021 20-bit SAR ADC front end digitising a 1 V DC input
+
+* Primary analog input
+VIN IN 0 DC 1
+
+* Differential input driver, VCM = 2.5 V
+BPLUS DRV_P 0 V={2.5+0.5*V(IN)}
+BMINUS DRV_N 0 V={2.5-0.5*V(IN)}
+RINP DRV_P ADC_P 20
+RINN DRV_N ADC_N 20
+CINP ADC_P 0 1n
+CINN ADC_N 0 1n
+CDIFF ADC_P ADC_N 2.7n
+
+* AD4021 core and interface supplies
+VVDD VDD_RAW 0 DC 1.8
+RVDD VDD_RAW VDD 1
+CVDD1 VDD 0 100n
+CVDD2 VDD 0 10u
+
+VVIO VIO_RAW 0 DC 1.8
+RVIO VIO_RAW VIO 1
+CVIO1 VIO 0 100n
+CVIO2 VIO 0 1u
+
+* Low-noise 5 V reference and decoupling
+VREFSRC REF_RAW 0 DC 5
+RREF REF_RAW REF 0.2
+CREF1 REF 0 100n
+CREF2 REF 0 10u
+
+* Conversion-start clock: 500 kSPS, 1 us conversion interval
+VCNV CNV 0 PULSE(0 1.8 500n 1n 1n 1u 2u)
+
+* Serial conversion clock, enabled only while CNV is high
+VCLKRAW CLK_RAW 0 PULSE(0 1.8 0 1n 1n 24n 50n)
+BSCK SCK 0 V={IF(V(CNV)>0.9,V(CLK_RAW),0)}
+
+* Functional AD4021 instance
+* OUT is the sampled, 20-bit quantized differential result in volts
+XADC ADC_P ADC_N REF VDD VIO CNV SCK OUT 0 AD4021_FUNCTIONAL
+
+* Representative digital output loading
+COUT OUT 0 10p
+ROUTLOAD OUT 0 1Meg
+
+.tran 0 5u 0 1n
+.meas TRAN OUT_SETTLED AVG V(OUT) FROM 3.5u TO 4.4u
+.options plotwinsize=0
+
+.subckt AD4021_FUNCTIONAL INP INN REF VDD VIO CNV SCK OUT GND
+
+* Differential input presented to the internal sample-and-hold
+EDIFF DIFF GND VALUE={V(INP,INN)}
+
+* Track while CNV is low and hold during conversion
+BTRACK TRACK_CTL GND V={V(VDD,GND)-V(CNV,GND)}
+SSAMPLE DIFF SAMPLE TRACK_CTL GND SADC
+CSAMPLE SAMPLE GND 20p
+RSAMPLE SAMPLE GND 1T
+.model SADC SW(Ron=5 Roff=1T Vt=0.9 Vh=0.05)
+
+* 20-bit bipolar quantizer: input range is -REF to +REF
+BQUANT CODE GND V={IF((V(VDD,GND)>1.5)&&(V(VIO,GND)>1.5),LIMIT(FLOOR(V(SAMPLE,GND)/V(REF,GND)*524288+0.5)/524288*V(REF,GND),-V(REF,GND),V(REF,GND)),0)}
+ROUTCODE CODE OUT 50
+
+* Interface input loading
+RCNV CNV GND 100Meg
+RSCK SCK GND 100Meg
+CCNV CNV GND 2p
+CSCK SCK GND 2p
+
+.ends AD4021_FUNCTIONAL
+
+.end

@@ -1,0 +1,30 @@
+* AD8092 Non-Inverting Amplifier G=5
+.lib ADI.lib
+
+* Power Supplies
+V2 VCC 0 5
+V3 VEE 0 -5
+
+* Input Signal: 100 mV amplitude, 1 MHz sine wave
+V1 IN 0 SINE(0 100m 1Meg) AC 1
+
+* AD8092 Op-Amp Subcircuit
+* Pins: IN+ IN- V+ V- OUT
+X1 IN IN_N VCC VEE OUT AD8092
+
+* Feedback Network for Gain of 5 (Rf/Rg = 4)
+Rf OUT IN_N 1k
+Rg IN_N 0 250
+
+* Load Resistor
+Rl OUT 0 1k
+
+* Transient Analysis
+.tran 0 10u 0 1n
+
+* Measurements to calculate closed-loop gain in dB
+.meas tran in_pp PP V(IN) FROM 5u TO 10u
+.meas tran out_pp PP V(OUT) FROM 5u TO 10u
+.meas tran gain_db param 20*log10(out_pp/in_pp)
+
+.end

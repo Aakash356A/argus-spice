@@ -1,0 +1,92 @@
+* LT8710 Synchronous SEPIC Converter : 24 V IN -> 12 V / 1 A OUT
+* -------------------------------------------------------------
+* Vendor macro-model of the LT8710 multi-topology synchronous
+* controller.  The GATE pin drives the ground-referenced power
+* NMOS; the rectifier is a synchronous P-channel MOSFET with a
+* level-shifting gate driver (plus a parallel Schottky for the
+* dead-time / start-up path).
+*
+* Subckt pin order (as called below):
+*  SYNC RT VC SS FBX IMON ISP ISN EN/FBIN VIN INTVCC GATE SENSE
+*  GND SRVO_FB SRVO_IMON FLAG
+* -------------------------------------------------------------
+.lib LT8710.sub
+
+*** Input source and input capacitors ***
+VSRC IN 0 DC 24
+CIN1 IN 0 22u Rser=15m
+CIN2 IN 0 100n
+
+*** Controller ***
+XU1 SYNC RT VC SS FBX IMON ISP ISN EN IN INTVCC GATE SENSE 0
++   SRVO_FB SRVO_IMON FLAG LT8710
+
+*** Enable / bias ***
+REN1 IN EN 100k
+REN2 EN 0 12.4k
+CVCC INTVCC 0 4.7u
+RSYNC SYNC 0 10k
+
+*** Oscillator (~300 kHz) ***
+RRT RT 0 41.2k
+
+*** Soft-start and loop compensation ***
+CSS SS 0 4.7n
+RC1 VC VCX 10k
+CC1 VCX 0 4.7n
+CC2 VC 0 100p
+
+*** Output voltage feedback : Vout = 1.6V*(1 + 64.9k/10k) = 12.0V ***
+RFB1 OUT FBX 64.9k
+RFB2 FBX 0 10k
+
+*** Output current monitor / sense (limit set well above 1 A) ***
+RIS OUTS OUT 1m
+RISP ISP OUTS 10
+RISN ISN OUT 10
+CIS ISP ISN 1n
+RIMON IMON 0 10k
+CIMON IMON 0 100p
+
+*** Status pin pull-ups (open-collector outputs) ***
+RF1 FLAG INTVCC 100k
+RF2 SRVO_FB INTVCC 100k
+RF3 SRVO_IMON INTVCC 100k
+
+*** SEPIC power stage ***
+L1 IN SW 47u Rser=25m
+CS SW A 4.7u Rser=5m
+L2 A 0 47u Rser=25m
+RG GATE G1 4.7
+MN SW G1 SP 0 NMOSPWR
+RSENSE SP 0 8m
+RSNS SENSE SP 1
+CSNS SENSE 0 100p
+
+* Synchronous rectifier (P-channel) + level-shift gate driver
+MP A PGATE OUTS OUTS PMOSPWR
+BSYNC PGATE OUTS V = -10*limit(1-V(GATE)/3,0,1)
+D1 A OUTS DSCH
+
+* Snubbers
+RSN1 SW SNA 10
+CSN1 SNA 0 1n
+RSN2 A SNB 10
+CSN2 SNB 0 1n
+
+*** Output capacitors and resistive load ***
+COUT1 OUT 0 100u Rser=10m
+COUT2 OUT 0 1u
+RLOAD OUT 0 12
+
+*** Device models ***
+.model NMOSPWR NMOS(Vto=2.5 Kp=60 Lambda=0.005 Rd=20m Rs=5m Is=1e-14)
+.model PMOSPWR PMOS(Vto=-2.5 Kp=40 Lambda=0.005 Rd=30m Rs=5m Is=1e-14)
+.model DSCH D(Is=2e-5 Rs=20m N=1.05 Cjo=200p Vj=0.5 BV=60 Ibv=1m)
+
+*** Analysis ***
+.tran 0 5m 0 200n
+.meas TRAN vout_dc AVG V(OUT) FROM=4m TO=5m
+.meas TRAN vout_ripple PP V(OUT) FROM=4.9m TO=5m
+.options plotwinsize=0
+.end

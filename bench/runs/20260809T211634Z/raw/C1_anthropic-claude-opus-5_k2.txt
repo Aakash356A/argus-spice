@@ -1,0 +1,52 @@
+* LTC6252 High-Speed Op Amp -- Non-Inverting Gain of 2 (+/-5 V supplies)
+* Input node: IN     Output node: OUT
+*------------------------------------------------------------------
+
+*--- Supplies -----------------------------------------------------
+VCC VCC 0 DC 5
+VEE VEE 0 DC -5
+
+*--- Signal source: 1 V amplitude sine @ 10 MHz --------------------
+VIN IN 0 SINE(0 1 10MEG) AC 1
+
+*--- Amplifier: non-inverting, Av = 1 + Rf/Rg = 2 V/V --------------
+XU1 IN FB VCC VEE OUT LTC6252
+RF OUT FB 750
+RG FB  0  750
+RL OUT 0  1k
+CL OUT 0  2p
+
+*------------------------------------------------------------------
+* Behavioral model of the LTC6252 720 MHz rail-to-rail output
+* op amp (single dominant pole, GBW ~ 720 MHz, Avol ~ 100 dB,
+* Rout ~ 10 ohm, output clamped to within 100 mV of the rails).
+* Pin order: 1 = +IN, 2 = -IN, 3 = V+, 4 = V-, 5 = OUT
+*------------------------------------------------------------------
+.subckt LTC6252 1 2 3 4 5
+RIND  1 2 1G
+RIN1  1 0 1G
+RIN2  2 0 1G
+* input transconductance stage (gm = 1 mS)
+GM    0 N1 1 2 1m
+* dominant pole: Rp*Cp -> f_p = 7.2 Hz, GBW = gm/(2*pi*Cp) = 720 MHz
+RP    N1 0 100MEG
+CP    N1 0 221f
+* output buffer with rail clamping
+BOUT  N2 0 V=limit(V(N1),V(4)+0.1,V(3)-0.1)
+ROUT  N2 5 10
+* quiescent supply current (keeps supply pins connected)
+IQ    3 4 3.5m
+.ends LTC6252
+
+*--- Analysis -----------------------------------------------------
+.tran 0 500n 0 20p
+* .ac dec 50 10k 2G      ; (alternate: AC gain sweep)
+
+*--- Measurements -------------------------------------------------
+.meas tran vinpp  PP V(IN)  FROM=300n TO=500n
+.meas tran voutpp PP V(OUT) FROM=300n TO=500n
+.meas tran gain   PARAM voutpp/vinpp
+.meas tran gain_db PARAM 20*log10(voutpp/vinpp)
+
+.options plotwinsize=0 numdgt=7
+.end

@@ -1,0 +1,31 @@
+* AD4021 ADC Front End Netlist
+* Digitising a 1 V DC input with realistic conversion clocking
+
+* DC Inputs and Supplies
+V_IN IN 0 1.0
+V_REF REF 0 5.0
+V_VDD VDD 0 1.8
+V_VIO VIO 0 1.8
+
+* SDI tied to GND for standard 3-wire mode
+V_SDI SDI 0 0.0
+
+* Conversion Clock (CNV) - 1 MSPS, 20ns high pulse to initiate conversion
+V_CNV CNV 0 PULSE(0 1.8 0 1n 1n 20n 1u)
+
+* Serial Clock (SCK) - 50 MHz burst to clock out data after conversion completes
+* Conversion time is ~320ns max. Burst runs from 350ns to 850ns every 1us.
+V_GATE GATE 0 PULSE(0 1 350n 1n 1n 500n 1u)
+V_CLK CLK 0 PULSE(0 1.8 0 1n 1n 10n 20n)
+B_SCK SCK 0 V=V(GATE)*V(CLK)
+
+* AD4021 Instance
+* Pinout maps to the standard physical package order (10-Lead MSOP/LFCSP) used by the .subckt:
+* 1:REF, 2:VDD, 3:IN+, 4:IN-, 5:GND, 6:SDI, 7:SCK, 8:SDO, 9:VIO, 10:CNV
+X1 REF VDD IN 0 0 SDI SCK OUT VIO CNV AD4021
+
+* Transient Analysis
+* Runs for 3 microseconds to capture multiple full conversion cycles
+.tran 0 3u
+
+.end

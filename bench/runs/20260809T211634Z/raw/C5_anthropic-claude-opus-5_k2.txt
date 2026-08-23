@@ -1,0 +1,56 @@
+```
+* ---------------------------------------------------------------
+* LTC4281 Hot-Swap Controller - 12 V rail, resistive load
+* Behavioral model of the LTC4281 (internal charge-pump gate
+* drive, dV/dt inrush control, current-limit amplifier, timer)
+* driving an external N-channel pass FET and sense resistor.
+* ---------------------------------------------------------------
+
+* ---------------- Input supply -----------------
+V1 IN 0 DC 12
+RIN IN 0 1MEG                  ; input leakage / DVM path
+
+* ---------------- Sense resistor (5 mOhm, 4 A limit) ----------
+RSENSE IN SNS 5m
+
+* ---------------- External pass MOSFET ------------------------
+M1 SNS GATE OUT OUT NMOSHS W=0.5 L=1u
+.model NMOSHS NMOS(Level=1 Vto=2 Kp=20u Lambda=0 Rd=0 Rs=0
++ Cgso=1n Cgdo=0.2n Cbd=1n)
+
+* ---------------- Internal charge pump (Vin + 12 V) -----------
+VCP CP 0 DC 24
+IGATE CP GATE 20u              ; 20 uA pull-up = LTC4281 GATE source
+CGATE GATE 0 10n               ; external GATE cap sets dV/dt (2 V/ms)
+D1 GATE CP DCLAMP              ; charge-pump clamp on GATE
+.model DCLAMP D(Ron=1 Roff=1G Vfwd=0.6)
+RGL GATE OUT 10MEG             ; gate leakage path
+
+* ---------------- Current-limit amplifier (25 mV / 5 mOhm) ----
+* pulls GATE down when Vsense exceeds the 20 mV threshold
+BLIM GATE 0 I=1000*max(0,V(IN,SNS)-0.020)
+
+* ---------------- Fault timer capacitor ----------------------
+BTMR 0 TMR I=1m*max(0,V(IN,SNS)-0.020)
+CTMR TMR 0 150n
+RTMR TMR 0 1MEG
+
+* ---------------- UV / OV feedback divider -------------------
+RUV1 IN UV 100k
+RUV2 UV 0 12.4k
+ROV1 OUT OV 100k
+ROV2 OV 0 10k
+
+* ---------------- Load ----------------------------------------
+CLOAD OUT 0 100u
+RLOAD OUT 0 6                  ; 12 V / 2 A resistive load
+
+.ic V(GATE)=0 V(OUT)=0 V(TMR)=0
+
+* ---------------- Analysis ------------------------------------
+.tran 0 40m 0 10u uic
+.meas TRAN vout_dc AVG V(OUT) FROM=35m TO=40m
+.meas TRAN iinrush MAX I(CLOAD)
+.options plotwinsize=0
+.end
+```

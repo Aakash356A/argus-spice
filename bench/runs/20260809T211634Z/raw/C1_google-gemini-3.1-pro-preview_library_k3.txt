@@ -1,0 +1,15 @@
+* LTC6252 High-Speed Amplifier Gain of 2
+.lib LTC6252.lib
+
+V1 VCC 0 5
+V2 VEE 0 -5
+Vin IN 0 SINE(0 1 10Meg) AC 1
+
+X1 IN VM VCC VEE OUT LTC6252
+Rf OUT VM 1k
+Rg VM 0 1k
+
+.tran 0 1u
+.ac list 10Meg
+
+.end

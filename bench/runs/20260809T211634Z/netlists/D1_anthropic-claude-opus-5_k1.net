@@ -1,0 +1,42 @@
+* LT1720 comparator: 5 V supply, 1.65 V resistor-divider threshold,
+* open-drain style output with pull-up resistor, input above threshold
+* -------------------------------------------------------------------
+* Node conventions: primary input = IN, primary output = OUT
+
+*** Supply ***
+V1 VCC 0 DC 5
+
+*** Resistor divider: 5 V * 16.5k/(33.5k+16.5k) = 1.65 V threshold ***
+R1 VCC REF 33.5k
+R2 REF 0 16.5k
+Cref REF 0 100n
+
+*** Input signal held above the 1.65 V threshold ***
+Vin IN 0 DC 3
+
+*** Comparator: REF on non-inverting input, IN on inverting input ***
+XU1 REF IN OUT VCC 0 LT1720
+
+*** Open-drain style pull-up and load ***
+Rpull VCC OUT 1k
+Cload OUT 0 10p
+
+*** Behavioral LT1720 macromodel (open-drain style output stage) ***
+.subckt LT1720 INP INM OUT VP VN
+Bcmp CMP 0 V={if(V(INP)-V(INM) > 0, 0, 5)}
+Rc CMP CMPD 100
+Cc CMPD 0 20p
+S1 OUT VN CMPD 0 SWMOD
+Roff OUT VN 100meg
+Rin1 INP 0 1G
+Rin2 INM 0 1G
+Iq VP VN 4m
+.model SWMOD SW(Ron=10 Roff=1G Vt=2.5 Vh=0.05)
+.ends LT1720
+
+*** Analysis ***
+.tran 0 1m 0 1u
+.meas TRAN vout_dc AVG V(OUT) FROM 500u TO 1m
+.meas TRAN vref_dc AVG V(REF) FROM 500u TO 1m
+.options plotwinsize=0
+.end

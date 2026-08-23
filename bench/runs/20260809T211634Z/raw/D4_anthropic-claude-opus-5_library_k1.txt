@@ -1,0 +1,35 @@
+```
+* ============================================================
+* LT6106 HIGH-SIDE CURRENT SENSE AMPLIFIER
+* 12 V rail, 0.1 ohm shunt, 100 mA load  ->  Vsense = 10 mV
+* Gain = ROUT/RIN = 10k/100 = 100  ->  VOUT = 1.0 V
+* ============================================================
+.lib LTC7.lib
+
+* ---------------- Power rail (primary input node) ------------
+V1 IN 0 DC 12
+
+* ---------------- Shunt and load -----------------------------
+RSENSE IN LOAD 0.1        ; 0.1 ohm high-side sense resistor
+ILOAD  LOAD 0 100m        ; 100 mA load current (12 V rail)
+RLOAD  LOAD 0 10k         ; static bleed / DC path for the load node
+
+* ---------------- LT6106 current sense amplifier -------------
+* Subcircuit pin order:  +IN  -IN  OUT  V-
+* +IN ties directly to the supply side of RSENSE (also powers the part)
+* -IN is the virtual node; RIN sets the input (sense) current
+XU1 IN NIN OUT 0 LT6106
+
+* ---------------- Gain-setting resistors ---------------------
+RIN  LOAD NIN 100         ; 10 mV / 100 ohm = 100 uA sense current
+ROUT OUT  0   10k         ; 100 uA * 10k = 1.0 V out
+COUT OUT  0   100p        ; small output filter / scope load
+
+* ---------------- Analysis ----------------------------------
+.tran 0 2m 0 1u
+.meas TRAN vout_dc AVG V(OUT) FROM 1m TO 2m
+.meas TRAN vsense AVG V(IN,LOAD) FROM 1m TO 2m
+.meas TRAN iload  AVG I(RSENSE) FROM 1m TO 2m
+
+.end
+```

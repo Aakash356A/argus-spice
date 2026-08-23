@@ -1,0 +1,17 @@
+MAX44245 Non-Inverting Amplifier, Gain = 20 V/V
+.lib MAX44245.lib
+
+VCC VPOS 0 15
+VEE VNEG 0 -15
+VIN IN 0 SINE(0 50m 1k) AC 50m
+
+XU1 IN NFB VPOS VNEG OUT MAX44245
+
+RF OUT NFB 19k
+RG NFB 0 1k
+RLOAD OUT 0 10k
+
+.ac lin 1 1k 1k
+.tran 0 5m 0 1u
+
+.end

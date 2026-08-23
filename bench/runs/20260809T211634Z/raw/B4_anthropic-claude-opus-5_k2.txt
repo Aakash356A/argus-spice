@@ -1,0 +1,61 @@
+```
+* AD8551 Non-Inverting Amplifier, Gain = 100 V/V (40 dB), Single 5 V Supply
+* Input: 10 mV amplitude, 1 kHz sine riding on a 2.5 V mid-supply bias
+*------------------------------------------------------------------
+* Supplies and reference
+*------------------------------------------------------------------
+VCC   VCC 0 DC 5
+VREF  REF 0 DC 2.5          ; mid-supply virtual ground (2.5 V)
+
+*------------------------------------------------------------------
+* Signal source: 10 mV amplitude 1 kHz sine biased at mid-supply
+*------------------------------------------------------------------
+VIN   IN 0 DC 2.5 AC 1 SINE(2.5 10m 1k 0 0 0)
+
+*------------------------------------------------------------------
+* Amplifier: non-inverting, G = 1 + R2/R1 = 1 + 99k/1k = 100
+*------------------------------------------------------------------
+XU1   IN NINV VCC 0 OUT AD8551
+R1    NINV REF 1k
+R2    NINV OUT 99k
+RL    OUT  0   10k
+CL    OUT  0   20p
+
+*------------------------------------------------------------------
+* AD8551 behavioral macromodel (rail-to-rail I/O, zero-drift CMOS)
+* Aol = 120 dB, GBW = 1.5 MHz, Vos = 1 uV, Rout = 40 ohm
+* Pins: IN+ IN- V+ V- OUT
+*------------------------------------------------------------------
+.subckt AD8551 1 2 99 50 45
+ROS    2  2A 1
+VOS    2A 2B DC 1u
+RIN    1  2B 1T
+CIN    1  2B 5p
+IB1    1  50 DC 20p
+IB2    2B 50 DC 20p
+* transconductance stage + dominant pole  (Aol = 1e6, fp = 1.5 Hz)
+GM     0  10  1 2B 1e-4
+RP     10 0   1e10
+CP     10 0   10.6p
+* output buffer clamped to the supply rails (rail-to-rail output)
+BOUT   30 0 V = LIMIT( V(10), V(50)+10m, V(99)-10m )
+ROUT   30 45 40
+* quiescent supply current (~1 mA typ. total for the device)
+IQ     99 50 DC 700u
+.ends AD8551
+
+*------------------------------------------------------------------
+* Analysis
+*------------------------------------------------------------------
+.tran 0 5m 0 1u
+* .ac dec 100 1 10meg          ; alternate AC gain sweep (V(OUT)/V(IN))
+
+.meas TRAN vomax MAX V(OUT) FROM 1m TO 5m
+.meas TRAN vomin MIN V(OUT) FROM 1m TO 5m
+.meas TRAN vopp  PARAM vomax-vomin
+.meas TRAN gain_vv PARAM (vomax-vomin)/(2*10m)
+.meas TRAN gain_db PARAM 20*log10((vomax-vomin)/(2*10m))
+
+.options plotwinsize=0 numdgt=7
+.end
+```

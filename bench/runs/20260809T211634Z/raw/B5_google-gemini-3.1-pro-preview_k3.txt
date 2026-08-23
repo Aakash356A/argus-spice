@@ -1,0 +1,26 @@
+```spice
+* MAX44245 Non-Inverting Amplifier 20V/V
+
+* Power Supplies (+/- 15V)
+V2 VCC 0 15
+V3 VEE 0 -15
+
+* Input Signal: 50 mV amplitude sine at 1 kHz
+V1 IN 0 SINE(0 50m 1k) AC 1
+
+* Amplifier Circuit (Gain = 1 + R1/R2 = 20)
+* Pin order typically: IN+ IN- V+ V- OUT
+X1 IN IN_N VCC VEE OUT MAX44245
+R1 OUT IN_N 19k
+R2 IN_N 0 1k
+
+* Transient Analysis for 5ms (5 cycles at 1kHz)
+.tran 0 5m 0 1u
+
+* Measurements (taken from 2ms to 5ms to ignore startup transients)
+.meas tran out_pp PP V(OUT) FROM 2m TO 5m
+.meas tran in_pp PP V(IN) FROM 2m TO 5m
+.meas tran gain_db param 20*log10(out_pp/in_pp)
+
+.end
+```

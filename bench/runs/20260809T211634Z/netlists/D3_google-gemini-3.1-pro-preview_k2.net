@@ -1,0 +1,48 @@
+* AD8237 Instrumentation Amplifier Circuit
+
+* Power Supplies (Single 5V supply)
+Vdd VDD 0 5
+Vss VSS 0 0
+
+* Reference voltage at mid-supply (2.5V)
+Vref REF 0 2.5
+
+* Bypass capacitor
+C1 VDD 0 0.1u
+
+* Common-mode voltage (2.5V)
+Vcm Ncm 0 2.5
+
+* Differential input signal: 20mV amplitude, 1kHz
+Vin IN 0 SINE(0 20m 1k)
+
+* VCVS to convert single-ended IN to a true differential input centered at Vcm
+* V(INP) - V(INM) = V(IN)
+E1 INP Ncm IN 0 0.5
+E2 Ncm INM IN 0 0.5
+
+* Gain setting resistors
+* For AD8237, Gain = 1 + (R2 / R1)
+* Target Gain = 10 V/V -> R2/R1 = 9
+R2 OUT FB 9k
+R1 FB REF 1k
+
+* AD8237 Amplifier instance
+* Pin order: BW, -IN, +IN, -VS, REF, OUT, FB, +VS
+* BW pin is tied to VDD for high bandwidth mode
+X1 VDD INM INP VSS REF OUT FB VDD AD8237
+
+* Load resistor
+Rl OUT 0 100k
+
+* Transient analysis to allow the circuit to settle and measure gain
+.tran 0 10m 0 1u
+
+* Measure peak-to-peak voltages after 2ms of settling time
+.meas tran Vout_pp PP V(OUT) from=2m to=10m
+.meas tran Vin_pp PP V(IN) from=2m to=10m
+
+* Calculate gain in dB
+.meas tran gain_db param 20*log10(Vout_pp/Vin_pp)
+
+.end

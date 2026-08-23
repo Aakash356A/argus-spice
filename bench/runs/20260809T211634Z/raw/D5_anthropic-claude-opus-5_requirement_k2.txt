@@ -1,0 +1,41 @@
+```
+* ============================================================
+* Precision 7.05 V Reference Subsystem
+* ADR1399H heated buried-Zener reference + LTC6078 unity-gain
+* buffer driving a 1 k load at node OUT
+* ============================================================
+
+* ---------- Supplies ----------
+VIN   IN   0   15          ; primary input / heater + bias rail
+VDD   VCC  0   12          ; op-amp positive rail
+* (op-amp negative rail is ground)
+
+* ---------- Reference (genuine ADR1399H subcircuit) ----------
+* Pin order: HEATER+  HEATER-  CATHODE(VZ)  ANODE
+XREF  IN   0   VZ   0   ADR1399H
+
+* Zener bias network: ~1 mA through the reference
+RBIAS IN   VZ  7.87k
+CDEC  IN   0   10u
+CREF  VZ   0   1u          ; reference noise filter
+
+* ---------- LTC6078 unity-gain buffer ----------
+* Pin order: IN+  IN-  V+  V-  OUT
+XBUF  VZ   OUT  VCC  0   OUT  LTC6078
+
+* ---------- Load ----------
+RL    OUT  0   1k
+
+* ---------- Analysis ----------
+.tran 0 100m 0 20u
+.meas TRAN vout_dc AVG V(OUT) FROM 80m TO 100m
+.meas TRAN vref_dc AVG V(VZ)  FROM 80m TO 100m
+
+.options plotwinsize=0 gmin=1e-12 reltol=1e-4
+
+* ---------- Model libraries ----------
+.lib ADR1399H.lib
+.lib LTC6078.lib
+
+.end
+```

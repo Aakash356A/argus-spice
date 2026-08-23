@@ -1,0 +1,68 @@
+```
+* LT3094 negative LDO: -7 V IN  -->  -5 V OUT, light resistive load
+* -------------------------------------------------------------------
+* VOUT = -50uA * RSET  ->  RSET = 100k gives -5.0 V
+* -------------------------------------------------------------------
+
+*** Power source (negative rail) ***
+VIN IN 0 DC -7
+
+*** Input / output capacitors ***
+CIN  IN  0 4.7u
+COUT OUT 0 10u
+
+*** Regulator: pins = IN OUTS OUT SET ILIM EN/UV PG GND ***
+XU1 IN OUT OUT SET ILIM 0 PG 0 LT3094
+
+*** Output voltage programming resistor (SET pin reference current) ***
+RSET SET 0 100k
+
+*** Current-limit programming resistor ***
+RILIM ILIM 0 20k
+
+*** Light resistive load: -5 V / 1k = 5 mA ***
+RL OUT 0 1k
+
+* ===================================================================
+* Behavioral model of the LT3094 ultralow-noise negative LDO
+*   - 50 uA SET-pin reference current (sunk from SET node)
+*   - Error amplifier forces V(OUT) = V(SET)
+*   - Dropout limit: OUT cannot be more negative than IN + 0.2 V
+* ===================================================================
+.subckt LT3094 IN OUTS OUT SET ILIM ENUV PG GND
+
+* --- 50 uA precision reference current pulled out of the SET pin ---
+IREF SET GND 50u
+
+* --- Error amplifier / target output voltage with dropout clamp ---
+BTGT NTGT GND V = max( V(SET,GND) , V(IN,GND) + 0.2 )
+
+* --- Dominant pole (loop bandwidth / soft start-up) ---
+RF NTGT NF 10k
+CF NF   GND 100p
+
+* --- Pass device (low-impedance regulated output) ---
+EPASS NP GND NF GND 1
+ROUT  NP OUT 0.02
+
+* --- Feedback / high-impedance pin terminations ---
+RFB   OUTS GND 1G
+RILM  ILIM GND 1G
+REN   ENUV GND 1G
+
+* --- Power-good comparator (open-collector style pull-down) ---
+BPG PG GND I = 1m*(V(OUT,GND) > V(SET,GND)*0.9 ? 0 : 1)*V(PG,GND)
+RPG PG GND 1G
+
+* --- Quiescent + load current reflected to the input pin ---
+GQ IN GND VALUE = { 2m + abs(I(ROUT)) }
+
+.ends LT3094
+
+*** Analysis ***
+.tran 0 5m 0 5u
+.meas TRAN vout_dc AVG V(OUT) FROM 4m TO 5m
+.options plotwinsize=0
+
+.end
+```

@@ -62,3 +62,39 @@ data/generated/
 data/candidate_inputs/
 data/evidence/
 *_candidate_arena.json
+
+# ---------------------------------------------------------------------------
+# Kept locally, not published.
+#
+# This repository publishes the paper's artifact and the desktop GUI. The
+# following are working material or superseded work: they remain in the
+# working tree and are simply not tracked.
+# ---------------------------------------------------------------------------
+
+# Internal working notes and the superseded ACM draft of the paper.
+HANDOFF.md
+ACM_Journals_Primary_Article_Template/
+requirements-training.txt
+requirements-amd.txt
+
+# Discarded fine-tuning line: the LoRA adapter, its training scripts, the
+# serving notebooks, and the RL/data scaffolding that was never wired in.
+models/
+training/
+netgen/
+notebooks/
+
+# Documentation for the earlier system, superseded by README.md.
+docs/
+
+# Local IC shortlist used by the GUI's suggestion feature (see app/README.md).
+app/available_ics.txt
+
+# The `strict` pilot arm is outside the paper's three-arm design. The published
+# results.jsonl and config.json carry the 540 generations the paper reports;
+# these unfiltered copies stay local.
+bench/runs/*/results.with-strict.jsonl
+bench/runs/*/config.with-strict.json
+bench/runs/*/netlists/*_strict_k*
+bench/runs/*/raw/*_strict_k*
+

@@ -1,0 +1,39 @@
+* ADG5248F Analog Multiplexer Test
+
+* Include Analog Devices library
+.lib ADI.lib
+
+* Power Supplies (+/- 15V)
+Vdd VDD 0 15
+Vss VSS 0 -15
+
+* Logic Enable (5V)
+Ven EN 0 5
+
+* Address lines to select Channel 1 (A2=0, A1=0, A0=0)
+Va0 A0 0 0
+Va1 A1 0 0
+Va2 A2 0 0
+
+* Primary Input Signal on Channel 1 (1 kHz, 500 mV amplitude sine)
+Vin IN 0 SINE(0 0.5 1k)
+
+* ADG5248F Subcircuit Instantiation
+* Typical ADI Multiplexer Pinout: S1 S2 S3 S4 S5 S6 S7 S8 D A0 A1 A2 EN VDD VSS GND SF
+X1 IN 0 0 0 0 0 0 0 OUT A0 A1 A2 EN VDD VSS 0 SF ADG5248F
+
+* Pull-up resistor for Source Fault (SF) open-drain output
+Rsf SF EN 10k
+
+* Output Load
+Rload OUT 0 1Meg
+
+* Transient Analysis for 10ms (10 cycles at 1kHz)
+.tran 0 10m 0 1u
+
+* Measurements to calculate gain in dB
+.meas tran max_in MAX V(IN) from=2m to=10m
+.meas tran max_out MAX V(OUT) from=2m to=10m
+.meas tran gain_db PARAM 20*log10(max_out/max_in)
+
+.end

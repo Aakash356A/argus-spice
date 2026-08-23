@@ -1,0 +1,17 @@
+* LT6654-1.25 precision 1.25 V reference with bypass capacitors
+VIN IN 0 DC 5
+CIN IN 0 1u
+
+XU1 IN OUT 0 LT6654_1P25
+COUT OUT 0 1u
+RLOAD OUT 0 100k
+
+.tran 0 10m 0 10u
+
+.subckt LT6654_1P25 VIN VOUT GND
+BREF NREF GND V=if(V(VIN,GND)>2.4,1.25,0)
+ROUT NREF VOUT 0.1
+RQUIESCENT VIN GND 83.3k
+.ends LT6654_1P25
+
+.end

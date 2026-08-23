@@ -1,0 +1,22 @@
+* AD8092 non-inverting amplifier, gain = 5 V/V
+.lib ADI.lib
+
+VCC VPLUS 0 5
+VEE VMINUS 0 -5
+
+VIN IN 0 SINE(0 100m 1Meg) AC 100m
+
+XU1 IN NFB VPLUS VMINUS OUT AD8092
+
+RG NFB 0 1k
+RF OUT NFB 4k
+RLOAD OUT 0 1k
+
+CPLUS VPLUS 0 100n
+CMINUS VMINUS 0 100n
+
+.tran 0 10u 2u 2n
+.ac dec 100 100k 10Meg
+.meas AC gain_db FIND db(V(OUT)/V(IN)) AT=1Meg
+
+.end

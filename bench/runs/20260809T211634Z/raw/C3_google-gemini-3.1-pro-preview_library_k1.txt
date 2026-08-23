@@ -1,0 +1,51 @@
+```spice
+* LT8710 24V to 12V Synchronous SEPIC Converter
+.lib LT8710.sub
+
+* Power Stage
+V1 IN 0 24
+Cin IN 0 47u Rser=5m
+L1 IN SW1 22u Rser=10m
+M1 SW1 Gate_MN1 Node_CSP Node_CSP NMOS_POWER
+Rs1 Node_CSP 0 0.005
+Cc SW1 SW2 4.7u Rser=5m
+L2 SW2 0 22u Rser=10m
+M2 SW2 Gate_MP1 Node_ISP Node_ISP PMOS_POWER
+Rs2 Node_ISP OUT 0.005
+Cout OUT 0 100u Rser=5m
+Rload OUT 0 6
+
+* MOSFET Models
+.model NMOS_POWER VDMOS(nchan Rg=1 Vto=2 Rd=5m Rs=1m Rb=1m Kp=100 Cgd=200p Cgs=1n Cjo=400p IS=1e-12)
+.model PMOS_POWER VDMOS(pchan Rg=1 Vto=-2 Rd=5m Rs=1m Rb=1m Kp=100 Cgd=200p Cgs=1n Cjo=400p IS=1e-12)
+
+* Gate Resistors
+R_BG Node_BG Gate_MN1 1
+R_TG Node_TG Gate_MP1 1
+
+* Controller Configuration
+R_RT Node_RT 0 100k
+C_SS Node_SS 0 10n
+R_VC Node_VC Node_VC_C 10k
+C_VC Node_VC_C 0 2.2n
+C_VC2 Node_VC 0 100p
+R_FB1 OUT Node_FBX 100k
+R_FB2 Node_FBX 0 11.24k
+C_INTVCC Node_INTVCC 0 4.7u
+
+* Dummy resistors for unused/floating pins to prevent singular matrix errors
+R_NC1 NC_IMON 0 1G
+R_NC2 NC_FLAG 0 1G
+R_NC3 NC_GATE 0 1G
+
+* LT8710 Subcircuit Instance
+* Pinout matching standard LTspice 20-lead TSSOP numerical order:
+* 1:EN/PINV 2:SYNC 3:RT 4:SS 5:VC 6:FBX 7:IMON 8:ISP 9:ISN 10:FLAG 
+* 11:CSN 12:CSP 13:INTVEE 14:GATE 15:TG 16:INTVCC 17:BG 18:BIAS 19:VIN 20:GND
+X1 IN 0 Node_RT Node_SS Node_VC Node_FBX NC_IMON Node_ISP OUT NC_FLAG 0 Node_CSP 0 NC_GATE Node_TG Node_INTVCC Node_BG OUT IN 0 LT8710
+
+* Simulation Commands
+.tran 0 5m
+.options method=gear
+.end
+```

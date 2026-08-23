@@ -1,0 +1,36 @@
+* AD8092 Non-Inverting Amplifier, Gain = +5 V/V, +/-5 V Supplies
+* Input: 100 mV amplitude (200 mVpp) sine at 1 MHz
+* -----------------------------------------------------------------
+
+.lib ADI.lib
+
+* ---------------- Supplies ----------------
+VCC VCC 0 DC  5
+VEE VEE 0 DC -5
+
+* ---------------- Input source ----------------
+VIN IN 0 DC 0 AC 1 SINE(0 0.1 1MEG)
+
+* ---------------- Amplifier (non-inverting, G = 1 + Rf/Rg = 5) ----------------
+* Pin order: +IN  -IN  V+  V-  OUT
+XU1 IN FB VCC VEE OUT AD8092
+
+Rf OUT FB 1k
+Rg FB 0  250
+
+* ---------------- Output load ----------------
+RL OUT 0 1k
+
+* ---------------- Analyses ----------------
+.ac dec 100 1k 100MEG
+.tran 0 5u 0 100p
+
+* ---------------- Measurements ----------------
+.meas AC gain_db_ac FIND V(OUT) AT=1MEG
+.meas TRAN vout_pp PP V(OUT) FROM=2u TO=5u
+.meas TRAN vin_pp  PP V(IN)  FROM=2u TO=5u
+.meas TRAN gain_db PARAM 20*log10(vout_pp/vin_pp)
+
+.options plotwinsize=0 numdgt=7
+
+.end

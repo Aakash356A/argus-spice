@@ -1,0 +1,48 @@
+* AD4021 20-bit SAR ADC front end digitising a 1 V DC input
+
+VIN       IN       0        DC 1
+RINP      IN       ADC_INP  33
+CINP      ADC_INP  0        2.7n
+
+VCOM      IN_NEG   0        DC 0
+RINN      IN_NEG   ADC_INN  33
+CINN      ADC_INN  0        2.7n
+
+* 5 V external reference with local decoupling
+VREFRAW   REF_SRC  0        DC 5
+RREF      REF_SRC  REF      50m
+CREF1     REF      0        10u
+CREF2     REF      0        100n
+
+* AD4021 core and digital-interface supplies
+VDD_SRC   VDD      0        DC 1.8
+VIO_SRC   VIO      0        DC 3.3
+CVDD1     VDD      0        10u
+CVDD2     VDD      0        100n
+CVIO1     VIO      0        1u
+CVIO2     VIO      0        100n
+
+* Conversion-start and serial-clock connections
+VCNV      CNV      0        PULSE(0 3.3 200n 1n 1n 20n 1u)
+VSCK      SCK      0        PULSE(0 3.3 300n 1n 1n 9n 20n)
+
+XU1 ADC_INP ADC_INN REF VDD VIO CNV SCK OUT 0 AD4021
+
+* Behavioral AD4021 model.
+* OUT is a held analog representation of the 20-bit conversion code.
+.subckt AD4021 INP INN REF VDD VIO CNV SCK OUT GND
+CINPUTP INP GND 30p
+CINPUTN INN GND 30p
+RINPUTP INP GND 1G
+RINPUTN INN GND 1G
+BQ QRAW GND V=floor(limit(V(INP,INN),0,V(REF,GND))*1048575/V(REF,GND)+0.5)*V(REF,GND)/1048575
+SAMPLE QRAW OUT CNV GND SW_ADC
+CHOLD OUT GND 100p
+RLEAK OUT GND 1T
+.ends AD4021
+
+.model SW_ADC SW(Ron=1 Roff=1T Vt=1.2 Vh=0.1)
+
+.options plotwinsize=0
+.tran 0 5u 0 1n
+.end

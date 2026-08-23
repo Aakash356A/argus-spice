@@ -1,0 +1,15 @@
+* LTC6252 High-Speed Amplifier
+V1 IN 0 SINE(0 1 10Meg) AC 1
+V2 VDD 0 5
+V3 VSS 0 -5
+
+R1 IN_MINUS 0 1k
+R2 OUT IN_MINUS 1k
+RL OUT 0 10k
+
+X1 IN IN_MINUS VDD VSS OUT LTC6252
+
+.lib LTC6.lib
+.tran 0 500n
+.ac dec 10 1Meg 100Meg
+.end

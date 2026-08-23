@@ -1,0 +1,14 @@
+* ADR1399H 7.05 V precision shunt reference
+.lib ADR1399H.sub
+
+V1 IN 0 15
+RBIAS IN OUT 2.49k
+XU1 OUT 0 0 IN ADR1399H
+
+COUT OUT 0 1u
+RLOAD OUT 0 100k
+
+.tran 0 20 0 10m
+.meas tran vout_dc AVG V(OUT) FROM=19 TO=20
+
+.end

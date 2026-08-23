@@ -1,0 +1,36 @@
+* LTC6078 unity-gain follower, 5 V single supply
+VCC VCC 0 5
+VIN IN 0 SINE(2.5 0.1 1k) AC 0.1
+RLOAD OUT 0 10k
+
+* Dual LTC6078: OUTA INA- INA+ V- INB+ INB- OUTB V+
+XU1 OUT OUT IN 0 IN OUTB OUTB VCC LTC6078
+
+.tran 0 5m 0 1u
+.ac dec 100 10 1Meg
+.meas AC gain_db FIND db(V(OUT)/V(IN)) AT=1k
+
+* Functional LTC6078 dual-op-amp macromodel
+.subckt LTC6078 OUTA INMA INPA VSS INPB INMB OUTB VDD
+
+* Channel A: 100 dB DC gain, approximately 750 kHz GBW
+GMA 0 NDA INPA INMA 1m
+RDA NDA 0 100Meg
+CDA NDA 0 212p
+BLA NBUFA 0 V=limit(V(NDA),V(VSS)+20m,V(VDD)-20m)
+ROA NBUFA OUTA 30
+RINA INPA INMA 1e12
+
+* Channel B
+GMB 0 NDB INPB INMB 1m
+RDB NDB 0 100Meg
+CDB NDB 0 212p
+BLB NBUFB 0 V=limit(V(NDB),V(VSS)+20m,V(VDD)-20m)
+ROB NBUFB OUTB 30
+RINB INPB INMB 1e12
+
+* Approximate dual-amplifier quiescent supply current
+RQUIESCENT VDD VSS 45.5k
+.ends LTC6078
+
+.end

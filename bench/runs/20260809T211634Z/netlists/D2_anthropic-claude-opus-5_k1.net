@@ -1,0 +1,43 @@
+* ADG711 Quad SPST CMOS Analog Switch - Single Channel Signal Path Test
+* Behavioral macromodel: logic-high control closes switch (Ron ~ 4 ohm @ 5 V supply)
+*
+* ---------------- Supplies ----------------
+VDD    VDD   0    DC 5
+VSS    VSS   0    DC 0
+*
+* ---------------- Analog input ----------------
+VIN    IN    0    DC 2
+*
+* ---------------- Digital control (IN1 pin) ----------------
+* Driven high -> switch S1 closed (ON)
+VCTRL  CTRL  0    PWL(0 0  10u 0  20u 5)
+*
+* ---------------- ADG711 channel 1 subcircuit ----------------
+XSW1   IN  OUT  CTRL  VDD  VSS  ADG711_CH
+*
+.subckt ADG711_CH SIN SOUT LOGIC VDD VSS
+* Voltage-controlled switch models the CMOS on-resistance
+S1     SIN  SOUT  LOGIC  VSS  ADGSW
+.model ADGSW SW(Ron=4 Roff=1G Vt=2.4 Vh=0.15)
+* Off-state / channel leakage paths (pA level)
+RLKS   SIN  VSS   1000G
+RLKD   SOUT VSS   1000G
+* Source/drain parasitic capacitance to ground
+CSIN   SIN  VSS   28p
+CSOUT  SOUT VSS   36p
+* Logic input loading
+RLOG   LOGIC VSS  10G
+CLOG   LOGIC VSS  5p
+.ends ADG711_CH
+*
+* ---------------- Load ----------------
+RL     OUT   0    10k
+*
+* ---------------- Analysis ----------------
+.tran 10u 2m 0 1u
+.ic V(OUT)=0
+*
+.meas TRAN vout_dc AVG V(OUT) FROM=1.5m TO=2m
+.meas TRAN vin_dc  AVG V(IN)  FROM=1.5m TO=2m
+*
+.end

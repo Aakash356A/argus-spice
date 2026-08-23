@@ -1,0 +1,30 @@
+* ADP7118 3.3V to 1.8V LDO
+.lib ADP7102.lib
+
+* Input Voltage Source
+V1 IN 0 3.3
+
+* Input and Output Decoupling Capacitors
+C1 IN 0 2.2u
+C2 OUT 0 2.2u
+
+* 50 mA Resistive Load (1.8V / 50mA = 36 Ohms)
+Rload OUT 0 36
+
+* Feedback Resistor Divider
+* ADP7118 Vref = 1.2V. Vout = Vref * (1 + R1/R2)
+* For Vout = 1.8V: 1.8 = 1.2 * (1 + 5k/10k)
+R1 OUT ADJ 5k
+R2 ADJ 0 10k
+
+* Soft-start Capacitor
+Css SS 0 1n
+
+* ADP7118 LDO Subcircuit Instance
+* Pinout: VIN GND EN SS ADJ VOUT
+X1 IN 0 IN SS ADJ OUT ADP7118
+
+* Transient Analysis to allow output to settle
+.tran 10m
+
+.end

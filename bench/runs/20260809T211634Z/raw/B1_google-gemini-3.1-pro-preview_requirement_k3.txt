@@ -1,0 +1,13 @@
+* AD8092 Non-Inverting Amplifier
+V1 VCC 0 5
+V2 VEE 0 -5
+V3 IN 0 SINE(0 100m 1Meg) AC 1
+R1 OUT VN 400
+R2 VN 0 100
+RL OUT 0 1k
+X1 IN VN VCC VEE OUT AD8092
+
+.tran 0 5u
+.ac dec 10 100k 10Meg
+.meas ac gain_db FIND 20*log10(mag(V(OUT)/V(IN))) AT 1Meg
+.end

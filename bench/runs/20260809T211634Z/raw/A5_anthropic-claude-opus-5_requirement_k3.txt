@@ -1,0 +1,28 @@
+```
+* LT6654-1.25 Precision 1.25V Series Voltage Reference
+* 5V supply, input and output bypass capacitors
+*
+* Subcircuit pin order (LTspice LT6654 model): IN  GND  OUT
+*
+.lib LT6654.sub
+
+*** Supply ***
+VIN   IN 0 DC 5
+
+*** Input bypass ***
+CIN   IN 0 1u
+
+*** Genuine LT6654-1.25 reference ***
+XREF  IN 0 OUT LT6654-1.25
+
+*** Output bypass and light load ***
+COUT  OUT 0 1u
+RL    OUT 0 100k
+
+*** Analysis: settle to DC output ***
+.tran 0 5m 0 1u uic
+
+.meas TRAN vout_dc AVG V(OUT) FROM=4m TO=5m
+
+.end
+```

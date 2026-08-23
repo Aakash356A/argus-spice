@@ -1,0 +1,49 @@
+* MAX44245 Non-Inverting Amplifier, Gain = 20 V/V (26.02 dB)
+* Supplies: +/-15 V, Input: 50 mV amplitude sine @ 1 kHz
+*------------------------------------------------------------
+
+*--- Supplies ---
+VCC VCC 0 DC 15
+VEE VEE 0 DC -15
+
+*--- Input source (SINE for .tran, AC 1 for .ac) ---
+Vin IN 0 DC 0 AC 1 SINE(0 50m 1k)
+
+*--- Amplifier: non-inverting, G = 1 + R2/R1 = 1 + 19k/1k = 20 ---
+XU1 IN FB OUT VCC VEE MAX44245
+R1 FB 0 1k
+R2 OUT FB 19k
+RL OUT 0 10k
+
+*------------------------------------------------------------
+* MAX44245 behavioral macromodel
+* Pins: IN+ IN- OUT V+ V-
+* Aol ~ 120 dB, GBW ~ 10 MHz, rail-limited output
+*------------------------------------------------------------
+.subckt MAX44245 1 2 3 4 5
+Rin   1 2 1T
+Ricm1 1 0 1T
+Ricm2 2 0 1T
+Ios1  1 0 1p
+Ios2  2 0 1p
+Vos   1 10 DC 10u
+* first stage: DC gain 1e6, dominant pole at 10 Hz -> GBW = 10 MHz
+Egain 11 0 10 2 1e6
+Rp    11 12 1k
+Cp    12 0  15.9u
+* output stage: clamps to within 200 mV of the rails
+Bout  13 0 V = LIMIT(V(12), V(5)+0.2, V(4)-0.2)
+Rout  13 3 50
+.ends MAX44245
+
+*--- Analyses ---
+.tran 0 5m 0 1u
+.ac dec 200 1 10Meg
+
+.meas TRAN vout_pp PP V(OUT) FROM 1m TO 5m
+.meas TRAN vin_pp  PP V(IN)  FROM 1m TO 5m
+.meas TRAN gain_db PARAM 20*log10(vout_pp/vin_pp)
+.meas AC   gain_ac_db MAX 20*log10(V(OUT)/V(IN))
+
+.options plotwinsize=0
+.end

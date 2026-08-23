@@ -1,0 +1,14 @@
+* AD8551 Non-Inverting Amplifier
+.lib ADI.lib
+
+Vcc VDD 0 5
+Vin IN 0 SINE(0.025 0.01 1k) AC 1
+
+R1 OUT FB 99k
+R2 FB 0 1k
+
+X1 IN FB VDD 0 OUT AD8551
+
+.tran 5m
+.ac dec 100 10 100k
+.end

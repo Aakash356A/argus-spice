@@ -1,0 +1,70 @@
+Also op amp input node: ZK connects to op amp +in.
+
+Final netlist.```
+* Precision 7.05V Reference Subsystem: ADR1399H Heated Zener + LTC6079 Unity-Gain Buffer
+* Node IN  = primary supply input
+* Node OUT = buffered low-impedance VREF output (1k load)
+
+*------------------------------------------------------------------
+* Supply
+*------------------------------------------------------------------
+VIN   IN 0 DC 15
+* small series impedance of supply
+RS_IN IN INF 1
+
+*------------------------------------------------------------------
+* ADR1399H bias network:  Iz = (15V - 7.05V)/7.95k ~= 1mA
+*------------------------------------------------------------------
+RBIAS INF ZK 7.95k
+CZ    ZK 0  100n
+
+* ADR1399H : X1 <cathode> <anode> <heater+> <heater->
+XREF  ZK 0 INF 0 ADR1399H
+
+*------------------------------------------------------------------
+* LTC6079 unity-gain buffer (rail-to-rail CMOS precision op amp)
+* XU1 <+IN> <-IN> <V+> <V-> <OUT>
+*------------------------------------------------------------------
+XU1   ZK OUT INF 0 OUT LTC6079
+
+* Output load and decoupling
+RLOAD OUT 0 1k
+CLOAD OUT 0 100p
+
+*------------------------------------------------------------------
+* ADR1399H behavioural model (buried heated zener, 7.05V @ 1mA)
+*------------------------------------------------------------------
+.subckt ADR1399H 1 2 3 4
+DZ   2 1 DMOD_ADR1399
+RHTR 3 4 250
+.model DMOD_ADR1399 D(IS=1e-14 N=1 RS=0.5 BV=7.05 IBV=1m CJO=20p TT=1n)
+.ends ADR1399H
+
+*------------------------------------------------------------------
+* LTC6079 behavioural op amp model
+* pins: 1=+IN  2=-IN  3=V+  4=V-  5=OUT
+*------------------------------------------------------------------
+.subckt LTC6079 1 2 3 4 5
+RIN   1 2 1T
+RCM1  1 0 1T
+RCM2  2 0 1T
+* input offset (typ 15uV)
+VOS   1 1A DC 15u
+* open-loop gain 140dB (1e7) with dominant pole ~2.4Hz -> GBW ~ 15MHz
+EGAIN NG 0 1A 2 1E7
+RP    NG NP 1k
+CP    NP 0 66u
+* output stage with rail clamping and output impedance
+EOUT  NO 0 VALUE={LIMIT(V(NP), V(4)+0.02, V(3)-0.02)}
+ROUT  NO 5 40
+.ends LTC6079
+
+*------------------------------------------------------------------
+* Analysis
+*------------------------------------------------------------------
+.tran 0 20m 0 5u
+.meas TRAN vout_dc AVG V(OUT) FROM=15m TO=20m
+.meas TRAN vref_zener AVG V(ZK) FROM=15m TO=20m
+.options plotwinsize=0 numdgt=7 reltol=1e-5
+.end
+```

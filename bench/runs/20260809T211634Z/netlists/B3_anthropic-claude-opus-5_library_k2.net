@@ -1,0 +1,34 @@
+* LTC6078 Unity-Gain Voltage Follower (Single 5 V Supply)
+* Pin order of vendor macromodel: (+IN) (-IN) (V+) (V-) (OUT)
+* -----------------------------------------------------------
+
+.lib LTC5.lib
+
+* ---- Supply ----
+VCC   VCC 0 DC 5
+Cbyp  VCC 0 1u
+
+* ---- Input: 1 kHz, 100 mV amplitude sine on 2.5 V mid-supply bias ----
+VIN   IN  0 DC 2.5 AC 1 SINE(2.5 0.1 1k)
+
+* ---- Op amp: unity-gain buffer (output tied to inverting input) ----
+XU1   IN OUT VCC 0 OUT LTC6078
+
+* ---- Load ----
+RL    OUT 0 10k
+
+* ---- Analysis: 5 ms = 5 cycles of 1 kHz ----
+.tran 0 5m 0 1u
+
+* ---- Gain measurement (settled cycles only) ----
+.meas TRAN vin_max  MAX V(IN)  FROM 2m TO 5m
+.meas TRAN vin_min  MIN V(IN)  FROM 2m TO 5m
+.meas TRAN vout_max MAX V(OUT) FROM 2m TO 5m
+.meas TRAN vout_min MIN V(OUT) FROM 2m TO 5m
+.meas TRAN vin_pp   PARAM vin_max-vin_min
+.meas TRAN vout_pp  PARAM vout_max-vout_min
+.meas TRAN gain_db  PARAM 20*log10(vout_pp/vin_pp)
+
+.options plotwinsize=0 numdgt=7
+
+.end

@@ -1,0 +1,53 @@
+* =====================================================================
+* AD4021 - 16-bit, 1 MSPS SAR ADC front end digitising a 1 V DC input
+* Genuine ADI AD4021 SPICE model instantiated as a subcircuit
+* =====================================================================
+* Model file supplied by Analog Devices (AD4021 LTspice model).
+* Subcircuit pin order:
+*   1:REF  2:VDD  3:IN+  4:IN-  5:GND  6:CNV  7:SDI  8:SCK  9:SDO  10:VIO
+.include AD4021.cir
+
+* ---------------------------------------------------------------------
+* Analog input:  1 V DC source + RC anti-alias / charge-kickback filter
+* ---------------------------------------------------------------------
+VIN     IN      0       DC 1
+RFLT    IN      ADCIN   20
+CFLT    ADCIN   0       2.7n
+RINN    INM     0       20              ; IN- returned to sense ground
+CINN    INM     0       2.7n
+
+* ---------------------------------------------------------------------
+* Supplies and reference (AD4021: VDD = 1.8 V, VIO = 1.8 V, REF <= 5.1 V)
+* ---------------------------------------------------------------------
+VVDD    VDD     0       DC 1.8
+VVIO    VIO     0       DC 1.8
+VREF    REF     0       DC 5.0
+CVDD    VDD     0       100n
+CVIO    VIO     0       100n
+CREF1   REF     0       10u             ; bulk reference decoupling
+CREF2   REF     0       100n            ; local high-frequency decoupling
+
+* ---------------------------------------------------------------------
+* Conversion clock (CNV) : 1 MSPS -> 1 us period, 100 ns high pulse
+* Serial clock  (SCK)    : 20 MHz readback clock
+* SDI tied high -> 3-wire CS mode, chip-select/turbo disabled
+* ---------------------------------------------------------------------
+VCNV    CNV     0       PULSE(0 1.8 100n 2n 2n 100n 1u)
+VSCK    SCK     0       PULSE(0 1.8 300n 2n 2n 23n 50n)
+VSDI    SDI     0       DC 1.8
+
+* ---------------------------------------------------------------------
+* ADC instance : serial data output is the primary output node OUT (SDO)
+* ---------------------------------------------------------------------
+XADC    REF VDD ADCIN INM 0 CNV SDI SCK OUT VIO AD4021
+
+RSDO    OUT     0       1Meg            ; light load / DC path on SDO
+
+* ---------------------------------------------------------------------
+* Analysis: several conversion cycles so the settled input and the
+* resulting serial output bit stream can be measured
+* ---------------------------------------------------------------------
+.tran 0 10u 0 1n
+.options plotwinsize=0 gmin=1e-12 reltol=1e-4
+
+.end

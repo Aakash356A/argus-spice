@@ -1,0 +1,27 @@
+* LT1720 Comparator Circuit
+.lib LT1720.sub
+
+* 5V Power Supply
+V1 VCC 0 5V
+
+* Resistor divider setting a 1.65V threshold (5V * 33k / (67k + 33k) = 1.65V)
+R1 VCC THRESH 67k
+R2 THRESH 0 33k
+
+* Input held above the 1.65V threshold
+V2 IN 0 3V
+
+* LT1720 Comparator instance
+* Pin order: IN+ IN- V+ V- OUT
+* IN+ is connected to the 1.65V threshold
+* IN- is connected to the 3V input
+* Since IN- > IN+, the output is driven low (0V)
+X1 THRESH IN VCC 0 OUT LT1720
+
+* Pull-up resistor for the output
+R3 OUT VCC 10k
+
+* Transient analysis to measure the DC/settled output
+.tran 10u 1m
+
+.end

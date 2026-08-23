@@ -1,0 +1,40 @@
+```spice
+* AD4021 ADC Front End
+.lib AD4021.sub
+
+* Primary DC Input
+VIN IN 0 1V
+VIN_MINUS IN_N 0 0V
+
+* Reference Voltage
+VREF REF 0 5V
+CREF REF 0 10u
+
+* Power Supplies
+VDD VDD 0 1.8V
+CVDD VDD 0 100n
+VVIO VIO 0 1.8V
+CVIO VIO 0 100n
+
+* Conversion Clock & Digital Interface
+* CNV initiates the conversion (500 kHz sampling rate)
+VCNV CNV 0 PULSE(0 1.8 100n 1n 1n 400n 2u)
+
+* SCK clocks out the data after conversion completes (50 MHz, 20 cycles)
+VSCK SCK 0 PULSE(0 1.8 600n 1n 1n 10n 20n 20)
+
+* SDI tied low for standard single-device operation
+VSDI SDI 0 0V
+
+* Load capacitance on the digital output
+COUT OUT 0 10p
+
+* AD4021 Instantiation 
+* Typical ADI SAR ADC pin order: IN+ IN- REF VDD VIO GND CNV SDI SCK SDO
+X1 IN IN_N REF VDD VIO 0 CNV SDI SCK OUT AD4021
+
+* Transient Analysis to capture multiple conversion cycles
+.tran 0 5u
+
+.end
+```

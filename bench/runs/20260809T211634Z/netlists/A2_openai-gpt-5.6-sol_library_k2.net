@@ -1,0 +1,16 @@
+.lib ADP7102.lib
+
+V1 IN 0 3.3
+CIN IN 0 2.2u
+
+XU1 IN OUT IN 0 SS FB ADP7118
+CSS SS 0 1n
+RFB1 OUT FB 10k
+RFB2 FB 0 20k
+
+COUT OUT 0 2.2u
+RLOAD OUT 0 36
+
+.tran 0 50m 0 10u
+
+.end

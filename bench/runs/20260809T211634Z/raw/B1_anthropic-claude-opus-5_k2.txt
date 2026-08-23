@@ -1,0 +1,50 @@
+```
+* AD8092 Non-Inverting Amplifier, Av = +5 V/V, +/-5 V supplies
+* Input node: IN   Output node: OUT
+*------------------------------------------------------------------
+* Supplies
+VCC VCC 0 DC 5
+VEE VEE 0 DC -5
+*
+* Signal source: 100 mV amplitude, 1 MHz sine (AC 1 for .ac sweep)
+VIN IN 0 SINE(0 0.1 1MEG) AC 1
+*
+* Amplifier: non-inverting, gain = 1 + Rf/Rg = 1 + 4k/1k = 5 (13.98 dB)
+XU1 IN FB VCC VEE OUT AD8092
+RF OUT FB 4k
+RG FB 0 1k
+*
+* Output load
+RL OUT 0 1k
+*
+*------------------------------------------------------------------
+* Behavioral macromodel of AD8092 (dual 110 MHz voltage-feedback op amp)
+* Pins:  +IN  -IN  V+  V-  OUT
+*------------------------------------------------------------------
+.subckt AD8092 1 2 99 50 30
+* input impedance
+RIN  1 2 1G
+CIN  1 2 1.5p
+RCM1 1 0 100G
+RCM2 2 0 100G
+* input bias-current-free transconductance stage (gm = 1 mA/V)
+GM   0 10 1 2 1e-3
+* dominant pole: Av(dc) = 10000 (80 dB), fp = 11 kHz  -> GBW = 110 MHz
+RP   10 0 10MEG
+CP   10 0 1.447p
+* second pole for phase margin realism (~250 MHz)
+GM2  0 11 10 0 1e-3
+RP2  11 0 1k
+CP2  11 0 0.637p
+* output stage with supply clipping and 1 ohm output resistance
+EOUT 20 0 VALUE={LIMIT(V(11), V(50)+0.4, V(99)-0.4)}
+ROUT 20 30 1
+.ends AD8092
+*------------------------------------------------------------------
+* Analyses
+.tran 0 5u 0 200p
+.ac dec 100 10k 500MEG
+.measure ac gain_db MAX db(V(OUT)/V(IN))
+.measure tran vpk PP V(OUT) FROM 2u TO 5u
+.end
+```

@@ -1,0 +1,22 @@
+```
+* LT6654-1.25 Precision 1.25V Reference from 5V Supply
+* -----------------------------------------------------
+* Input supply
+VIN     IN   0   DC 5
+* Input bypass capacitor
+CIN     IN   0   1u
+* Genuine LT6654-1.25 reference subcircuit (IN, OUT, GND)
+XU1     IN   OUT 0   LT6654-1.25
+* Output bypass capacitor
+COUT    OUT  0   1u
+* Light DC load (optional)
+RL      OUT  0   10k
+*
+* Analysis
+.tran 0 10m 0 10u uic
+.meas TRAN vout_dc AVG V(OUT) FROM=8m TO=10m
+*
+* Model library (contains the LT6654-1.25 subcircuit)
+.lib LTC.lib
+.end
+```

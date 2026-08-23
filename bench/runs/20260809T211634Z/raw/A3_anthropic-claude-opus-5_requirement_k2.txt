@@ -1,0 +1,35 @@
+```
+* LT3094 Negative LDO: -7V input to -5.0V output, light resistive load
+* --------------------------------------------------------------------
+* Pin order of the LT3094 subcircuit:
+* IN  OUT  SET  ILIM  EN/UV  PG  PGFB  OUTS  GND
+* --------------------------------------------------------------------
+
+V1 IN 0 DC -7
+
+* Input / output capacitors
+CIN  IN  0 10u
+COUT OUT 0 10u
+
+* Output voltage programming: VOUT = -50uA * RSET = -50u * 100k = -5.0V
+RSET SET 0 100k
+
+* Light resistive load (~5 mA)
+RLOAD OUT 0 1k
+
+* Power-good pull-up resistor (open-collector output, referred to IN)
+RPG PG 0 100k
+
+* Regulator (genuine LT3094 model, ILIM tied to IN for internal limit,
+* EN/UV tied to GND for always-on, PGFB to GND, OUTS to OUT)
+XU1 IN OUT SET IN 0 PG 0 OUT 0 LT3094
+.lib LT3094.sub
+
+* --------------------------------------------------------------------
+* Analysis
+* --------------------------------------------------------------------
+.tran 0 5m 0 1u
+.meas TRAN vout_dc AVG V(OUT) FROM 4m TO 5m
+
+.end
+```

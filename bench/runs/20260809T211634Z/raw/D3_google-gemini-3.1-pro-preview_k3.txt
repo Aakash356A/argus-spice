@@ -1,0 +1,42 @@
+* AD8237 Instrumentation Amplifier with a gain of 10 V/V
+* Single 5V supply, 2.5V reference, 20mV amplitude 1kHz differential sine
+
+* Power Supply (Single 5V)
+V_VCC VCC 0 5
+
+* Mid-supply Reference (2.5V)
+V_REF REF 0 2.5
+
+* Common-mode voltage for the negative input (mid-supply)
+V_INN IN_N 0 2.5
+
+* Differential Input Signal (20 mV amplitude sine at 1 kHz)
+* Connected between IN and IN_N. Therefore, IN is the primary input node.
+V_IN IN IN_N SINE(0 20m 1k)
+
+* Gain Setting Resistors
+* For AD8237, Gain = 1 + R2/R1
+* Target Gain = 10 V/V -> R2/R1 = 9
+* R1 connects between FB and REF
+* R2 connects between OUT and FB
+R1 FB REF 10k
+R2 OUT FB 90k
+
+* AD8237 Instrumentation Amplifier Instantiation
+* Standard ADI macro model pinout: IN+ IN- V+ V- REF FB OUT BW
+* BW pin tied to VCC for high-bandwidth mode
+X1 IN IN_N VCC 0 REF FB OUT VCC AD8237
+
+* Transient Analysis
+* Run for 5ms, start saving data at 1ms to allow for initial DC settling
+.tran 0 5m 1m
+
+* Measurements to calculate gain in dB
+* Measure peak-to-peak voltage of the input and output nodes
+.measure tran in_pp PP V(IN)
+.measure tran out_pp PP V(OUT)
+
+* Calculate gain in dB (Target is 20.0 dB)
+.measure tran gain_db PARAM 20*log10(out_pp/in_pp)
+
+.end

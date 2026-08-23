@@ -1,0 +1,16 @@
+* ADG711 Analog Switch Circuit
+VIN IN 0 2V
+VVDD VDD 0 5V
+* ADG711 is a normally closed (NC) switch. Logic 0 (0V) turns the switch ON (closed).
+VCTRL CTRL 0 0V
+RL OUT 0 10k
+
+* ADG711 Quad SPST Switch Instantiation
+* Pinout: 1:IN1, 2:D1, 3:S1, 4:VSS, 5:GND, 6:S2, 7:D2, 8:IN2, 9:IN3, 10:D3, 11:S3, 12:NC, 13:VDD, 14:S4, 15:D4, 16:IN4
+X1 CTRL OUT IN 0 0 0 0 0 0 0 0 NC1 VDD 0 0 0 ADG711
+
+* Dummy resistor to prevent floating node on the NC (No Connect) pin
+R_NC NC1 0 1G
+
+.tran 1m
+.end

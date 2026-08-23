@@ -1,0 +1,14 @@
+* LTC6078 Unity-Gain Voltage Follower
+V1 VDD 0 5
+V2 IN 0 SINE(2.5 0.1 1k) AC 1
+X1 IN OUT VDD 0 OUT LTC6078
+R1 OUT 0 10k
+
+* Analysis directives
+.tran 0 5m
+.ac dec 10 100 100k
+
+* Library inclusion for LTspice standard LTC6xxx series op-amps
+.lib LTC6.lib
+
+.end

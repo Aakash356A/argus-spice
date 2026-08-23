@@ -1,0 +1,27 @@
+* Precision Reference Subsystem with ADR1399H and LTC6078 Buffer
+* Primary supply input
+VIN IN 0 15
+
+* Floating supplies for the LTC6078 to respect its 5.5V max supply limit
+* while allowing it to buffer a 7.05V signal. 
+* VPLUS = 10V, VMINUS = 5V (Total supply = 5V, perfectly centering the 7.05V reference)
+V2 VPLUS 0 10
+V3 VMINUS 0 5
+
+* ADR1399H Precision Shunt Reference
+* Bias resistor for the Zener (approx 3mA)
+R1 IN Z_PLUS 2.67k
+* ADR1399H Subcircuit (Standard LTspice pin order: Zener+, Zener-, Heater+, Heater-)
+X1 Z_PLUS 0 IN 0 ADR1399H
+
+* LTC6078 Unity-Gain Buffer
+* Standard LTspice op-amp pin order: IN+, IN-, V+, V-, OUT
+X2 Z_PLUS OUT VPLUS VMINUS OUT LTC6078
+
+* 1k Load on the buffered VREF output
+Rload OUT 0 1k
+
+* Analysis directive to measure the settled DC output
+.tran 1
+
+.end

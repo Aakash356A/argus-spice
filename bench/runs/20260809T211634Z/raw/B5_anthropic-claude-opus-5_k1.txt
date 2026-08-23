@@ -1,0 +1,60 @@
+```
+* MAX44245 Non-Inverting Amplifier, Av = +20 V/V (26.02 dB), +/-15 V supplies
+* Input: 50 mV amplitude (100 mVpp) 1 kHz sine at node IN
+* Output at node OUT
+
+*------------------- Supplies -------------------
+VCC  VCC 0 DC  15
+VEE  VEE 0 DC -15
+
+*------------------- Signal source --------------
+VIN  IN  0  SINE(0 50m 1k 0 0 0) AC 1
+
+*------------------- Amplifier ------------------
+* Gain = 1 + Rf/Rg = 1 + 19k/1k = 20 V/V
+XU1  IN FB VCC VEE OUT MAX44245
+Rf   OUT FB 19k
+Rg   FB  0  1k
+RL   OUT 0  10k
+CL   OUT 0  10p
+
+*------------------- Analyses -------------------
+.tran 0 5m 0 1u
+* .ac dec 100 1 10Meg
+
+.meas TRAN vout_pp PP V(OUT) FROM 1m TO 5m
+.meas TRAN vin_pp  PP V(IN)  FROM 1m TO 5m
+.meas TRAN gain_vv PARAM vout_pp/vin_pp
+.meas TRAN gain_db PARAM 20*log10(vout_pp/vin_pp)
+
+*=======================================================
+* Behavioral macromodel of MAX44245 precision op amp
+* (Aol ~ 140 dB, GBW ~ 10 MHz, rail-to-rail output)
+* Pin order: IN+  IN-  V+  V-  OUT
+*=======================================================
+.subckt MAX44245 1 2 3 4 5
+* Input stage
+Rin    1 2 1T
+Cin    1 2 5p
+Ib1    1 0 5p
+Ib2    2 0 5p
+* Open-loop gain (10e6) and dominant pole (~1 Hz -> GBW ~10 MHz)
+Eol    ol 0 1 2 10Meg
+Rp     ol p 1k
+Cp     p  0 159u
+* Output swing clamp to supplies (approx rail-to-rail, ~50 mV headroom)
+Vch    3 ch DC 0.05
+Vcl    cl 4  DC 0.05
+Dhi    p ch  Dclamp
+Dlo    cl p  Dclamp
+* Second pole for phase margin realism
+Rp2    p q 100
+Cp2    q 0 160p
+* Output buffer
+Eout   ob 0 q 1
+Rout   ob 5 25
+.model Dclamp D(Ron=1 Roff=1G Vfwd=0 Epsilon=0.02 Revepsilon=0.02)
+.ends MAX44245
+
+.end
+```

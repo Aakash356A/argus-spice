@@ -1,0 +1,10 @@
+* ADR1399H Precision Voltage Reference
+V1 IN 0 15
+R1 IN OUT 2.67k
+C1 OUT 0 1u
+Rload OUT 0 100k
+X1 OUT 0 IN 0 ADR1399H
+
+.lib ADR1399H.sub
+.tran 10m
+.end

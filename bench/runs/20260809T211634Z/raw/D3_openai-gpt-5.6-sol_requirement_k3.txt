@@ -1,0 +1,33 @@
+* AD8237 instrumentation amplifier, gain = 10 V/V, single 5 V supply
+.include AD8237.cir
+
+VCC VCC 0 5
+CDEC VCC 0 100n
+
+* 20 mV peak differential input at 1 kHz, common-mode = 2.5 V
+VIN  IN  0 SINE(2.5 20m 1k) AC 20m
+VINN INN 0 2.5
+
+* Low-impedance mid-supply reference
+VREF REF 0 2.5
+
+* Gain = 1 + RF/RG = 10
+RF OUT FB 90k
+RG FB REF 10k
+
+* Genuine AD8237 model pin order:
+* -IN +IN -VS FB REF OUT +VS
+XU1 INN IN 0 FB REF OUT VCC AD8237
+
+RLOAD OUT 0 100k
+CLOAD OUT 0 10p
+
+.tran 0 10m 5m 1u
+.ac dec 100 10 100k
+
+.meas ac gain_db FIND db(V(OUT)/V(IN,INN)) AT=1k
+.meas tran vin_pp PP V(IN,INN) FROM 5m TO 10m
+.meas tran vout_pp PP V(OUT) FROM 5m TO 10m
+.meas tran gain_tran PARAM vout_pp/vin_pp
+
+.end

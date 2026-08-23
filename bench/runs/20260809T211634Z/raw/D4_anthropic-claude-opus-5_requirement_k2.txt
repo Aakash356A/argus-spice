@@ -1,0 +1,31 @@
+```
+* High-side current-sense amplifier using the genuine LT6106 macromodel
+* 100 mA load current through a 0.1 ohm shunt on a 12 V rail
+* Gain = ROUT/RIN = 10k/100 = 100  ->  VOUT = 100 * (100mA * 0.1ohm) = 1.0 V
+*
+* Node "IN"  = 12 V rail / high side of the shunt (primary input)
+* Node "OUT" = amplifier output across ROUT (primary output)
+
+*** Supply / sensed rail ***
+V1 IN 0 12
+
+*** Sense shunt and load ***
+RSENSE IN LOAD 0.1
+ILOAD  LOAD 0 100m          ; 100 mA load current -> 10 mV sense voltage
+
+*** Gain-setting input resistor (sets the input-to-output transconductance) ***
+RIN IN PIN 100              ; RIN = 100 ohm
+
+*** LT6106 current-sense amplifier  (pins: +IN  -IN  OUT  V-) ***
+XU1 PIN LOAD OUT 0 LT6106
+
+*** Gain-setting output resistor ***
+ROUT OUT 0 10k              ; ROUT = 10k -> gain of 100
+
+*** Analysis ***
+.tran 0 2m 0 1u
+.meas TRAN vout_dc AVG V(OUT) FROM 1m TO 2m
+
+.lib LT6106.sub
+.end
+```

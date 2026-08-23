@@ -1,0 +1,49 @@
+* AD8551 Non-Inverting Amplifier, Gain = 100 V/V (40 dB), Single +5 V Supply
+* Input: 10 mV amplitude, 1 kHz sine (biased at mid-supply)
+*------------------------------------------------------------------
+
+*--- Supplies and reference -------------------------------------
+Vcc   VCC  0   DC 5
+Vref  REF  0   DC 2.5          ; mid-supply reference (ideal for sim)
+
+*--- Signal source: 2.5 V DC bias + 10 mV, 1 kHz sine ------------
+V1    IN   0   SINE(2.5 10m 1k) AC 1
+
+*--- Amplifier: non-inverting, G = 1 + R2/R1 = 1 + 99k/1k = 100 ---
+X1    IN   INN  VCC  0  OUT  AD8551
+R1    INN  REF  1k
+R2    INN  OUT  99k
+CL    OUT  0    100p
+RL    OUT  REF  100k
+
+*================================================================
+* Simplified AD8551 macromodel (rail-to-rail I/O CMOS zero-drift)
+* A0 = 100 dB, GBW ~ 1.5 MHz, Vos ~ 1 uV, output swings to rails
+*================================================================
+.subckt AD8551 1 2 3 4 5
+* 1=IN+  2=IN-  3=V+  4=V-  5=OUT
+Vos   1   1a   DC 1u
+Rin   1a  2    1T
+Rcm1  1a  4    1G
+Rcm2  2   4    1G
+G1    0   n1   1a 2  1m          ; gm = 1 mS
+R1    n1  0    100Meg            ; A0 = gm*R1 = 1e5 (100 dB)
+C1    n1  0    106p              ; GBW = gm/(2*pi*C1) ~ 1.5 MHz
+* second pole
+R2    n1  n2   1k
+C2    n2  0    16p
+* output stage with rail clamping
+Bout  n3  0    V = limit( V(n2), V(4)+0.012, V(3)-0.012 )
+Rout  n3  5    40
+.ends AD8551
+
+*--- Analysis ----------------------------------------------------
+.tran 0 5m 0 1u
+
+.meas TRAN vmax  MAX V(OUT) FROM 2m TO 5m
+.meas TRAN vmin  MIN V(OUT) FROM 2m TO 5m
+.meas TRAN vpp   PARAM vmax-vmin
+.meas TRAN gain_db PARAM 20*log10((vmax-vmin)/(2*10m))
+
+.options plotwinsize=0 numdgt=7
+.end

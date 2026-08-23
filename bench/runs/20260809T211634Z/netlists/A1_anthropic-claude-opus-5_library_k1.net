@@ -1,0 +1,40 @@
+* LT3045-1 Ultralow Noise LDO : 5V IN -> 3.3V OUT @ 100mA
+* ---------------------------------------------------------------
+* Vout = ISET(100uA) * RSET  ->  RSET = 33k for 3.300V
+* ---------------------------------------------------------------
+
+.lib LT3045-1.sub
+
+* ---------------- Input source (soft ramp for convergence) -------
+VIN IN 0 PWL(0 0 100u 5) DC 5
+
+* ---------------- Input / output capacitors ---------------------
+CIN  IN  0 10u
+COUT OUT 0 10u
+
+* ---------------- Regulator ------------------------------------
+* Pin order: IN OUT OUTS SET ILIM PG EN/UV GND
+* OUTS tied to OUT (local sense), EN/UV tied to IN (always enabled)
+XU1 IN OUT OUT SET ILIM PG IN 0 LT3045-1
+
+* Output voltage program resistor + reference bypass cap
+RSET SET 0 33k
+CSET SET 0 10n
+
+* Current limit pin left at internal maximum (high-Z tie for DC path)
+RILIM ILIM 0 1G
+
+* Power-good open-collector output with pull-up
+RPG PG OUT 100k
+
+* ---------------- Load : 3.3V / 33 ohm = 100mA ------------------
+RLOAD OUT 0 33
+
+* ---------------- Analysis -------------------------------------
+.tran 0 5m 0 1u startup
+.meas TRAN vout_dc AVG V(OUT) FROM 4m TO 5m
+.meas TRAN iload  AVG I(RLOAD) FROM 4m TO 5m
+.meas TRAN vdrop  PARAM 5-0
+.options plotwinsize=0 reltol=1e-4
+
+.end

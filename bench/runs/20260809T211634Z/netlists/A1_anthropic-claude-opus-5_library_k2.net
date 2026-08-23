@@ -1,0 +1,40 @@
+* LT3045-1 Ultralow Noise LDO: 5 V IN -> 3.3 V OUT @ 100 mA
+* ---------------------------------------------------------------
+.lib LT3045-1.sub
+
+* ---------------- Input source ----------------
+VIN IN 0 PWL(0 0 100u 5)          ; 5 V input with short ramp for clean start-up
+CIN IN 0 10u                      ; input decoupling capacitor
+RESR_IN IN 0 10m                  ; small series/ESR damping path (no ideal cap)
+
+* ---------------- Regulator ----------------
+* Pin order: IN  OUT  OUTS  SET  ILIM  PG  EN/UV  GND
+XU1 IN OUT OUTS SET ILIM PG IN 0 LT3045-1
+
+* Output sense (Kelvin) connection
+ROUTS OUT OUTS 1m
+
+* Output voltage programming: VOUT = 100uA * RSET = 100u * 33k = 3.3 V
+RSET SET 0 33k
+CSET SET 0 4.7n                   ; optional noise-reduction / soft-start cap
+
+* Current limit pin: high resistance = maximum (default) current limit
+RILIM ILIM 0 1G
+
+* Power-good open-collector output pull-up
+RPG OUT PG 100k
+
+* ---------------- Output network ----------------
+COUT OUT 0 10u
+RCOUT OUT 0 10m                   ; ESR damping path for COUT branch modelling
+
+* ---------------- Load: 3.3 V / 33 ohm = 100 mA ----------------
+RLOAD OUT 0 33
+
+* ---------------- Analysis ----------------
+.tran 0 5m 0 10u
+.meas TRAN vout_dc AVG V(OUT) FROM 4m TO 5m
+.meas TRAN iload  AVG I(RLOAD) FROM 4m TO 5m
+.options plotwinsize=0 gmin=1e-12 reltol=1e-4
+
+.end

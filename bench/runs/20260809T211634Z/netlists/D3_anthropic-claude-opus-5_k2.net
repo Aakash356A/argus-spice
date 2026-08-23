@@ -1,0 +1,56 @@
+* AD8237 Instrumentation Amplifier -- G = 10 V/V, single 5 V supply
+* Differential input: 20 mV amplitude, 1 kHz sine; REF = mid-supply (2.5 V)
+* -----------------------------------------------------------------------
+
+* ---------------- Supplies ----------------
+VCC   VCC  0   DC 5
+VEE   0    0   DC 0          ; single-supply: negative rail = ground
+
+* ---------------- Mid-supply reference (buffered divider) ----------------
+RD1   VCC  MID 100k
+RD2   MID  0   100k
+CD1   MID  0   1u
+EBUF  REF  0   MID 0 1       ; low impedance mid-supply reference
+
+* ---------------- Input signals ----------------
+* IN  = primary (positive) input : 2.5 V CM + 20 mV, 1 kHz
+* INN = negative input held at common mode  -> Vdiff = 20 mV amplitude
+VIN   IN   0   SINE(2.5 20m 1k 0 0 0)
+VINN  INN  0   DC 2.5
+
+* ---------------- AD8237 in-amp, gain set network ----------------
+* G = 1 + RF/RG = 1 + 90k/10k = 10 V/V (20 dB)
+XU1   IN INN REF FB OUT VCC 0  AD8237
+RG    REF  FB  10k
+RF    FB   OUT 90k
+CL    OUT  0   100p
+RL    OUT  0   100k
+
+* =======================================================================
+* Behavioral macromodel of the AD8237 indirect-current-feedback in-amp
+*   Forces (V+IN - V-IN) = (VFB - VREF), rail-to-rail limited output
+*   DC gain 1e5, dominant pole ~10 Hz  (GBW ~ 1 MHz)
+* =======================================================================
+.subckt AD8237 VP VN REF FB OUT VSP VSN
+RIP   VP  VSN 1G
+RIN   VN  VSN 1G
+RIF   FB  VSN 1G
+BG    1   VSN V=limit(1e5*((V(VP)-V(VN))-(V(FB)-V(REF))), V(VSN)+0.02, V(VSP)-0.02)
+RP    1   2   1k
+CP    2   VSN 15.9u
+BO    3   VSN V=V(2)
+ROUT  3   OUT 2
+IQ    VSP VSN 115u
+.ends AD8237
+
+* ---------------- Analysis ----------------
+.tran 0 5m 0 1u
+
+.meas TRAN vopp   PP V(OUT) FROM 2m TO 5m
+.meas TRAN vipp   PP V(IN)  FROM 2m TO 5m
+.meas TRAN gain      PARAM vopp/vipp
+.meas TRAN gain_db   PARAM 20*log10(vopp/vipp)
+.meas TRAN vout_dc AVG V(OUT) FROM 2m TO 5m
+
+.options plotwinsize=0 numdgt=7
+.end

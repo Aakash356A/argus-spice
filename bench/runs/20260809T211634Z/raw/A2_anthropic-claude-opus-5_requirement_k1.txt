@@ -1,0 +1,38 @@
+```
+* ADP7118 LDO: 3.3 V IN -> 1.8 V OUT @ 50 mA resistive load
+* -----------------------------------------------------------
+* Genuine ADI model is instantiated as a subcircuit (not redefined here).
+* Pin order of ADI's model: VIN VOUT ADJ EN GND
+.include ADP7118.lib
+
+* ---------------- Source ----------------
+VIN  IN 0 DC 3.3
+
+* ---------------- Input decoupling ----------------
+CIN  IN 0 1u
+
+* ---------------- Enable (tied to input, active high) ----------------
+REN  IN EN 100
+
+* ---------------- Regulator ----------------
+XU1  IN OUT ADJ EN 0 ADP7118
+
+* ---------------- Output programming divider (VREF = 1.2 V) ----------------
+* VOUT = 1.2 * (1 + R1/R2) = 1.2 * (1 + 10k/20k) = 1.8 V
+R1   OUT ADJ 10k
+R2   ADJ 0   20k
+
+* ---------------- Output decoupling ----------------
+COUT OUT 0 1u
+
+* ---------------- Load: 1.8 V / 36 ohm = 50 mA ----------------
+RLOAD OUT 0 36
+
+* ---------------- Analysis ----------------
+.tran 10u 5m 0 1u startup
+.meas TRAN vout_dc AVG V(OUT) FROM=4m TO=5m
+.meas TRAN iload   AVG I(RLOAD) FROM=4m TO=5m
+
+.options plotwinsize=0
+.end
+```

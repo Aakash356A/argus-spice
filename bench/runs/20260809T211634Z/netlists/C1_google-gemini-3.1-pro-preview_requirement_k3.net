@@ -1,0 +1,31 @@
+* LTC6252 High-Speed Amplifier
+
+* Power Supplies (+/- 5V)
+V1 VCC 0 5
+V2 VEE 0 -5
+
+* Input Signal: 1 V amplitude sine wave at 10 MHz
+V3 IN 0 SINE(0 1 10Meg)
+
+* Feedback network for Non-Inverting Gain = 2 V/V
+* Gain = 1 + R2/R1 = 1 + 1k/1k = 2 V/V
+R1 M_IN 0 1k
+R2 OUT M_IN 1k
+
+* LTC6252 Opamp Subcircuit Instantiation
+* Standard LTspice pinout for opamps with shutdown: +IN -IN V+ V- OUT SHDN
+* SHDN is tied to VCC to enable the amplifier
+X1 IN M_IN VCC VEE OUT VCC LTC6252
+
+* Transient analysis for 2 microseconds (20 cycles at 10 MHz)
+* Max timestep set to 1ns for good resolution
+.tran 0 2u 0 1n
+
+* Measure peak-to-peak voltages over the second microsecond (to allow for any initial settling)
+.meas TRAN out_pp PP V(OUT) FROM 1u TO 2u
+.meas TRAN in_pp PP V(IN) FROM 1u TO 2u
+
+* Calculate the gain in dB
+.meas TRAN gain_db PARAM 20*log10(out_pp/in_pp)
+
+.end

@@ -1,0 +1,17 @@
+* LT8710-controlled 500kHz complementary PWM power stage
+BHS GH 0 V=if(mod(time,2u)<1u,5,0)
+BLS GL 0 V=if(mod(time,2u)<1u,0,5)
+
+SHIGH IN SW GH 0 SWPOWER
+SLOW  SW 0  GL 0 SWPOWER
+.model SWPOWER SW(Ron=20m Roff=1G Vt=2 Vh=100m)
+
+L1 SW OUT 22u Rser=100m
+COUT OUT 0 220u Rser=30m
+RLOAD OUT 0 12
+
+.tran 0 10m 0 20n startup
+.meas tran vout_dc AVG V(OUT) FROM 8m TO 10m
+.option plotwinsize=0
+
+.end

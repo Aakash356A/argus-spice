@@ -1,0 +1,16 @@
+* AD8237 Instrumentation Amplifier
+V1 VCC 0 5
+V2 VREF 0 2.5
+V4 IN_M 0 2.5
+V3 IN IN_M SINE(0 20m 1k) AC 1
+
+* Gain = 1 + R2/R1 = 1 + 9k/1k = 10 (20 dB)
+R1 FB VREF 1k
+R2 OUT FB 9k
+
+* AD8237 Subcircuit Pin Order: BW INM INP VSN REF VOUT FB VSP
+X1 VCC IN_M IN 0 VREF OUT FB VCC AD8237
+
+.tran 5m
+.ac dec 10 10 100k
+.end

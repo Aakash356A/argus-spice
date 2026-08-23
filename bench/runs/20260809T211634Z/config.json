@@ -1,0 +1,46 @@
+{
+  "run_id": "20260809T211634Z",
+  "created_at": "2026-08-09T21:16:34+00:00",
+  "updated_at": "2026-08-14T03:57:08+00:00",
+  "models": [
+    "anthropic/claude-opus-5",
+    "google/gemini-3.1-pro-preview",
+    "openai/gpt-5.6-sol"
+  ],
+  "prompt_variants": [
+    "bare",
+    "library",
+    "requirement"
+  ],
+  "variant_purpose": {
+    "bare": "Claim 1 -- no library is mentioned. Measures what a model does unprompted, and whether a naive simulator gate can tell.",
+    "requirement": "AR-5 cell 2 -- substitution forbidden, but the library is NOT mentioned and no .lib directive is given. Isolates requirement-following from library availability.",
+    "library": "Claim 2 -- the vendor library is available and its exact .lib line is supplied, but stubbing is not forbidden."
+  },
+  "samples_per_case": 3,
+  "cases": [
+    "A1",
+    "A2",
+    "A3",
+    "A4",
+    "A5",
+    "B1",
+    "B2",
+    "B3",
+    "B4",
+    "B5",
+    "C1",
+    "C2",
+    "C3",
+    "C4",
+    "C5",
+    "D1",
+    "D2",
+    "D3",
+    "D4",
+    "D5"
+  ],
+  "temperature_requested": 0.7,
+  "guard_enforced": false,
+  "template_shown_to_model": false
+}

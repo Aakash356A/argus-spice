@@ -1,0 +1,39 @@
+* ADG5248F Analog Multiplexer Netlist
+.lib ADG.lib
+
+* Power Supplies (+/-15V)
+V_VDD VDD 0 15
+V_VSS VSS 0 -15
+
+* Logic Power / Enable (5V)
+V_EN EN 0 5
+
+* Channel Select (Channel 1 -> A0=0, A1=0, A2=0)
+V_A0 A0 0 0
+V_A1 A1 0 0
+V_A2 A2 0 0
+
+* Input Signal: 1 kHz, 500 mV amplitude sine wave
+V_IN IN 0 SINE(0 0.5 1k)
+
+* Device Under Test: ADG5248F
+* Typical ADI pin order for 8:1 fault-protected mux: 
+* S1 S2 S3 S4 S5 S6 S7 S8 D A0 A1 A2 EN VDD VSS GND FF SF
+X1 IN 0 0 0 0 0 0 0 OUT A0 A1 A2 EN VDD VSS 0 FF SF ADG5248F
+
+* Output Load
+R_LOAD OUT 0 1Meg
+
+* Pull-ups for Fault Flags (typically open drain)
+R_FF VDD FF 10k
+R_SF VDD SF 10k
+
+* Transient Analysis (5ms run to capture 5 cycles at 1kHz)
+.tran 1u 5m
+
+* Measure peak-to-peak voltages over the settled cycles to determine gain
+.measure tran VOUT_PP PP V(OUT) FROM=2m TO=5m
+.measure tran VIN_PP PP V(IN) FROM=2m TO=5m
+.measure tran gain_db PARAM 20*log10(VOUT_PP/VIN_PP)
+
+.end

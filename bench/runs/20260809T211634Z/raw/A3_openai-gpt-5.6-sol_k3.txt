@@ -1,0 +1,22 @@
+* LT3094 negative LDO: -7V input, -5V output
+VIN IN 0 DC -7
+CIN IN 0 10u
+
+RSET SET 0 49.9k
+CSET SET 0 10n
+
+XU1 IN OUT SET 0 LT3094
+
+COUT OUT 0 10u
+RLOAD OUT 0 10k
+
+* Simplified self-contained LT3094 functional model
+.subckt LT3094 IN OUT SET GND
+ISET SET GND DC 100u
+BREG OUT GND V=limit(V(SET,GND),V(IN,GND)+0.3,0)
+.ends LT3094
+
+.tran 0 20m 0 10u
+.meas tran vout_dc AVG V(OUT) FROM=15m TO=20m
+
+.end

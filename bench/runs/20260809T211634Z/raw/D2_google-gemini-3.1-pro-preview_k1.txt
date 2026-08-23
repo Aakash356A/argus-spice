@@ -1,0 +1,24 @@
+```spice
+* ADG711 Analog Switch Circuit
+
+* 5V Single Supply
+Vdd VDD 0 5
+
+* 2V DC Input
+Vin IN 0 2
+
+* Control line driven to 0V (Logic Low) to close the ADG711 switch (Normally Closed)
+Vctrl ctrl 0 0
+
+* ADG711 Analog Switch Instance
+* Standard LTspice ADI switch pinout: D S IN VDD GND
+X1 OUT IN ctrl VDD 0 ADG711
+
+* 10k Load Resistor
+Rload OUT 0 10k
+
+* Transient analysis to measure settled DC output
+.tran 1m
+
+.end
+```

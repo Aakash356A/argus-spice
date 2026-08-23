@@ -1,0 +1,59 @@
+* ================================================================
+* AD4021 : 20-bit, 1 MSPS, SAR ADC (pseudo-differential, SPI)
+* Behavioural front-end model: RC input filter, VREF, VDD/VIO
+* supplies, CNV conversion clock and SCK read-back clock.
+* OUT = analogue reconstruction of the 20-bit output code
+*       (i.e. VREF * CODE / 2^20), which is what an ideal DAC
+*       driven by the SDO data stream would produce.
+* ================================================================
+
+* ---------------- Analogue input (1 V dc) -----------------------
+VIN     IN   0    DC 1
+* RC kick-back / anti-alias filter into IN+ (R.C ~ 90 ns << 1 us)
+R1      IN   INP  33
+C1      INP  0    2.7n
+* IN- of the pseudo-differential pair returned to ADC ground
+RINM    INM  0    1
+
+* ---------------- Reference input (5 V) -------------------------
+VREF    REF  0    DC 5
+CREF    REF  0    10u          ; low-ESR reference reservoir cap
+RREF    REF  REFB 0.1          ; trace/decoupling resistance
+CREFB   REFB 0    100n
+
+* ---------------- Supplies --------------------------------------
+VDD     VDD  0    DC 1.8       ; analogue core supply
+CVDD    VDD  0    100n
+VIOS    VIO  0    DC 1.8       ; interface supply
+CVIO    VIO  0    100n
+
+* ---------------- Conversion clock : CNV, 1 MSPS ----------------
+VCNV    CNV  0    PULSE(0 1.8 100n 1n 1n 40n 1u)
+* ---------------- SPI read-back clock : SCK, 50 MHz -------------
+VSCK    SCK  0    PULSE(0 1.8 400n 1n 1n 10n 20n)
+* SDI held high (3-wire, CS mode)
+VSDI    SDI  0    DC 1.8
+
+* ---------------- Track-and-hold (acquire while CNV low) --------
+BACQ    ACQ  0    V = 1.8*(V(CNV) < 0.9)
+S1      INP  SAMP ACQ 0 SWSAMP
+.model SWSAMP SW(Ron=50 Roff=1G Vt=0.9 Vh=0.1)
+CH      SAMP 0    20p           ; internal sampling capacitor
+
+* ---------------- 20-bit quantiser (0 .. VREF span) -------------
+* Output is valid only when both supplies are up.
+BADC    OUT  0    V = (V(VDD)>1.65)*(V(VIO)>1.65)
++ * V(REFB) * floor( limit(V(SAMP),0,V(REFB))/V(REFB)*1048576 + 0.5 ) / 1048576
+RLOAD   OUT  0    1Meg
+
+* ---------------- SDO activity flag (busy/data-out) -------------
+BSDO    SDO  0    V = V(VIO)*(V(CNV) > 0.9)
+RSDO    SDO  0    10k
+
+* ---------------- Analysis --------------------------------------
+.tran 0 5u 0 1n
+.meas TRAN vout_settled  FIND V(OUT)  AT 4.9u
+.meas TRAN vlsb          PARAM 5/1048576
+.meas TRAN code_error    PARAM (1 - vout_settled)/vlsb
+.options plotwinsize=0
+.end

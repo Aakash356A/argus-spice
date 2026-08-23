@@ -1,0 +1,52 @@
+```
+* ============================================================
+* LT6106 HIGH-SIDE CURRENT SENSE AMPLIFIER
+* 100 mA load current through a 0.1 ohm shunt on a 12 V rail
+* Gain = ROUT/RIN = 10k/100 = 100  ->  VOUT = 100 * (100mA * 0.1) = 1.0 V
+* ============================================================
+
+*** 12 V rail and shunt / load ***
+V1      IN    0      DC 12
+Rsense  IN    LD     0.1          ; 0.1 ohm shunt, Vsense = 10 mV at 100 mA
+Rload   LD    0      119.9        ; load draws 100.0 mA
+
+*** LT6106 gain-setting resistors ***
+* RIN sets the sense current  Iin = Vsense/RIN = 10mV/100 = 100uA
+* ROUT converts it to voltage Vout = Iin*ROUT = 100uA*10k = 1.0 V
+Rin     IN    AIN    100          ; input resistor to +IN pin
+Rout    OUT   0      10k          ; output (gain) resistor
+Cout    OUT   0      100p         ; small output filter cap
+
+*** LT6106 : pins = (+IN  -IN  OUT  V-) ***
+X1      AIN   LD     OUT   0   LT6106
+
+* ============================================================
+* Behavioral macromodel of the LT6106 current-sense amplifier
+* Servo forces V(+IN) = V(-IN) (+/- Vos), the resulting current
+* pulled in at +IN through RIN is sourced out of the OUT pin.
+* Vos = 250uV typ, output current limit ~ 20 mA, GBW-limited loop.
+* ============================================================
+.subckt LT6106 IP IM OUT VNEG
+* --- error transconductance stage (includes 250uV input offset) ---
+Gerr  VNEG X   value={1e-4*(V(IP,IM)+250u)}
+Rx    X    VNEG 1meg                      ; DC gain = 100
+Cx    X    VNEG 1n                         ; dominant pole ~159 Hz
+* --- input current sink (current drawn in through RIN) ---
+Gin   IP   VNEG value={LIMIT(10*V(X),0,20m)}
+* --- mirrored output current source (out of OUT pin) ---
+Gout  VNEG OUT  value={LIMIT(10*V(X),0,20m)}
+* --- output compliance / leakage ---
+Rleak OUT  VNEG 1000meg
+Dsat  OUT  IP   DCLAMP                     ; keeps VOUT below the +IN rail
+.model DCLAMP D(Is=1e-15 N=1 Rs=10)
+.ends LT6106
+
+*** ANALYSIS ***
+.tran 0 2m 0 1u uic
+.meas TRAN vout_dc AVG V(OUT) FROM 1.5m TO 2m
+.meas TRAN vsense  AVG V(IN,LD) FROM 1.5m TO 2m
+.meas TRAN iload   AVG I(Rsense) FROM 1.5m TO 2m
+
+.options plotwinsize=0 numdgt=7
+.end
+```

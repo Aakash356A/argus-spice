@@ -1,0 +1,35 @@
+* LT3094 Negative LDO: -7V IN -> -5V OUT, light resistive load
+* -------------------------------------------------------------
+.lib LT3094.sub
+
+* ---- Input source (negative rail referenced to system GND = node 0) ----
+VIN IN 0 DC -7
+
+* ---- Regulator: pins = IN OUT SET ILIM PG EN/UV GND ----
+* EN/UV tied to IN keeps the part permanently enabled
+XU1 IN OUT SET ILIM PG IN 0 LT3094
+
+* ---- Output programming: VOUT = -100uA * RSET  ->  -5V @ 50k ----
+RSET SET 0 50k
+CSET SET 0 10n          ; optional reference/noise filter cap
+
+* ---- ILIM left effectively open (full 500mA current limit) ----
+RILIM ILIM 0 1G
+
+* ---- Power-good pull-up (open-collector to GND rail) ----
+RPG PG 0 100k
+
+* ---- Input / output capacitors ----
+CIN  IN  0 10u
+CIN2 IN  0 1u
+COUT OUT 0 10u
+
+* ---- Light resistive load: 5mA ----
+RL OUT 0 1k
+
+* ---- Analysis ----
+.tran 0 10m 0 10u startup
+.meas TRAN vout_dc AVG V(OUT) FROM 8m TO 10m
+
+.options plotwinsize=0 gmin=1e-12 reltol=0.001
+.end

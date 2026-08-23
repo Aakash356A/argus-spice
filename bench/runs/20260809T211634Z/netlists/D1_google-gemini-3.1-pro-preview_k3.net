@@ -1,0 +1,10 @@
+* LT1720 Comparator Circuit
+V1 VCC 0 5V
+R1 VCC N001 33.5k
+R2 N001 0 16.5k
+V2 IN 0 3V
+X1 N001 IN VCC 0 OUT LT1720
+R3 VCC OUT 10k
+
+.tran 1m
+.end

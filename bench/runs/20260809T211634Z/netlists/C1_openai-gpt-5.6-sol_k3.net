@@ -1,0 +1,22 @@
+* LTC6252 noninverting amplifier, gain = 2 V/V
+.lib LTC6252.sub
+
+VCC VCC 0 5
+VEE VEE 0 -5
+VIN IN 0 SINE(0 1 10Meg) AC 1
+
+XU1 IN NFB VCC VEE OUT LTC6252
+RG NFB 0 1k
+RF OUT NFB 1k
+RL OUT 0 10k
+
+.ac dec 100 1Meg 100Meg
+.tran 0 1u 0 500p
+
+.meas ac GAIN_DB FIND VDB(OUT) AT=10Meg
+.meas tran VIN_PP PP V(IN) FROM=800n TO=1u
+.meas tran VOUT_PP PP V(OUT) FROM=800n TO=1u
+.meas tran TRAN_GAIN_DB PARAM 20*log10(VOUT_PP/VIN_PP)
+
+.options plotwinsize=0
+.end

@@ -1,0 +1,17 @@
+VDD VDD 0 5
+VIN IN 0 DC 2
+VCTRL CTRL 0 DC 5
+
+XU1 IN OUT CTRL VDD 0 ADG711
+RLOAD OUT 0 10k
+
+.subckt ADG711 S D EN VDD VSS
+BCTRL CTL VSS V=if(V(VDD,VSS)>2.7,V(EN,VSS),0)
+SSW S D CTL VSS SW_ADG711
+.model SW_ADG711 SW(Ron=4 Roff=1G Vt=2.5 Vh=0.1)
+.ends ADG711
+
+.tran 0 1m
+.meas tran vout_dc FIND V(OUT) AT=1m
+
+.end

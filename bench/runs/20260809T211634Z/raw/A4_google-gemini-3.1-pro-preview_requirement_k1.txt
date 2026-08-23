@@ -1,0 +1,11 @@
+* ADR1399H Precision Voltage Reference
+V1 IN 0 15
+R1 IN OUT 2.67k
+X1 OUT 0 IN 0 ADR1399H
+C1 OUT 0 1u
+R2 OUT 0 100k
+
+* Run simulation for 5 seconds to allow the internal heater thermal model to fully settle
+.tran 5
+
+.end

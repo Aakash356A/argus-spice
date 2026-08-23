@@ -1,0 +1,57 @@
+* ADP7118 Behavioral LDO Application: 3.3 V IN -> 1.8 V OUT @ 50 mA
+* ---------------------------------------------------------------
+* Primary nodes: IN (input), OUT (regulated output)
+* ---------------------------------------------------------------
+
+*==================== Application Circuit ====================
+VIN     IN      0       DC 3.3
+VEN     EN      0       DC 3.3
+
+CIN     IN      0       1u              ; input decoupling
+XU1     IN      OUT     0       EN      ADP7118
+COUT    OUT     0       1u              ; output decoupling
+RESR    OUT     OUTX    5m              ; ESR of COUT (returned to gnd node)
+CESR    OUTX    0       1n
+
+RL      OUT     0       36              ; 1.8 V / 36 ohm = 50 mA resistive load
+
+*============= ADP7118 Behavioral Macromodel =================
+* 200 mA CMOS low-noise LDO, fixed 1.8 V option
+* Models: enable threshold, soft-start, dropout clamp,
+*         load regulation (output impedance), quiescent current
+.subckt ADP7118 IN OUT GND EN VFIX=1.8 RDROP=1.0 IQ=55u
+
+* --- Enable comparator (UVLO/EN threshold ~1.1 V) ---
+BEN     enok  GND  V = if( V(EN,GND) > 1.1 & V(IN,GND) > 2.2, 1, 0 )
+
+* --- Internal reference with soft-start ramp (~200 us) ---
+VREF    refi  GND  DC {VFIX}
+RSS     refi  ss        10k
+CSS     ss    GND       20n
+RSSD    ss    GND       10Meg
+
+* --- Pass device / error-amplifier loop (ideal regulated source
+*     clamped by the available headroom => dropout behavior) ---
+BREG    reg   GND  V = V(enok) * min( V(ss,GND), max(0, V(IN,GND)-0.02) )
+
+* --- Output impedance (load regulation) + parasitics ---
+RSER    reg   OUT       0.1
+LOUT    reg2  OUT       1n
+CPAR    OUT   GND       10p
+
+* --- Quiescent / ground current ---
+IQUI    IN    GND       {IQ}
+RLK     IN    GND       10Meg
+
+.ends ADP7118
+
+*======================== Analysis ===========================
+.tran 0 2m 0 1u
+
+.meas TRAN vout_dc  AVG V(OUT)  FROM=1.5m TO=2m
+.meas TRAN iload    AVG I(RL)   FROM=1.5m TO=2m
+.meas TRAN vin_dc   AVG V(IN)   FROM=1.5m TO=2m
+.meas TRAN vdropout PARAM vin_dc-vout_dc
+
+.options plotwinsize=0 reltol=1e-4
+.end

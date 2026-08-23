@@ -1,0 +1,9 @@
+* LT1720 Comparator Circuit
+V1 VCC 0 5
+V2 IN 0 3
+R1 VCC THRESH 67k
+R2 THRESH 0 33k
+R3 OUT VCC 10k
+X1 THRESH IN VCC 0 OUT LT1720
+.tran 1m
+.end

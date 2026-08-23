@@ -1,0 +1,57 @@
+```
+* AD8237 Single-Supply Instrumentation Amplifier, G = 10 V/V
+* 20 mV amplitude differential sine @ 1 kHz, REF = mid-supply (2.5 V)
+*
+*-------------------------------------------------------------------
+* Behavioral macromodel of the AD8237 (indirect current-feedback
+* zero-drift in-amp).  The amplifier forces
+*        (V(INP)-V(INN)) = (V(FB)-V(REF))
+* so an external network R1 (REF-FB) / R2 (FB-OUT) sets
+*        G = 1 + R2/R1
+* Rail-to-rail output stage is clamped to the supply pins.
+*-------------------------------------------------------------------
+.subckt AD8237 INP INN REF FB OUT VPS VNS
+* input leakage / DC paths (very high impedance)
+Rinp INP 0 1T
+Rinn INN 0 1T
+Rfb  FB  0 1T
+* differential error amplifier (open-loop DC gain 1e5)
+Berr  ERR 0 V = 1e5 * ( (V(INP)-V(INN)) - (V(FB)-V(REF)) )
+Rp    ERR NP 1k
+Cp    NP  0 1.59u          ; dominant pole ~100 Hz -> GBW ~10 MHz*
+* (pole/GBW chosen so 1 kHz gain error is negligible)
+* rail-to-rail output stage with supply clamping
+Bout  OA 0 V = limit( V(NP), V(VNS)+0.02, V(VPS)-0.02 )
+Rout  OA OUT 2
+.ends AD8237
+*-------------------------------------------------------------------
+
+* ---- supplies and mid-supply reference ----
+Vsup  VDD 0 DC 5
+Vcm   VCM 0 DC 2.5          ; mid-supply reference / input common mode
+
+* ---- differential input signal: 20 mV amplitude, 1 kHz ----
+V1    IN  VCM  SINE(0 20m 1k)  AC 1
+
+* ---- in-amp connection: +IN=IN, -IN=VCM, REF=VCM ----
+XU1   IN VCM VCM FB OUT VDD 0 AD8237
+
+* ---- gain network: G = 1 + R2/R1 = 1 + 90k/10k = 10 ----
+R1    VCM FB  10k
+R2    FB  OUT 90k
+
+* ---- light output load ----
+RL    OUT VCM 100k
+CL    OUT 0   100p
+
+* ---- analysis ----
+.tran 0 5m 0 1u
+.meas tran vinpp  PP V(IN,VCM) FROM 2m TO 5m
+.meas tran voutpp PP V(OUT)    FROM 2m TO 5m
+.meas tran vout_dc AVG V(OUT)  FROM 2m TO 5m
+.meas tran gain_db PARAM 20*log10(voutpp/vinpp)
+* Alternative AC check:
+* .ac dec 100 10 1Meg
+
+.end
+```

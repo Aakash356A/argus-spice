@@ -1,0 +1,25 @@
+* LT1720 comparator with 1.65 V threshold and open-drain output
+VCC VCC 0 DC 5
+VIN IN 0 DC 2.0
+
+* 5 V divider: 5 * 33k/(67k+33k) = 1.65 V
+RTH_TOP VCC THRESH 67k
+RTH_BOT THRESH 0 33k
+
+* LT1720 comparator: IN above THRESH drives CMP high
+XU1 IN THRESH VCC 0 CMP LT1720
+
+* External open-drain-style output stage
+MOUT OUT CMP 0 0 NOD
+.model NOD NMOS (VTO=1 KP=0.1 LAMBDA=0.01)
+RPULL VCC OUT 10k
+COUT OUT 0 10p
+
+.subckt LT1720 INP INN VCC VEE OUTC
+BOUT OUTC VEE V=if(V(INP)>V(INN),V(VCC,VEE),0)
+.ends LT1720
+
+.tran 0 10u 0 10n
+.meas tran vout_dc FIND V(OUT) AT=9u
+
+.end

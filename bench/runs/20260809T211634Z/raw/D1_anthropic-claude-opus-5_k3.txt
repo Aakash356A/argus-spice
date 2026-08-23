@@ -1,0 +1,46 @@
+```
+* LT1720 Comparator: 5V supply, 1.65V resistor-divider threshold,
+* open-drain style output with pull-up resistor, input above threshold.
+* Output is expected LOW (~0 V) because V(IN) > 1.65 V threshold.
+*----------------------------------------------------------------------
+
+VCC   VCC 0 DC 5
+Vin   IN  0 DC 3.0            ; input held above the 1.65 V threshold
+
+* --- Threshold divider:  5V * 1.65k/(3.35k+1.65k) = 1.65 V ---
+R1    VCC THRESH 3.35k
+R2    THRESH 0   1.65k
+Cbyp  THRESH 0   100n
+
+* --- Open-drain output pull-up ---
+Rpull VCC OUT 4.7k
+Cload OUT 0 10p
+
+* --- Comparator: threshold on +IN, signal on -IN (output low when IN > 1.65V) ---
+XU1   THRESH IN VCC 0 OUT LT1720
+
+*----------------------------------------------------------------------
+* Behavioral LT1720 comparator macromodel (open-drain output stage)
+* Pins:  INP  INN  V+  GND  OUT
+*----------------------------------------------------------------------
+.subckt LT1720 INP INN VP GND OUT
+Rin1  INP GND 1G
+Rin2  INN GND 1G
+* differential decision node (pull-down drive when INN > INP)
+Bcmp  CTLI GND V = LIMIT(1e4*(V(INN)-V(INP)-0.0015), 0, 5)
+Rdly  CTLI CTL 100
+Cdly  CTL  GND 40p
+Rctl  CTL  GND 1MEG
+* open-drain (NMOS-like) pull-down switch
+S1    OUT GND CTL GND SWMOD
+Rleak OUT GND 100MEG
+* quiescent supply current
+Iq    VP GND 4m
+.model SWMOD SW(Ron=10 Roff=1G Vt=2.5 Vh=0.2)
+.ends LT1720
+
+*----------------------------------------------------------------------
+.tran 10u 2m 0 1u
+.meas TRAN vout_dc AVG V(OUT) FROM 1.5m TO 2m
+.end
+```

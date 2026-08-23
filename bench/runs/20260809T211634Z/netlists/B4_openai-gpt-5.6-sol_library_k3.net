@@ -1,0 +1,18 @@
+.lib ADI.lib
+
+VCC VCC 0 5
+VREF VREF 0 2.5
+VIN IN 0 SINE(2.5 10m 1k) AC 10m
+
+RFB OUT NFB 99k
+RG NFB VREF 1k
+RL OUT VREF 10k
+CDEC VCC 0 100n
+
+XU1 IN NFB VCC 0 OUT AD8551
+
+.tran 0 10m 5m 1u
+.ac dec 100 10 100k
+.meas AC gain_db FIND 20*log10(mag(V(OUT)/V(IN))) AT=1k
+
+.end

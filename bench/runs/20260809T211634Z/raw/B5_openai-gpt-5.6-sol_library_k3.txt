@@ -1,0 +1,19 @@
+* MAX44245 non-inverting amplifier, gain = 1 + 19k/1k = 20 V/V
+.lib MAX44245.lib
+
+VCC VCC 0 15
+VEE VEE 0 -15
+VIN IN 0 SINE(0 50m 1k) AC 1
+
+* MAX44245 pin order: OUT, VEE, IN+, IN-, VCC
+XU1 OUT VEE IN NFB VCC MAX44245
+
+RF OUT NFB 19k
+RG NFB 0 1k
+RL OUT 0 10k
+
+.tran 0 10m 5m 2u
+.ac dec 100 10 100k
+.meas AC gain_db FIND VDB(OUT) AT=1k
+
+.end

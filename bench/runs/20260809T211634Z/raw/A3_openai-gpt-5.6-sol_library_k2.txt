@@ -1,0 +1,24 @@
+LT3094 Negative 5V Regulator
+.lib LT3094.sub
+
+VINPUT IN 0 -7
+
+CIN IN 0 10u
+COUT OUT 0 10u
+
+RSET SET 0 49.9k
+CSET SET 0 10n
+
+RILIM ILIM 0 100k
+RPG1 OUT PGFB 90k
+RPG2 PGFB 0 10k
+RPG PG 0 100k
+
+RLOAD OUT 0 1k
+
+XU1 IN OUT 0 SET ILIM PGFB PG IN OUT LT3094
+
+.tran 0 10m 0 10u startup
+.meas tran vout_dc FIND V(OUT) AT=9m
+
+.end

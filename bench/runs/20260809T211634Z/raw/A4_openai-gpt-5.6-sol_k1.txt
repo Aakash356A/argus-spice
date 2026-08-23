@@ -1,0 +1,16 @@
+ADR1399H 7.05 V precision shunt reference
+V1 IN 0 15
+RBIAS IN OUT 2k
+XU1 OUT 0 IN 0 ADR1399H
+CBYP OUT 0 10u
+RLOAD OUT 0 100k
+
+.tran 0 100m 0 100u
+.meas tran vout_dc AVG V(OUT) FROM 90m TO 100m
+
+.subckt ADR1399H K A HP HN
+VREF K A 7.05
+RHEATER HP HN 1k
+.ends ADR1399H
+
+.end

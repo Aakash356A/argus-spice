@@ -1,0 +1,18 @@
+* ADG711 Analog Switch Circuit
+V_IN IN 0 2
+V_VDD VDD 0 5
+
+* ADG711 is a normally closed (NC) switch. 
+* A logic low (0V) on the control pin closes the switch.
+V_CTRL CTRL 0 0
+
+* Voltage-controlled switch modeling the ADG711 behavior
+* When V_CTRL < Vt - Vh (0V < 1.4V), the switch is in the "OFF" state of the SW model.
+* We assign the closed resistance (2.5 ohms) to Roff so it conducts at 0V.
+S1 IN OUT CTRL 0 ADG711
+R_LOAD OUT 0 10k
+
+.model ADG711 SW(Ron=100Meg Roff=2.5 Vt=1.5 Vh=0.1)
+
+.tran 1m
+.end

@@ -1,0 +1,27 @@
+* LT3094 Negative LDO -5V Output
+.lib LT3094.sub
+
+* Input voltage source: -7V at IN node
+VIN IN 0 -7
+
+* LT3094 Subcircuit Instantiation
+* Pin Order: IN EN/UVLO PG ILIM PGFB VIOC SET GND OUT
+X1 IN IN NC_PG 0 0 NC_VIOC SET 0 OUT LT3094
+
+* SET Resistor: VOUT = -100uA * RSET -> -5V = -100uA * 50k
+RSET SET 0 50k
+
+* Input and Output Capacitors
+CIN 0 IN 10u
+COUT 0 OUT 10u
+
+* Light Resistive Load (5mA at -5V)
+RLOAD 0 OUT 1k
+
+* Dummy resistors to prevent floating node errors on unused pins
+RPG NC_PG 0 1G
+RVIOC NC_VIOC 0 1G
+
+* Analysis directive for DC/settled output
+.tran 5m
+.end

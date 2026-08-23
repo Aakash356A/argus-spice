@@ -1,0 +1,37 @@
+* LT3094 Negative LDO: -7 V IN  -->  -5 V OUT, light resistive load
+* ---------------------------------------------------------------
+* Vendor macro-model
+.lib LT3094.sub
+
+* ---------------- Power source (negative rail) ------------------
+VIN  IN  0  DC -7
+* small ramp-free DC source; caps give the natural start-up transient
+
+* ---------------- Input / output capacitors ---------------------
+CIN   IN   0  10u
+COUT  OUT  0  22u
+
+* ---------------- Load: -5 V / 500 ohm = -10 mA -----------------
+RL    OUT  0  500
+
+* ---------------- Output programming ----------------------------
+* SET pin sources 100 uA:  VOUT = -100uA * RSET = -5 V with RSET = 50k
+RSET  SET  0  50k
+
+* ---------------- Power-good pull-down (open-collector) ---------
+RPG   PG   0  100k
+
+* ---------------- Regulator -------------------------------------
+* Pin order: IN OUT OUTS SET ILIM EN/UV PG PGFB GND
+XU1  IN  OUT  OUT  SET  IN  0  PG  OUT  0  LT3094
+* OUTS tied to OUT (remote sense at the load)
+* ILIM tied to IN  -> internal (maximum) current limit
+* EN/UV tied to GND -> device enabled
+* PGFB tied to OUT  -> power-good monitors the output
+
+* ---------------- Analysis --------------------------------------
+.tran 0 5m 0 5u
+.meas TRAN vout_dc AVG V(OUT) FROM=4m TO=5m
+
+.options plotwinsize=0
+.end

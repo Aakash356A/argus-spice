@@ -1,0 +1,26 @@
+* LT3094 Negative LDO -5V Output
+V1 IN 0 -7
+C1 IN 0 10u
+C2 OUT 0 10u
+
+* SET pin current is 100uA. For -5V output, RSET = 5V / 100uA = 50k ohm.
+RSET SET 0 50k
+* 10nF CSET provides a soft-start time of ~0.5ms and reduces reference noise
+CSET SET 0 10n
+
+* Light resistive load (50mA)
+RLOAD OUT 0 100
+
+* LT3094 Subcircuit Call
+* Pin Order: IN EN/UV PGFB PG ILIM SET GND OUTS OUT
+* EN/UV tied to GND (0V) to enable the part (0V is > IN + 1.24V)
+* PGFB tied to IN (disables power good)
+* PG left floating (dummy node N_PG)
+* ILIM tied to IN (disables programmable current limit)
+* OUTS tied directly to OUT
+X1 IN 0 IN N_PG IN SET 0 OUT OUT LT3094
+
+* Transient analysis to allow the output to settle
+.tran 10m
+
+.end

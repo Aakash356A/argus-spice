@@ -1,0 +1,10 @@
+* LT6106 Current Sense Amplifier
+V1 IN 0 12
+Rshunt IN N_LOAD 0.1
+Iload N_LOAD 0 100m
+Rin N_LOAD N_MINUS 100
+Rout OUT 0 10k
+X1 IN N_MINUS IN 0 OUT LT6106
+.lib LTC7.lib
+.tran 1m
+.end

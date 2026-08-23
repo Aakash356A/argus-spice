@@ -1,0 +1,14 @@
+LT6106 High-Side Current-Sense Amplifier
+.lib LTC7.lib
+
+VRAIL VS 0 12
+RSHUNT VS IN 0.1
+ILOAD IN 0 DC 100m
+
+RIN IN NINM 100
+ROUT OUT 0 10k
+
+XU1 VS NINM VS 0 OUT LT6106
+
+.tran 0 10m
+.end

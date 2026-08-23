@@ -1,0 +1,36 @@
+* LTC6252 High-Speed Amplifier: Non-Inverting Gain = 2 V/V, +/-5 V Supplies
+* Input: 1 V amplitude sine at 10 MHz
+
+*--- Supplies ---
+VCC VCC 0 DC 5
+VEE VEE 0 DC -5
+
+*--- Input source (1 V amplitude, 10 MHz) ---
+Vin IN 0 SINE(0 1 10MEG) AC 1
+
+*--- Amplifier: genuine LTC6252 macromodel (pins: +IN -IN V+ V- OUT) ---
+XU1 IN FB VCC VEE OUT LTC6252
+
+*--- Gain-setting network: Av = 1 + Rf/Rg = 2 ---
+Rf OUT FB 1k
+Rg FB 0 1k
+
+*--- Load ---
+RL OUT 0 1k
+
+*--- Supply decoupling ---
+C1 VCC 0 1u
+C2 VEE 0 1u
+
+*--- Analysis ---
+.tran 0 1u 0 20p
+
+*--- Measurements (gain in dB from settled sine) ---
+.meas TRAN vinpp  PP V(IN)  FROM 500n TO 1u
+.meas TRAN voutpp PP V(OUT) FROM 500n TO 1u
+.meas TRAN gain_db PARAM 20*log10(voutpp/vinpp)
+
+*--- Model library ---
+.lib LTC6252.sub
+
+.end

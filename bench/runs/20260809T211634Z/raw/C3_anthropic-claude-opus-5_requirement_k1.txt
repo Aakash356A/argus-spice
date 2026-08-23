@@ -1,0 +1,75 @@
+```
+* LT8710 Synchronous SEPIC Converter : 24V IN -> 12V OUT @ 1A (resistive load)
+* --------------------------------------------------------------------------
+* Primary input node : IN      Primary output node : OUT
+* --------------------------------------------------------------------------
+
+*** Source and load ***
+VIN   IN  0   24
+CIN1  IN  0   22u  Rser=10m
+CIN2  IN  0   0.1u
+RLOAD OUT 0   12
+COUT1 OUT 0   100u Rser=10m
+COUT2 OUT 0   1u
+
+*** SEPIC power stage ***
+L1    IN   SW    15u  Rser=25m
+L2    B    0     15u  Rser=25m
+CDC   SW   B     4.7u Rser=5m
+M1    SW   GATE  CS    NMOSPWR          ; main N-channel switch
+RS    CS   0     0.010                  ; switch current sense
+M2    B    PG    OUT   PMOSPWR          ; synchronous rectifier (P-channel)
+D1    B    OUT   DSCH                   ; parallel Schottky (start-up / DCM)
+
+*** LT8710 controller (genuine LTC subcircuit) ***
+* pin order: SYNC RT SS INTVEE VC FBX SRVO_FBX SRVO_ISP SRVO_ISN FLAG
+*            ISMON ISN ISP PG SENSE GATE GATEVCC INTVCC VIN EN/FBIN GND
+X1 SYNC RT SS INTVEE VC FBX SRVO_FBX SRVO_ISP SRVO_ISN FLAG
++  ISMON OUT OUT PG CS GATE INTVCC INTVCC IN ENFBIN 0 LT8710
+.lib LT8710.sub
+
+*** Bias / housekeeping ***
+CVCC   INTVCC 0      4.7u
+CVEE1  INTVEE OUT    4.7u
+CVEE2  INTVEE 0      1u
+RVEE   INTVEE 0      1Meg
+RT1    RT     0      41.2k
+VSY    SYNC   0      0
+CSS    SS     0      22n
+
+*** Enable / input UVLO (EN/FBIN held well above the 1.6V threshold) ***
+REN1   IN     ENFBIN 200k
+REN2   ENFBIN 0      24k
+
+*** Output voltage feedback : VOUT = 1.6V * (1 + 64.9k/10k) = 12.0V ***
+RFB1   OUT    FBX    64.9k
+RFB2   FBX    0      10k
+
+*** Loop compensation ***
+RC1    VC     VCX    10k
+CC1    VCX    0      4.7n
+CC2    VC     0      100p
+
+*** Status / monitor pins (open-collector flags, resistively terminated) ***
+RF1    FLAG      INTVCC 100k
+RF2    SRVO_FBX  INTVCC 100k
+RF3    SRVO_ISP  INTVCC 100k
+RF4    SRVO_ISN  INTVCC 100k
+RF5    ISMON     0      100k
+
+*** Device models ***
+.model NMOSPWR VDMOS(Rg=2 Rd=18m Rs=4m Vto=2.5 Kp=60 lambda=0.01
++ Cgs=1.2n Cgd=180p Cjo=450p Is=2e-12 Bv=100 Ron=22m Qg=20n mfg=Generic)
+.model PMOSPWR VDMOS(pchan Rg=2 Rd=28m Rs=5m Vto=-2.5 Kp=45 lambda=0.01
++ Cgs=1.5n Cgd=250p Cjo=650p Is=3e-12 Bv=-100 Ron=33m Qg=28n mfg=Generic)
+.model DSCH D(Is=2u Rs=0.02 N=1.03 Cjo=400p Vj=0.5 M=0.5 Eg=0.69 Bv=60 Ibv=1m)
+
+*** Analysis ***
+.tran 0 10m 0 200n
+.meas TRAN vout_dc AVG V(OUT) FROM 8m TO 10m
+.meas TRAN vout_ripple PP V(OUT) FROM 9m TO 10m
+.meas TRAN iin_dc AVG I(VIN) FROM 8m TO 10m
+
+.options plotwinsize=0 reltol=0.003 gmin=1e-11
+.end
+```

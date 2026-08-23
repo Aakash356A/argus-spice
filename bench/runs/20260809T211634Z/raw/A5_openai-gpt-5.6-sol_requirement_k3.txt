@@ -1,0 +1,15 @@
+Precision 1.25V Reference Using LT6654-1.25
+.include LT6654-1.25.sub
+
+VCC IN 0 5
+CIN IN 0 1u
+
+XU1 IN 0 OUT LT6654-1.25
+
+COUT OUT 0 1u
+RLOAD OUT 0 100k
+
+.tran 0 20m 0 10u startup
+.meas tran vout_dc AVG V(OUT) FROM 15m TO 20m
+
+.end

@@ -1,0 +1,54 @@
+```
+* ADG5248F 8:1 Multiplexer -- Channel 1 (S1) routed to common D output
+* 1 kHz, 500 mV amplitude sine applied at IN -> S1, measured at OUT (D)
+* Supplies: VDD = +15 V, VSS = -15 V, digital control referenced to GND (5 V logic)
+
+.lib ADG.lib
+
+*---------------- Power supplies ----------------
+VDD   VDD  0   DC  15
+VSS   VSS  0   DC -15
+
+*---------------- Digital control ----------------
+* Address A2 A1 A0 = 0 0 0 with EN = HIGH selects channel 1 (S1 -> D)
+VA0   A0   0   DC 0
+VA1   A1   0   DC 0
+VA2   A2   0   DC 0
+VEN   EN   0   DC 5
+
+*---------------- Signal source ----------------
+* 1 kHz, 500 mV amplitude (1 Vpp) sine, 0 V offset
+VIN   IN   0   SINE(0 0.5 1k 0 0 0)
+RSRC  IN   S1   1
+
+*---------------- Multiplexer ----------------
+* Pin order: S1 S2 S3 S4 S5 S6 S7 S8 D A0 A1 A2 EN VDD VSS GND FF
+X1 S1 S2 S3 S4 S5 S6 S7 S8 OUT A0 A1 A2 EN VDD VSS 0 FF ADG5248F
+
+*---------------- Unused channel inputs terminated ----------------
+R2 S2 0 1k
+R3 S3 0 1k
+R4 S4 0 1k
+R5 S5 0 1k
+R6 S6 0 1k
+R7 S7 0 1k
+R8 S8 0 1k
+
+*---------------- Fault flag (open-drain) pull-up ----------------
+RFF FF VDD 10k
+
+*---------------- Output load (high-Z so Ron drop is negligible) ----------------
+RL  OUT 0 1MEG
+CL  OUT 0 10p
+
+*---------------- Analysis ----------------
+.tran 0 5m 0 1u
+
+.meas TRAN vin_pp  PP V(IN)  FROM 1m TO 5m
+.meas TRAN vout_pp PP V(OUT) FROM 1m TO 5m
+.meas TRAN gain_db PARAM 20*log10(vout_pp/vin_pp)
+
+.options plotwinsize=0 numdgt=7
+
+.end
+```

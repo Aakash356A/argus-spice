@@ -1,0 +1,15 @@
+* AD8551 Non-inverting Amplifier
+VCC VCC 0 5
+VIN IN 0 SINE(25m 10m 1k) AC 1
+
+* Feedback network for a non-inverting gain of 100 (1 + 99k/1k = 100)
+R1 IN_M 0 1k
+R2 OUT IN_M 99k
+
+* AD8551 Op-Amp Subcircuit (IN+, IN-, V+, V-, OUT)
+X1 IN IN_M VCC 0 OUT AD8551
+
+* Analysis directives
+.tran 0 5m
+.ac dec 10 100 10k
+.end

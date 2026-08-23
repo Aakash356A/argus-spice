@@ -1,0 +1,64 @@
+* ==========================================================================
+* LTC4281 -- 12V Hot Swap Controller with I2C Monitoring
+* Input rail: IN (12V, ramped to emulate card insertion)
+* Output rail: OUT (settles to 12V into a resistive load after inrush)
+* ==========================================================================
+.lib LTC4281.sub
+
+* ---------------- Supplies / control ----------------
+V1   IN 0 PWL(0 0 500u 12)          ; 12V backplane rail (card insertion ramp)
+V33  V33 0 DC 3.3                   ; local logic rail for I2C / GPIO pull-ups
+VON  ONIN 0 PWL(0 0 1m 0 1.02m 3.3) ; ON asserted after the input rail is valid
+Ron  ONIN ON 1k
+
+* ---------------- Hot swap power path ----------------
+Rsense IN  SNS 4m                   ; 4 mOhm sense resistor (1A nominal -> 4mV)
+M1     SNS MG  OUT OUT NFET_HS L=1u W=1u
+Rg     GATE MG 10                   ; gate series damping resistor
+Cgate  GATE 0  10n                  ; dV/dt (inrush) timing capacitor
+Cgs    MG  OUT 2n
+Cgd    MG  SNS 1n
+
+* ---------------- Load ----------------
+COUT  OUT 0 100u                    ; bulk output capacitance (inrush source)
+RL    OUT 0 12                       ; resistive load, 12V / 12ohm = 1A
+
+* ---------------- Undervoltage / Overvoltage programming ----------------
+RUV1  IN  UV 100k                   ; UV tap ~ 2.55V at Vin = 12V (UV released)
+RUV2  UV  0  27k
+ROV   OV  0  10k                    ; OV unused -> held low (no OV fault)
+
+* ---------------- ADC / monitoring inputs ----------------
+RAD1  OUT  ADIN 100k                ; output voltage monitor divider
+RAD2  ADIN 0    10k
+RAD3  ADIN2 0   10k                 ; second ADC input unused
+
+* ---------------- INTVCC bypass ----------------
+CIVCC INTVCC 0 1u
+
+* ---------------- GPIO / I2C interface ----------------
+RG1   V33 GPIO1 10k
+RG2   V33 GPIO2 10k
+RG3   V33 GPIO3 10k
+RSDA  V33 SDA   10k
+RSCL  V33 SCL   10k
+RALRT V33 ALERT 10k
+RA0   ADR0 0 10k
+RA1   ADR1 0 10k
+RA2   ADR2 0 10k
+
+* ---------------- LTC4281 (genuine subcircuit) ----------------
+XU1 IN SNS GATE OUT ON OV UV ALERT SDA SCL ADR0 ADR1 ADR2
++   GPIO1 GPIO2 GPIO3 ADIN ADIN2 INTVCC 0 LTC4281
+
+* ---------------- External N-channel pass FET ----------------
+.model NFET_HS NMOS(Vto=2.2 Kp=30 Lambda=0.002 Rd=2m Rs=2m Is=1e-12)
+
+* ---------------- Analysis ----------------
+.tran 0 30m 0 5u
+.meas TRAN vout_dc AVG V(OUT) FROM=25m TO=30m
+.meas TRAN vout_final FIND V(OUT) AT=30m
+.meas TRAN iinrush MAX I(Rsense)
+.options plotwinsize=0
+
+.end

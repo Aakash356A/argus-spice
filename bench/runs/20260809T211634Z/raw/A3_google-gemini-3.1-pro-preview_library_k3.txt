@@ -1,0 +1,31 @@
+* LT3094 Negative LDO -5V Output
+.lib LT3094.sub
+
+* -7V Input Voltage
+V1 IN 0 -7
+
+* LT3094 Subcircuit Instantiation
+* Pins: IN, EN/UVLO, PG, ILIM, PGFB, VIOC, SET, GND, OUTS, OUT
+* EN/UVLO tied to IN to enable
+* ILIM tied to IN to disable current limit
+* PGFB tied to IN to disable Power Good
+* VIOC tied to OUT (unused)
+* OUTS tied to OUT for output voltage sensing
+X1 IN IN PG_node IN IN OUT SET_node 0 OUT OUT LT3094
+
+* SET Resistor: 100uA reference current * 50k = 5.0V drop (sets OUT to -5.0V)
+R_SET SET_node 0 50k
+
+* Pull-up/down for unused Power Good (open-drain) pin to prevent floating node
+R_PG PG_node 0 100k
+
+* Input and Output Capacitors
+C_IN IN 0 10u
+C_OUT OUT 0 10u
+
+* Light Resistive Load (5mA)
+R_LOAD OUT 0 1k
+
+* Analysis
+.tran 5m startup
+.end
