@@ -74,9 +74,10 @@ data/evidence/
 # Internal working notes and the superseded ACM draft of the paper.
 HANDOFF.md
 ACM_Journals_Primary_Article_Template/
+Neurips/
 requirements-training.txt
 requirements-amd.txt
-
+report_netlist.py
 # Discarded fine-tuning line: the LoRA adapter, its training scripts, the
 # serving notebooks, and the RL/data scaffolding that was never wired in.
 models/
@@ -97,4 +98,7 @@ bench/runs/*/results.with-strict.jsonl
 bench/runs/*/config.with-strict.json
 bench/runs/*/netlists/*_strict_k*
 bench/runs/*/raw/*_strict_k*
+
+# Tables and macros emitted by bench/reconcile.py; build output, not source.
+generated/
 

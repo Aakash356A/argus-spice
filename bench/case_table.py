@@ -30,7 +30,7 @@ def esc(text: str) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("run_id")
-    ap.add_argument("--out", default="Neurips/generated/cases.tex")
+    ap.add_argument("--out", default="generated/cases.tex")
     args = ap.parse_args()
 
     out_dir, rows = load(args.run_id)

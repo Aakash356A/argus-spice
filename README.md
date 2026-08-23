@@ -53,12 +53,13 @@ pip install -r requirements.txt
 
 ```bash
 python bench/validate_cases.py                              # corpus preflight
-python bench/reconcile.py 20260809T211634Z --out Neurips/generated
+python bench/reconcile.py 20260809T211634Z --out generated
 python bench/mutants.py --parts 40                          # held-out validation
 python bench/case_table.py 20260809T211634Z                 # per-case appendix table
 ```
 
-`reconcile.py` refuses to emit if the corpus fails an integrity check — categories
+The four commands write the paper's tables and macro definitions into
+`generated/`. `reconcile.py` refuses to emit if the corpus fails an integrity check — categories
 that do not sum, a zero denominator, a reported pass with no simulator artifact,
 conflicting grades, unequal arms, grade grounds that do not partition, or a
 duplicated generation id. A number that disagrees with the corpus is a build
@@ -90,7 +91,6 @@ sim_harness.py             run_spice(): the entry point every simulation path us
 measure_raw.py             waveform measurement (gain_db, bandwidth_hz, vout_dc)
 app/simulation_runner.py   LTspice invocation; the chokepoint all paths funnel through
 data/templates/            vendor reference netlists, used as grading ground truth
-Neurips/                   paper source and its generated tables
 ```
 
 `bench/` and an interactive MCP session import the same `mcp_server/tools.py`, so a
