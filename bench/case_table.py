@@ -128,10 +128,11 @@ def main() -> int:
 \centering
 \caption{Generations returning no completion under provider-side filtering,
   per arm and model, counted as failed attempts throughout
-  (\S\ref{sec:results}) rather than as missing observations. \emph{All cases}
-  covers all 20 cases (60 attempts per model per arm); \emph{Scored} excludes
-  the inspection-only case C4 and is therefore the population
-  Table~\ref{tab:main} is computed over (57 attempts per model per arm).
+  (\S\ref{sec:results}) rather than as missing observations. The \emph{All
+  cases} columns cover all 20 cases (60 attempts per model per arm); the
+  \emph{Scored} columns exclude the inspection-only case C4 and are therefore
+  the population Table~\ref{tab:main} is computed over (57 attempts per model
+  per arm).
   Summing the \emph{Scored} column reproduces the per-arm no-completion counts
   in Table~\ref{tab:main}.}
 \label{tab:nocomp}
