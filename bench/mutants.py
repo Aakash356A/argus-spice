@@ -219,7 +219,7 @@ def main() -> int:
     ap.add_argument("--parts", type=int, default=40,
                     help="held-out parts to draw (default 40)")
     ap.add_argument("--out", default="bench/runs/mutants")
-    ap.add_argument("--tex", default="Neurips/generated/mutants.tex",
+    ap.add_argument("--tex", default="generated/mutants.tex",
                     help="where to write the LaTeX macro block")
     args = ap.parse_args()
 
