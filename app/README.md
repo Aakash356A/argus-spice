@@ -1,4 +1,4 @@
-# Spice Wizard desktop application
+# GUI desktop application
 
 A Tkinter application for drafting and verifying LTspice netlists: describe a
 circuit, have a model generate a netlist, simulate it, plot the traces, and score
