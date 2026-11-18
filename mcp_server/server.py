@@ -11,8 +11,8 @@ Register with Claude Code or Claude Desktop:
     {
       "mcpServers": {
         "spice": {
-          "command": "/opt/anaconda3/envs/agentcir/bin/python",
-          "args": ["/absolute/path/to/Spice_Wizard/mcp_server/server.py"]
+          "command": "python3",
+          "args": ["/absolute/path/to/argus-spice/mcp_server/server.py"]
         }
       }
     }

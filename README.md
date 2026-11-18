@@ -28,18 +28,29 @@ Across **316 netlists** from three frontier models on a 20-part vendor-IC suite:
 | | |
 |---|---|
 | Numeric passes | 100 |
-| False acceptances (manually graded) | **79 / 100** |
-| Unprompted arm | 71 / 73 |
+| False acceptances (manually graded) | **70 / 100** |
+| Unprompted arm | 70 / 73 |
+| With the library directive supplied | 0 / 27 |
 | Pass@1, numeric gate → provenance required | **42.7% → 1.8%** |
 
 One static predicate — *does the requested part name bind to exactly one
-vendor-supplied definition?* — recovers **70 of the 79** at **100% precision,
-89% recall**, from the netlist and trusted part metadata alone. No simulation, no
-generation trace, no LLM judgement. On 360 labelled mutants over 40 parts used in
-no case here it scores 100% / 94%.
+vendor-supplied definition?* — agrees with **all 100** manual grades: it
+recovers all 70 false acceptances with no false positives, from the netlist and
+trusted part metadata alone. No generation trace, no LLM judgement. On 360
+labelled mutants over 40 parts used in no case here, it catches every
+provenance-destroying mutation.
 
-It is necessary, not sufficient: 9 of the 30 provenance-qualified passes are still
-false under manual causal grading.
+Every grade is backed by something re-runnable. The 70 false grades rest on a
+fact in the netlist file; the 30 valid grades are re-verified by deleting the
+part and re-simulating (the target is lost in all 30), by measuring output
+distortion two independent ways, and by driving comparators across their
+threshold (`bench/reverify.py`). `reconcile.py` refuses to build if a grade
+ever contradicts that re-verification.
+
+Qualification is not correctness. Each case is scored on one scalar, so
+requirements outside it go unchecked: three qualified comparators use the
+genuine part correctly but omit the open-drain output their specification asks
+for.
 
 ## Reproducing every number in the paper
 
@@ -53,12 +64,13 @@ pip install -r requirements.txt
 
 ```bash
 python bench/validate_cases.py                              # corpus preflight
+python bench/reverify.py 20260809T211634Z                   # mechanical grade checks
 python bench/reconcile.py 20260809T211634Z --out generated
 python bench/mutants.py --parts 40                          # held-out validation
 python bench/case_table.py 20260809T211634Z                 # per-case appendix table
 ```
 
-The four commands write the paper's tables and macro definitions into
+These commands write the paper's tables and macro definitions into
 `generated/`. `reconcile.py` refuses to emit if the corpus fails an integrity check — categories
 that do not sum, a zero denominator, a reported pass with no simulator artifact,
 conflicting grades, unequal arms, grade grounds that do not partition, or a
@@ -74,6 +86,7 @@ bench/
   provenance.py     transitive .lib/.include resolution: what the part name binds to
   ablation.py       acceptance ladder, leave-one-out, Pass@k
   mutants.py        held-out mutation suite (shadowing, aliasing, wrappers, …)
+  reverify.py       re-tests every valid grade: part deletion, distortion, response
   analyze.py        re-audits every stored netlist from disk
   reconcile.py      single source of truth for every number in the paper
   probe.py          generation sweep (needs API access; not required to reproduce)
@@ -82,6 +95,7 @@ bench/
       netlists/         every simulated netlist
       raw/              every raw model response
       verdicts.jsonl    manual grades for all 100 numeric passes
+      reverification.jsonl   mechanical evidence behind every valid grade
 
 mcp_server/         the audit as callable tools (find_template, simulate,
                     audit_netlist, verify_spec, submit) over stdio MCP

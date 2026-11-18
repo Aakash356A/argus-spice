@@ -34,6 +34,7 @@ nothing here requires API access unless you generate a new corpus.
 | `reconcile.py` | every number in the paper, integrity-checked |
 | `waveform.py` | THD/clipping linearity measurement |
 | `grade.py` | interactive grading tool that produced `verdicts.jsonl` |
+| `reverify.py` | mechanical re-verification of every valid grade |
 | `purge.py` | drops invalid rows so `probe.py` regenerates them on resume |
 | `validate_cases.py` | preflight: every case's part has an installed library |
 
