@@ -12,7 +12,7 @@ predates that work and is kept because it shares the same verification spine —
 ## Running it
 
 ```bash
-pip install -r ../requirements.txt
+pip install -r app/requirements.txt
 python app/run_gui.py
 ```
 

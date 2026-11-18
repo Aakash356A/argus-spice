@@ -113,3 +113,7 @@ bench/runs/*/multimetric.jsonl
 bench/runs/*/grading.csv
 bench/runs/*/summary.csv
 
+
+# Point-in-time backups made before editing corpus records; the corpus itself
+# is versioned.
+*.bak-*

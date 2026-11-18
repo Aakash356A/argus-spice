@@ -140,7 +140,40 @@ def ensure_title_line(net_text: str) -> str:
     first_line = stripped.split("\n", 1)[0].strip()
     if first_line.startswith("*"):
         return net_text
+    if not _first_line_is_statement(first_line, stripped.split("\n")[1:]):
+        # Line 1 is already a prose title ("LT1720 Comparator with Open-Drain
+        # Output"). SPICE discards it as intended; inserting another title
+        # would push it to line 2, where it parses as an element -- here an
+        # inductor named T1720 -- and breaks a netlist that ran correctly.
+        return net_text
     return "* (auto-inserted title; SPICE discards line 1 unconditionally)\n" + net_text
+
+
+_GROUND_NODES = {"0", "gnd", "gnd!"}
+
+
+def _first_line_is_statement(first_line: str, rest: list[str]) -> bool:
+    """Is line 1 a directive or circuit element, rather than a prose title?
+
+    Syntax alone cannot decide this: "LT3045-1 5V to 3.3V LDO Stage" is a
+    well-formed inductor line. Connectivity can. A real element shares a node
+    with the rest of the circuit, while the "nodes" of a prose title appear
+    nowhere else. Ground is excluded from the evidence because a stray "0" in
+    a title is not a connection.
+    """
+    if first_line.startswith("."):
+        return True
+    tokens = first_line.split()
+    if len(tokens) < 3 or not tokens[0][:1].isalpha():
+        return False
+    candidate_nodes = {t.lower() for t in tokens[1:3]} - _GROUND_NODES
+    other_tokens = set()
+    for line in rest:
+        line = line.split(";", 1)[0].strip()
+        if not line or line.startswith(("*", ".")):
+            continue
+        other_tokens.update(t.lower() for t in line.split()[1:])
+    return bool(candidate_nodes & other_tokens)
 
 
 

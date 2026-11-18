@@ -23,8 +23,8 @@ instantiated.
 {
   "mcpServers": {
     "spice": {
-      "command": "/opt/anaconda3/envs/agentcir/bin/python",
-      "args": ["/ABSOLUTE/PATH/TO/Spice_Wizard/mcp_server/server.py"]
+      "command": "python3",
+      "args": ["/ABSOLUTE/PATH/TO/argus-spice/mcp_server/server.py"]
     }
   }
 }

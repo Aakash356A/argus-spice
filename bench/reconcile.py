@@ -1042,6 +1042,8 @@ False passes / attempted      & @BFA@ & @LFA@ \\
         else:
             if v.get("basis") == "distortion measurement":
                 grounds["valid_distortion"] += 1
+            elif v.get("basis") == "mechanical re-verification":
+                grounds["valid_reverified"] += 1
             else:
                 grounds["valid_read"] += 1
     check(sum(grounds.values()) == len(numeric_pass),
@@ -1050,8 +1052,45 @@ False passes / attempted      & @BFA@ & @LFA@ \\
           + grounds["fake_read"] == cf["labelled_fake"],
           "grade grounds disagree with the false-acceptance total")
     check(grounds["valid_distortion"] + grounds["valid_read"]
-          == cf["labelled_real"],
+          + grounds["valid_reverified"] == cf["labelled_real"],
           "grade grounds disagree with the valid total")
+
+    # A grade must not contradict the mechanical re-verification. Nine
+    # judgement-dependent grades once did: they were graded false on a
+    # worksheet THD figure that did not reproduce, while the part was
+    # necessary and the output undistorted. Making disagreement a build
+    # failure is what keeps that class of error from recurring silently.
+    rev_path = out_dir / "reverification.jsonl"
+    reverify = {}
+    if rev_path.exists():
+        for line in rev_path.read_text().splitlines():
+            if line.strip():
+                d = json.loads(line)
+                reverify[(d["case_id"], d["model"], d["sample"],
+                          d["prompt_variant"])] = d
+    contradictions = []
+    for r in numeric_pass:
+        d = reverify.get(key_of(r))
+        if not d or d.get("control") != "met":
+            continue
+        mechanically_valid = d.get("part_necessary") and not d.get("distorted")
+        if (verdicts.get(key_of(r)) == "FAKE") == bool(mechanically_valid):
+            contradictions.append(key_of(r))
+    check(not contradictions,
+          f"{len(contradictions)} grade(s) contradict reverification.jsonl: "
+          f"{contradictions[:3]}")
+    rev_rows = [d for d in reverify.values() if d.get("control") == "met"]
+    reverification = {
+        "qualified_checked": len(rev_rows),
+        "part_necessary": sum(1 for d in rev_rows if d.get("part_necessary")),
+        "gain_checked": sum(1 for d in rev_rows if d.get("thd_fft") is not None),
+        "distorted": sum(1 for d in rev_rows if d.get("distorted")),
+        "response_checked": sum(1 for d in rev_rows if d.get("response")),
+        "responds": sum(1 for d in rev_rows
+                        if (d.get("response") or {}).get("responds")),
+        "max_thd_fft": max((d["thd_fft"] for d in rev_rows
+                            if d.get("thd_fft") is not None), default=0.0),
+    }
 
     stages = ablation.stage_matrix(numeric_pass, pred_by_key, key_of,
                                    _is_fake, _wave_rejects)
@@ -1095,6 +1134,17 @@ False passes / attempted      & @BFA@ & @LFA@ \\
         {"numeric": _numeric, "provenance": _prov, "full_protocol": _full},
         k=corpus["samples_per_cell"])
 
+    # Every check above this point -- corpus accounting, grade grounds, the
+    # stage matrix, and agreement with the mechanical re-verification -- must
+    # be enforced before anything derived from it is written. These checks
+    # were once appended after the last enforcement point, where a failure was
+    # recorded but never acted on and the run still reported success.
+    if _failures:
+        print("INTEGRITY FAILURES:", file=sys.stderr)
+        for f in _failures:
+            print("  -", f, file=sys.stderr)
+        return 1
+
     payload["corpus"] = corpus
     payload["ladder"] = rungs
     payload["grounds"] = dict(grounds)
@@ -1132,6 +1182,14 @@ False passes / attempted      & @BFA@ & @LFA@ \\
              rf"\newcommand{{\GroundsFakeRead}}{{{grounds['fake_read']}}}",
              rf"\newcommand{{\GroundsValidDistortion}}{{{grounds['valid_distortion']}}}",
              rf"\newcommand{{\GroundsValidRead}}{{{grounds['valid_read']}}}",
+             rf"\newcommand{{\GroundsValidReverified}}{{{grounds['valid_reverified']}}}",
+             rf"\newcommand{{\RevChecked}}{{{reverification['qualified_checked']}}}",
+             rf"\newcommand{{\RevNecessary}}{{{reverification['part_necessary']}}}",
+             rf"\newcommand{{\RevGainChecked}}{{{reverification['gain_checked']}}}",
+             rf"\newcommand{{\RevDistorted}}{{{reverification['distorted']}}}",
+             rf"\newcommand{{\RevResponseChecked}}{{{reverification['response_checked']}}}",
+             rf"\newcommand{{\RevResponds}}{{{reverification['responds']}}}",
+             rf"\newcommand{{\RevMaxTHD}}{{{reverification['max_thd_fft']:.3f}}}",
              rf"\newcommand{{\StageProvAccepted}}{{{stages[1]['accepted']}}}",
              rf"\newcommand{{\StageIfaceAccepted}}{{{stages[2]['accepted']}}}",
              rf"\newcommand{{\StageWaveAccepted}}{{{stages[3]['accepted']}}}",
