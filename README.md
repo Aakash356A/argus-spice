@@ -19,6 +19,15 @@ property an engineer selects an LT3045 for — output noise, PSRR, transient loa
 response — is absent. A simulator-in-the-loop gate accepts it anyway, because the
 gate is a predicate over *measurements*, not over *which model produced them*.
 
+```mermaid
+flowchart LR
+    G["Genuine netlist<br/>.lib LT3045-1.sub<br/>+ vendor LT3045-1"] --> S
+    F["Fabricated netlist<br/>local .subckt LT3045-1<br/>built from behavioral sources"] --> S
+    S{"Simulation gate<br/>Vout = 3.3 V?"} -->|"both pass"| P{"Provenance check<br/>does LT3045-1 bind to<br/>the vendor definition?"}
+    P -->|yes| A["Accepted"]
+    P -->|no| R["Rejected<br/>70 of 100 numeric passes"]
+```
+
 This repository measures how often that happens, and ships a check that catches it.
 
 ## The finding
