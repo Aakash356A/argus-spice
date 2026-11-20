@@ -25,11 +25,13 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from bench.detect import audit as _audit                      # noqa: E402
+from bench.provenance import resolve as _resolve              # noqa: E402
 from sim_harness import Metric, Spec, parses_as_spice, run_spice  # noqa: E402
 from spec_report import report as _report                     # noqa: E402
 from template_index import find_template as _find_template    # noqa: E402
 
 SUPPORTED_METRICS = ("gain_db", "bandwidth_hz", "vout_dc")
+SIMULATOR = "LTspice 17.2.4"
 
 # A library directive may name a file, never a path. LTspice resolves a bare
 # filename against its own library directories, which is what every netlist in
@@ -198,55 +200,57 @@ def verify_spec(netlist: str, metrics: list[dict], in_node: str = "IN",
 
 def audit_netlist(netlist: str, part: str, out_node: str = "OUT",
                   metrics: list[str] | None = None) -> dict:
-    """Check that the named part is genuinely doing the work.
+    """Resolve which definition the requested part name binds to.
 
-    Meeting a numeric target does not establish that the requested part
-    produced it: a locally written subcircuit reproduces the number and none of
-    the device behaviour. This reports that distinction explicitly.
+    The qualification predicate is `provenance.vendor_supplied`: a reachable
+    instance calls the part, no local definition claims the name, and exactly
+    one vendor definition is reachable through the include graph. The
+    syntactic diagnostics (substitution, stub, absence, pin role) are returned
+    alongside it to explain a failure; they do not decide qualification.
     """
+    res = _resolve(netlist, part)
     template = find_template(part)
-    result = _audit(netlist, part, out_node, metrics or [],
-                    template.get("netlist", "") if template.get("ok") else "")
-    data = result.to_dict()
-    data["ok"] = True
-    data["verdict"] = "suspect" if result.suspect else "clean"
-    if result.suspect:
-        data["hint"] = ("Load the vendor macro-model with the library directive "
-                        "from find_template and instantiate the part, rather "
-                        "than defining a subcircuit for it locally.")
-    return data
+    diag = _audit(netlist, part, out_node, metrics or [],
+                  template.get("netlist", "") if template.get("ok") else "")
+    return {"ok": True, "part": part,
+            "verdict": "qualified" if res.vendor_supplied else "not_qualified",
+            "provenance": res.evidence(),
+            "diagnostics": diag.flags}
 
 
-def submit(netlist: str, part: str, spec_text: str, metrics: list[dict],
-           in_node: str = "IN", out_node: str = "OUT", freq_hz: float = 1000.0,
-           timeout_s: int = 60) -> dict:
-    """The acceptance gate: measure, audit, and emit a hash-pinned record.
+def submit(netlist: str, part: str, metrics: list[dict],
+           spec_text: str = "", in_node: str = "IN", out_node: str = "OUT",
+           freq_hz: float = 1000.0, timeout_s: int = 60) -> dict:
+    """The acceptance gate of Eq. (2): numeric pass AND vendor binding.
 
-    Acceptance requires both that the targets are met and that the audit is
-    clean. Reporting them together is the point -- a numeric pass alone is the
-    claim this protocol exists to qualify.
+    An evidence record is returned for every decision, accepted or not, so a
+    rejection is as re-derivable as an acceptance.
     """
     verification = verify_spec(netlist, metrics, in_node, out_node,
                                freq_hz, timeout_s)
-    if not verification.get("ok"):
-        return {"ok": False, "accepted": False, "stage": "verification",
-                **{k: v for k, v in verification.items() if k != "ok"}}
     audit = audit_netlist(netlist, part, out_node,
-                          [m["name"] for m in metrics])
-    accepted = bool(verification["passed"] and audit["verdict"] == "clean")
+                          [m.get("name", "") for m in metrics])
+    numeric = bool(verification.get("ok") and verification.get("passed"))
+    qualified = audit["verdict"] == "qualified"
+    accepted = numeric and qualified
+    if accepted:
+        reason = "numeric targets met and the part binds to one vendor definition"
+    elif numeric:
+        reason = f"numeric targets met, but binding is {audit['provenance']['binding']}"
+    else:
+        reason = "numeric targets not met"
     return {
         "ok": True,
         "accepted": accepted,
-        "spec": spec_text,
-        "part": part,
-        "netlist_sha256": _sha256(netlist),
-        "metrics_passed": verification["passed"],
-        "audit_verdict": audit["verdict"],
-        "audit_flags": audit.get("flags", []),
-        "reports": verification["reports"],
-        "reason": ("accepted: targets met and the genuine part is instantiated"
-                   if accepted else
-                   "targets met, but the audit flags: "
-                   + ", ".join(audit.get("flags", []))
-                   if verification["passed"] else "targets not met"),
+        "reason": reason,
+        "evidence": {
+            "part": part,
+            "spec": spec_text,
+            "netlist_sha256": _sha256(netlist),
+            "simulator": SIMULATOR,
+            "numeric_pass": numeric,
+            "reports": verification.get("reports", []),
+            "provenance": audit["provenance"],
+            "diagnostics": audit["diagnostics"],
+        },
     }

@@ -75,6 +75,8 @@ data/evidence/
 HANDOFF.md
 ACM_Journals_Primary_Article_Template/
 Neurips/
+IEEE_TCAD/
+message.txt
 requirements-training.txt
 requirements-amd.txt
 report_netlist.py

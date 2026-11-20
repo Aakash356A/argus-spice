@@ -42,8 +42,24 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from cases import ALL_CASES                                    # noqa: E402
-from detect import _part_stem, _same_part, _significant_lines  # noqa: E402
-from provenance import resolve                                 # noqa: E402
+from detect import (_part_stem, _same_part, _significant_lines,  # noqa: E402
+                    instantiates_part, substituted)
+from provenance import callee_of, resolve                      # noqa: E402
+
+try:
+    from app.simulation_runner import find_model                # noqa: E402
+except Exception:                                               # noqa: BLE001
+    def find_model(fullname):                                   # type: ignore[misc]
+        return None
+
+FROZEN_PARTS = (Path(__file__).resolve().parent.parent / "data"
+                / "heldout_parts.json")
+SNAPSHOT = (Path(__file__).resolve().parent.parent / "data"
+            / "library_snapshot.json")
+# Internal node every constructed stub carries. If a simulated circuit's raw
+# file contains a trace through it, the local stub -- not the vendor model --
+# was elaborated, which LTspice itself reports independently of our parser.
+STUB_MARK = "ARGUS_STUB"
 
 TEMPLATES = Path(__file__).resolve().parent.parent / "data" / "templates"
 SEED = 20260820
@@ -51,18 +67,37 @@ SEED = 20260820
 FAKE_MUTATIONS = ("substitute", "renamed_stub", "shadow", "drop_library",
                   "remove_part", "alias_file", "pin_permute")
 VALID_MUTATIONS = ("identity", "wrapper")
+# pin_permute leaves provenance intact (it is an interface defect), so the
+# provenance comparison below is scored over the other six invalid classes.
+INTERFACE_MUTATIONS = ("pin_permute",)
 
 
 def _instance_lines(netlist: str, part: str) -> list[str]:
+    """Physical X lines whose callee is exactly the part (case-insensitive)."""
     out = []
     for raw in netlist.splitlines():
         line = raw.split(";", 1)[0].strip()
         if not line or line.startswith("*") or line[:1].upper() != "X":
             continue
-        tokens = line.split()
-        if any(_same_part(t, part) for t in tokens[2:]):
+        callee = callee_of(" ".join(line.split()))
+        if callee and callee.upper() == part.upper():
             out.append(raw)
     return out
+
+
+def _nodes(inst: str) -> tuple[list[str], int]:
+    """(pin nets, index of the callee token) of a one-line X instance."""
+    tokens = inst.split(";", 1)[0].split()
+    callee = callee_of(" ".join(tokens))
+    idx = max(i for i, t in enumerate(tokens) if t == callee)
+    return tokens[1:idx], idx
+
+
+def _recall(inst: str, name: str) -> str:
+    """The same instance calling `name` instead, parameters preserved."""
+    tokens = inst.split(";", 1)[0].split()
+    _, idx = _nodes(inst)
+    return " ".join(tokens[:idx] + [name] + tokens[idx + 1:])
 
 
 def _lib_lines(netlist: str, part: str) -> list[str]:
@@ -75,13 +110,38 @@ def _lib_lines(netlist: str, part: str) -> list[str]:
     return out
 
 
-def _stub(part: str) -> str:
+def _stub(part: str, npins: int) -> str:
     """A behavioural stub of the shape the corpus actually contains: a name,
-    a pin list, and controlled sources rather than device models."""
-    return (f".subckt {part} 1 2 3 4 5 6 7 8\n"
-            f"E1 8 0 VALUE={{V(2)-V(3)}}\n"
-            f"R1 8 0 1meg\n"
+    the instance's own pin count (so shadowing is never confounded with an
+    arity error), and controlled sources rather than device models."""
+    n = max(npins, 2)
+    pins = " ".join(str(i) for i in range(1, n + 1))
+    drive = f"V(2)-V(3)" if n >= 3 else "V(1)"
+    return (f".subckt {part} {pins}\n"
+            f"E1 {n} 0 VALUE={{{drive}}}\n"
+            f"R1 {n} 0 1meg\n"
+            f"E2 {STUB_MARK} 0 VALUE={{V(1)}}\n"
+            f"R2 {STUB_MARK} 0 1meg\n"
             f".ends {part}\n")
+
+
+def _decoys() -> list[str]:
+    """Installed vendor model files, from the pinned snapshot."""
+    try:
+        files = json.loads(SNAPSHOT.read_text())["files"]
+    except (OSError, ValueError, KeyError):
+        return []
+    return sorted(Path(k).name for k in files
+                  if k.startswith("<LTspice>/lib/sub/") and k.endswith(".sub"))
+
+
+def _declared_names(path: Path) -> set[str] | None:
+    """Subcircuit names a library file declares, or None if it is encrypted."""
+    blob = path.read_bytes()
+    if b"<Binary File>" in blob[:256]:
+        return None
+    return {l.split()[1].upper() for l in blob.decode("utf-8", "ignore").splitlines()
+            if l.strip().lower().startswith(".subckt") and len(l.split()) >= 2}
 
 
 def mutate(netlist: str, part: str, kind: str, rng: random.Random) -> str | None:
@@ -98,13 +158,15 @@ def mutate(netlist: str, part: str, kind: str, rng: random.Random) -> str | None
         if not instances:
             return None
         inst = instances[0]
-        nodes = inst.split()[1:-1]
+        nodes, idx = _nodes(inst)
+        params = inst.split(";", 1)[0].split()[idx + 1:]
         wrapper_name = f"{_part_stem(part)}_WRAP"
         inner = " ".join(f"n{i}" for i in range(len(nodes)))
         body = (f".subckt {wrapper_name} {inner}\n"
-                f"XINNER {inner} {part}\n"
+                f"XINNER {inner} {' '.join([part] + params)}\n"
                 f".ends {wrapper_name}\n")
-        replaced = netlist.replace(inst, inst.rsplit(None, 1)[0] + f" {wrapper_name}")
+        replaced = netlist.replace(inst, " ".join(
+            [inst.split()[0]] + nodes + [wrapper_name]))
         return replaced.replace(".end", body + ".end", 1)
 
     if kind == "substitute":
@@ -113,7 +175,8 @@ def mutate(netlist: str, part: str, kind: str, rng: random.Random) -> str | None
         out = netlist
         for lib in libs:
             out = out.replace(lib, "* library directive removed by mutation")
-        return out.replace(".end", _stub(part) + ".end", 1)
+        npins = len(_nodes(instances[0])[0]) if instances else 8
+        return out.replace(".end", _stub(part, npins) + ".end", 1)
 
     if kind == "renamed_stub":
         # Same substitution, but the local definition and the instance both
@@ -125,15 +188,29 @@ def mutate(netlist: str, part: str, kind: str, rng: random.Random) -> str | None
         for lib in libs:
             out = out.replace(lib, "* library directive removed by mutation")
         for inst in instances:
-            out = out.replace(inst, inst.rsplit(None, 1)[0] + f" {variant}")
-        return out.replace(".end", _stub(variant) + ".end", 1)
+            out = out.replace(inst, _recall(inst, variant))
+        npins = len(_nodes(instances[0])[0])
+        return out.replace(".end", _stub(variant, npins) + ".end", 1)
 
     if kind == "shadow":
         # The directive that a naive check looks for is still present; a local
-        # definition of the same name shadows it.
-        if not libs:
+        # definition of the same name shadows it. LTspice 17.2.4 binds a name
+        # defined both locally and in a `.lib` to whichever definition comes
+        # first in the file (see `precedence` in main), so the stub is placed
+        # ahead of the directive: the simulated circuit then really runs the
+        # stub, and the label does not depend on a precedence assumption.
+        if not libs or not instances:
             return None
-        return netlist.replace(".end", _stub(part) + ".end", 1)
+        npins = len(_nodes(instances[0])[0])
+        return netlist.replace(libs[0], _stub(part, npins) + libs[0], 1)
+
+    if kind == "shadow_after":
+        # Not a labelled class: the same stub placed *after* the directive,
+        # used only to measure the simulator's precedence rule.
+        if not libs or not instances:
+            return None
+        npins = len(_nodes(instances[0])[0])
+        return netlist.replace(".end", _stub(part, npins) + ".end", 1)
 
     if kind == "drop_library":
         if not libs or not instances:
@@ -152,14 +229,25 @@ def mutate(netlist: str, part: str, kind: str, rng: random.Random) -> str | None
         return out
 
     if kind == "alias_file":
-        # The directive resolves, but to a file that defines a different part.
+        # The directive resolves to an installed vendor file that declares a
+        # different part. The target is checked to exist and, where readable,
+        # to declare no subcircuit of the requested name, so this is a
+        # wrong-definition test rather than a missing-file test.
         if not libs:
             return None
-        others = [p.name for p in TEMPLATES.glob("*.net")
-                  if not _same_part(p.stem, part)]
-        if not others:
+        others = [d for d in _decoys() if not _same_part(Path(d).stem, part)]
+        rng.shuffle(others)
+        decoy = None
+        for cand in others:
+            found = find_model(cand)
+            if not found:
+                continue
+            names = _declared_names(Path(found))
+            if names is None or part.upper() not in names:
+                decoy = cand
+                break
+        if decoy is None:
             return None
-        decoy = rng.choice(others)
         out = netlist
         for lib in libs:
             head = lib.split()[0]
@@ -169,38 +257,125 @@ def mutate(netlist: str, part: str, kind: str, rng: random.Random) -> str | None
     if kind == "pin_permute":
         if not instances:
             return None
+        # Transpose the first pair of pins that carry *different* nets, so
+        # the edit always changes connectivity. A swap of two pins on the same
+        # net is a no-op and is never generated.
         inst = instances[0]
-        tokens = inst.split()
-        nodes = tokens[1:-1]
-        if len(nodes) < 2:
-            return None
-        i, j = 0, len(nodes) - 1
-        nodes[i], nodes[j] = nodes[j], nodes[i]
-        return netlist.replace(inst, " ".join([tokens[0]] + nodes + [tokens[-1]]))
+        tokens = inst.split(";", 1)[0].split()
+        nodes, idx = _nodes(inst)
+        pairs = [(0, len(nodes) - 1)] + [(a, b) for a in range(len(nodes))
+                                         for b in range(a + 1, len(nodes))]
+        for i, j in pairs:
+            if i < j < len(nodes) and nodes[i].upper() != nodes[j].upper():
+                nodes[i], nodes[j] = nodes[j], nodes[i]
+                return netlist.replace(inst, " ".join(
+                    [tokens[0]] + nodes + tokens[idx:]))
+        return None
 
     raise ValueError(f"unknown mutation {kind}")
 
 
-def held_out_parts(limit: int, rng: random.Random) -> list[tuple[str, Path]]:
-    """Parts with a reference netlist that appear in no probe case."""
+def _simulate(netlist: str, timeout_s: int = 60) -> dict:
+    """LTspice's own verdict on a netlist, independent of our parser.
+
+    `status` is `ran`, `missing_model` (LTspice reports an unknown subcircuit
+    or an unopenable library), `timeout`, or `error`. `stub_elaborated` is
+    True when the raw file carries a trace through a constructed stub's
+    marker node, i.e. the simulator elaborated the local stub.
+    """
+    import logging
+    import tempfile
+    logging.disable(logging.CRITICAL)
+    from app.simulation_runner import SimulationRunner
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "mutant.net"
+        path.write_text(netlist)
+        result = SimulationRunner().run_batch(path, timeout=timeout_s)
+        log = ""
+        if result.get("log_path"):
+            log = Path(result["log_path"]).read_text(
+                encoding="utf-8", errors="ignore").replace("\x00", "")
+        low = log.lower()
+        fatal = next((l.strip() for l in log.splitlines()
+                      if "fatal" in l.lower() or "error" in l.lower()), "")
+        traces: list[str] = []
+        final: dict[str, float] = {}
+        if result.get("raw_path"):
+            try:
+                import measure_raw
+                obj = measure_raw.load_traces(result["raw_path"])
+                traces = list(obj.variables)
+                for name in traces:
+                    if name.lower().startswith("v("):
+                        data = obj.get_data(name)
+                        if data is not None and len(data):
+                            final[name.lower()] = float(abs(data[-1]))
+            except Exception:                                    # noqa: BLE001
+                traces = []
+    if "timeout" in str(result.get("error", "")).lower():
+        status = "timeout"
+    elif "unknown subcircuit" in low or "could not open" in low:
+        status = "missing_model"
+    elif result.get("ok"):
+        status = "ran"
+    else:
+        status = "error"
+    return {"status": status, "fatal": fatal[:160],
+            "stub_elaborated": any(STUB_MARK.lower() in t.lower() for t in traces),
+            "final": final}
+
+
+def _same_response(a: dict, b: dict, rel: float = 1e-3) -> bool:
+    """Do two runs end in the same top-level node voltages?"""
+    keys = set(a) & set(b)
+    if not keys:
+        return False
+    return all(abs(a[k] - b[k]) <= rel * max(1.0, abs(a[k]), abs(b[k]))
+               for k in keys)
+
+
+def held_out_parts(limit: int, rng: random.Random,
+                   refreeze: bool = False) -> list[tuple[str, Path]]:
+    """The frozen held-out part list, built once and then read back.
+
+    Selection does not consult the resolver under test. A part qualifies when
+    (i) its stem matches no probe-case part, (ii) its reference netlist calls
+    a subcircuit of exactly the part's name on one line, (iii) a library
+    directive in it names a file that exists in the installed library, and
+    (iv) LTspice itself simulates the unmodified reference without reporting
+    an unknown subcircuit. The list is written to `data/heldout_parts.json`
+    so later runs score the same parts.
+    """
+    if FROZEN_PARTS.exists() and not refreeze:
+        names = json.loads(FROZEN_PARTS.read_text())["parts"]
+        return [(n, TEMPLATES / f"{n}.net") for n in names][:limit]
+
     seen_stems = {_part_stem(c.part) for c in ALL_CASES}
     candidates = []
     for path in sorted(TEMPLATES.glob("*.net")):
         stem = _part_stem(path.stem)
         if not stem or stem in seen_stems:
             continue
-        try:
-            text = path.read_text(encoding="utf-8", errors="ignore")
-        except OSError:
+        text = path.read_text(encoding="utf-8", errors="ignore")
+        if not _instance_lines(text, path.stem):
             continue
-        # Usable only if the reference itself is genuine on this machine:
-        # the part is instantiated and its library resolves to a vendor model.
-        if not resolve(text, path.stem).vendor_supplied:
+        libs = _lib_lines(text, path.stem)
+        if not libs or not all(find_model(l.split()[1].strip('"')) for l in libs):
             continue
         candidates.append((path.stem, path))
         seen_stems.add(stem)
     rng.shuffle(candidates)
-    return candidates[:limit]
+    chosen = []
+    for part, path in candidates:
+        if len(chosen) >= limit:
+            break
+        sim = _simulate(path.read_text(encoding="utf-8", errors="ignore"))
+        if sim["status"] == "ran":
+            chosen.append((part, path))
+    FROZEN_PARTS.write_text(json.dumps(
+        {"selection": "see bench/mutants.py:held_out_parts", "seed": SEED,
+         "parts": [p for p, _ in chosen]}, indent=1) + "\n")
+    return chosen
 
 
 def audit_flags(netlist: str, part: str, reference: str) -> dict:
@@ -211,6 +386,10 @@ def audit_flags(netlist: str, part: str, reference: str) -> dict:
         "provenance_fail": not res.vendor_supplied,
         "pin_role_fail": pin_role_mismatch(netlist, part, reference),
         "binding": res.binding,
+        # The naive pair a reader might assume equivalent: the part is never
+        # instantiated, or a same-name .subckt is defined in the file.
+        "naive_fail": (not instantiates_part(netlist, part)
+                       or substituted(netlist, part)),
     }
 
 
@@ -221,10 +400,15 @@ def main() -> int:
     ap.add_argument("--out", default="bench/runs/mutants")
     ap.add_argument("--tex", default="generated/mutants.tex",
                     help="where to write the LaTeX macro block")
+    ap.add_argument("--simulate", action="store_true",
+                    help="also run every mutant through LTspice as an "
+                         "independent oracle (a few minutes)")
+    ap.add_argument("--refreeze", action="store_true",
+                    help="re-select the held-out part list")
     args = ap.parse_args()
 
     rng = random.Random(SEED)
-    parts = held_out_parts(args.parts, rng)
+    parts = held_out_parts(args.parts, rng, refreeze=args.refreeze)
     if not parts:
         print("no held-out parts with a resolvable vendor model", file=sys.stderr)
         return 1
@@ -240,12 +424,15 @@ def main() -> int:
                 continue
             label = "valid" if kind in VALID_MUTATIONS else "invalid"
             flags = audit_flags(mutated, part, reference)
-            records.append({
+            rec = {
                 "part": part, "reference": path.name, "mutation": kind,
                 "label": label, **flags,
                 "flagged": bool(flags["provenance_fail"] or flags["pin_role_fail"]),
                 "flagged_provenance_only": bool(flags["provenance_fail"]),
-            })
+            }
+            if args.simulate:
+                rec["sim"] = _simulate(mutated)
+            records.append(rec)
 
     (dest / "mutants.jsonl").write_text(
         "\n".join(json.dumps(r) for r in records) + "\n")
@@ -276,6 +463,81 @@ def main() -> int:
             "n": len(sub), "label": sub[0]["label"], "flagged": caught,
             "rate": 100.0 * caught / len(sub),
         }
+    # Resolved binding against the naive pair, on the same population: the
+    # provenance-destroying classes and the valid ones.
+    destroy = [r for r in records if r["label"] == "invalid"
+               and r["mutation"] not in INTERFACE_MUTATIONS]
+    valid = [r for r in records if r["label"] == "valid"]
+    summary["provenance_vs_naive"] = {
+        "destroying_n": len(destroy), "valid_n": len(valid),
+        "prov_caught": sum(r["provenance_fail"] for r in destroy),
+        "prov_valid_flagged": sum(r["provenance_fail"] for r in valid),
+        "naive_caught": sum(r["naive_fail"] for r in destroy),
+        "naive_valid_flagged": sum(r["naive_fail"] for r in valid),
+        "naive_missed_by_mutation": {
+            k: sum(1 for r in destroy if r["mutation"] == k and not r["naive_fail"])
+            for k in FAKE_MUTATIONS if k not in INTERFACE_MUTATIONS},
+    }
+    if args.simulate:
+        # What LTspice itself reports, per mutation class. `confirms` is the
+        # simulator-side evidence for the label: the vendor model loads for
+        # the valid classes, the local stub is elaborated for the stub
+        # classes, and the model is missing for the dropped/retargeted ones.
+        ident = {r["part"]: r["sim"] for r in records if r["mutation"] == "identity"}
+
+        def confirms(r):
+            sim = r["sim"]
+            k = r["mutation"]
+            base = ident.get(r["part"], {})
+            if k == "identity":
+                return sim["status"] == "ran"
+            if k == "wrapper":
+                # Same circuit, one level of hierarchy added: LTspice must run
+                # it and land on the reference's node voltages.
+                return (sim["status"] == "ran"
+                        and _same_response(sim["final"], base.get("final", {})))
+            if k in ("substitute", "renamed_stub", "shadow"):
+                # The simulated response departs from the vendor reference,
+                # or the simulator rejects the circuit: either way the vendor
+                # model is not what produced it.
+                return (sim["status"] != "ran"
+                        or not _same_response(sim["final"], base.get("final", {})))
+            if k in ("drop_library", "alias_file"):
+                return sim["status"] == "missing_model"
+            return None
+        oracle = {}
+        for kind in VALID_MUTATIONS + FAKE_MUTATIONS:
+            sub = [r for r in records if r["mutation"] == kind]
+            if not sub:
+                continue
+            statuses = {}
+            for r in sub:
+                statuses[r["sim"]["status"]] = statuses.get(r["sim"]["status"], 0) + 1
+            conf = [confirms(r) for r in sub]
+            oracle[kind] = {
+                "n": len(sub), "status": statuses,
+                "stub_elaborated": sum(r["sim"]["stub_elaborated"] for r in sub),
+                "confirms": (sum(1 for c in conf if c) if conf[0] is not None
+                             else None),
+            }
+        summary["ltspice_oracle"] = oracle
+        # Precedence probe: the shadow stub placed after the directive instead
+        # of before it. Does the simulator still reproduce the reference?
+        after = []
+        for part, path in parts:
+            ref = path.read_text(encoding="utf-8", errors="ignore")
+            m = mutate(ref, part, "shadow_after", rng)
+            if m is None or part not in ident:
+                continue
+            sim = _simulate(m)
+            after.append(sim["status"] == "ran"
+                         and _same_response(sim["final"], ident[part]["final"]))
+        before = [not confirms(r) for r in records if r["mutation"] == "shadow"]
+        summary["precedence"] = {
+            "n": len(after),
+            "stub_after_lib_reproduces_vendor": sum(after),
+            "stub_before_lib_reproduces_vendor": sum(before),
+        }
     (dest / "summary.json").write_text(json.dumps(summary, indent=2))
 
     print(f"held-out parts: {len(parts)}   mutants: {len(records)}")
@@ -303,6 +565,22 @@ def main() -> int:
              rf"\newcommand{{\MutRecall}}{{{full['recall']:.0f}}}",
              rf"\newcommand{{\MutProvPrecision}}{{{prov['precision']:.0f}}}",
              rf"\newcommand{{\MutProvRecall}}{{{prov['recall']:.0f}}}"]
+    pvn = summary["provenance_vs_naive"]
+    for key, tag in (("destroying_n", "DestroyN"), ("valid_n", "ValidN"),
+                     ("prov_caught", "ProvCaught"),
+                     ("prov_valid_flagged", "ProvValidFlagged"),
+                     ("naive_caught", "NaiveCaught"),
+                     ("naive_valid_flagged", "NaiveValidFlagged")):
+        lines.append(rf"\newcommand{{\Mut{tag}}}{{{pvn[key]}}}")
+    prec = summary.get("precedence")
+    if prec:
+        lines.append(rf"\newcommand{{\PrecN}}{{{prec['n']}}}")
+        lines.append(rf"\newcommand{{\PrecAfterVendor}}{{{prec['stub_after_lib_reproduces_vendor']}}}")
+        lines.append(rf"\newcommand{{\PrecBeforeVendor}}{{{prec['stub_before_lib_reproduces_vendor']}}}")
+    for kind, v in summary.get("ltspice_oracle", {}).items():
+        tag = "".join(w.capitalize() for w in kind.split("_"))
+        if v["confirms"] is not None:
+            lines.append(rf"\newcommand{{\Oracle{tag}}}{{{v['confirms']}}}")
     for kind, v in summary["by_mutation"].items():
         tag = "".join(w.capitalize() for w in kind.split("_"))
         lines.append(rf"\newcommand{{\Mut{tag}N}}{{{v['n']}}}")

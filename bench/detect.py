@@ -65,6 +65,12 @@ def _significant_lines(netlist: str) -> list[str]:
         line = raw.split(";", 1)[0].strip()
         if not line or line.startswith("*"):
             continue
+        # SPICE `+` continuation: the line belongs to the previous element.
+        # Left unjoined, an X line wrapped across two lines reads as calling
+        # its last *node* rather than the subcircuit on the continuation.
+        if line.startswith("+") and out:
+            out[-1] = out[-1] + " " + " ".join(line[1:].split())
+            continue
         out.append(" ".join(line.split()))
     return out
 

@@ -1,6 +1,6 @@
 """Per-case appendix table: definition, tolerance and per-arm outcome.
 
-A reviewer asked for the case list a reader needs in order to judge whether
+Lists the cases a reader needs in order to judge whether
 the suite is adversarial in the way the paper says it is, and to locate any
 individual result in the released corpus. Everything here is derived from
 `bench/cases.py` and the stored run, so it cannot drift from the numbers in
@@ -30,7 +30,7 @@ def esc(text: str) -> str:
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("run_id")
-    ap.add_argument("--out", default="generated/cases.tex")
+    ap.add_argument("--out", default="generated/case_rows.tex")
     args = ap.parse_args()
 
     out_dir, rows = load(args.run_id)
@@ -48,106 +48,74 @@ def main() -> int:
         nf = r.get("netlist_file")
         return bool(nf) and (out_dir / nf).exists()
 
+    from reconcile import no_completion_cause
+
+    def fmt_target(name, target, tol):
+        unit = "V" if name == "vout_dc" else "dB"
+        sign = "$-$" if target < 0 else ""
+        return rf"{sign}{abs(target):g} {unit} $\pm$ {tol:g}"
+
+    order = ("bare", "requirement", "library")
     body, nocomp = [], []
+    totals = {a: [0, 0, 0, 0] for a in order}   # net, att, pass, false
     for case in ALL_CASES:
         sub = [r for r in rows if r["case_id"] == case.case_id]
-        if case.metrics:
-            name, target, tol = case.metrics[0]
-            metric = rf"{esc(name)} $= {target:g} \pm {tol:g}$"
-        else:
-            metric = "inspection only"
+        scored = bool(case.metrics)
+        target = (fmt_target(*case.metrics[0]) if scored
+                  else r"\emph{unscored}")
+        part = rf"\texttt{{{esc(case.part)}}}"
+        if case.case_id == "D5":
+            part += r"$^{\dagger}$"
         cells = []
-        for a in ARMS:
+        for a in order:
             arm_rows = [r for r in sub if r.get("prompt_variant", "bare") == a]
             net = [r for r in arm_rows if has_net(r)]
             npass = sum(1 for r in net if r.get("sim_pass"))
             graded = [r for r in net if r.get("sim_pass") and
                       (r["case_id"], r["model"], r["sample"], a) in verdicts]
-            if npass and len(graded) == npass:
-                nfalse = str(sum(1 for r in graded if verdicts[
-                    (r["case_id"], r["model"], r["sample"], a)] == "FAKE"))
-            else:
-                # Only BARE and LIBRARY passes carry manual grades. Printing 0
-                # for an ungraded arm reads as "none were false" rather than
-                # "none were graded", so it must be a dash.
-                nfalse = "---"
-            cells.append(rf"{len(net)}/{len(arm_rows)} & {npass} & {nfalse}")
-        body.append(rf"{case.case_id} & \texttt{{{esc(case.part)}}} & "
-                    rf"{case.fake_risk} & {metric} & " + " & ".join(cells) + r" \\")
-
-    for a in ARMS:
-        arm_rows = [r for r in rows if r.get("prompt_variant", "bare") == a]
-        per_model = {}
-        for r in arm_rows:
-            # [all attempted, all lost, scored attempted, scored lost]. The
-            # scored columns exclude the inspection-only case, so they are the
-            # figures Table~\ref{tab:main} is computed over; reporting only
-            # the all-case totals made the two tables look contradictory.
-            e = per_model.setdefault(r["model"], [0, 0, 0, 0])
-            scored = not r.get("manual_grade_only")
-            e[0] += 1
+            nfalse = sum(1 for r in graded if verdicts[
+                (r["case_id"], r["model"], r["sample"], a)] == "FAKE")
             if scored:
-                e[2] += 1
-            if not has_net(r):
-                e[1] += 1
-                if scored:
-                    e[3] += 1
-        for m, (att, lost, s_att, s_lost) in sorted(per_model.items()):
-            nocomp.append(rf"\textsc{{{a}}} & \texttt{{{esc(m)}}} & {att} & {lost} "
-                          rf"& {s_att} & {s_lost} \\")
+                t = totals[a]
+                t[0] += len(net); t[1] += len(arm_rows); t[2] += npass
+                t[3] += nfalse
+            p_cell = str(npass) if scored else "---"
+            if a == "requirement":
+                cells.append(rf"{len(net)}/{len(arm_rows)} & {p_cell}")
+                continue
+            # `---` means no numeric pass to grade, never zero false ones.
+            f_cell = (str(nfalse) if scored and npass and len(graded) == npass
+                      else "---")
+            cells.append(rf"{len(net)}/{len(arm_rows)} & {p_cell} & {f_cell}")
+        body.append(rf"{case.case_id} & {part} & {case.fake_risk} & {target} & "
+                    + " & ".join(cells) + r" \\")
+    tb, tr, tl = totals["bare"], totals["requirement"], totals["library"]
+    body.append(r"\midrule")
+    body.append(rf"\multicolumn{{4}}{{@{{}}l}}{{\emph{{Scored total (19 cases)}}}} & "
+                rf"{tb[0]}/{tb[1]} & {tb[2]} & {tb[3]} & {tr[0]}/{tr[1]} & {tr[2]} & "
+                rf"{tl[0]}/{tl[1]} & {tl[2]} & {tl[3]} \\")
 
-    tex = r"""% GENERATED by bench/case_table.py -- do not edit by hand.
-\begin{table}[t]
-\centering
-\caption{The 20 cases. \emph{Risk} is how readily an ideal element reproduces
-  the target number, the axis the suite is stratified on. For each arm:
-  netlists returned over generations attempted, numeric passes, and passes
-  graded as false acceptances (graded only for \textsc{bare} and
-  \textsc{library}). C4 carries no numeric target and is excluded from every
-  rate in the paper. Stimulus and load are chosen by the generating model
-  (\S\ref{sec:design}); the specification text given to the model, and the
-  reference netlist each case is graded against, ship with the artifact.}
-\label{tab:cases}
-\scriptsize
-\setlength{\tabcolsep}{3.5pt}
-\begin{tabular}{@{}llll ccc ccc ccc@{}}
-\toprule
-& & & & \multicolumn{3}{c}{\textsc{bare}} &
-      \multicolumn{3}{c}{\textsc{library}} &
-      \multicolumn{3}{c}{\textsc{requirement}} \\
-\cmidrule(lr){5-7}\cmidrule(lr){8-10}\cmidrule(lr){11-13}
-\textbf{Case} & \textbf{Part} & \textbf{Risk} & \textbf{Target} &
-  Net & P & F & Net & P & F & Net & P & F \\
-\midrule
-""" + "\n".join(body) + r"""
-\bottomrule
-\end{tabular}
-\end{table}
+    short = {"anthropic/claude-opus-5": "Claude Opus 5",
+             "openai/gpt-5.6-sol": "GPT-5.6 Sol",
+             "google/gemini-3.1-pro-preview": "Gemini 3.1 Pro"}
+    for a in order:
+        arm_rows = [r for r in rows if r.get("prompt_variant", "bare") == a
+                    and not r.get("manual_grade_only")]
+        for m in sorted({r["model"] for r in arm_rows}):
+            mr = [r for r in arm_rows if r["model"] == m]
+            lost = [r for r in mr if not has_net(r)]
+            c = {k: sum(1 for r in lost if no_completion_cause(r) == k)
+                 for k in ("content_filter", "billing", "network")}
+            nocomp.append(rf"\arm{{{a}}} &{short.get(m, esc(m))} & {len(mr)} & "
+                          rf"{c['content_filter']} & {c['billing']} & {c['network']} \\")
 
-\begin{table}[t]
-\centering
-\caption{Generations returning no completion under provider-side filtering,
-  per arm and model, counted as failed attempts throughout
-  (\S\ref{sec:results}) rather than as missing observations. The \emph{All
-  cases} columns cover all 20 cases (60 attempts per model per arm); the
-  \emph{Scored} columns exclude the inspection-only case C4 and are therefore
-  the population Table~\ref{tab:main} is computed over (57 attempts per model
-  per arm).
-  Summing the \emph{Scored} column reproduces the per-arm no-completion counts
-  in Table~\ref{tab:main}.}
-\label{tab:nocomp}
-\small
-\begin{tabular}{@{}llcccc@{}}
-\toprule
-& & \multicolumn{2}{c}{\textbf{All cases}} & \multicolumn{2}{c}{\textbf{Scored}} \\
-\cmidrule(lr){3-4}\cmidrule(lr){5-6}
-\textbf{Arm} & \textbf{Model} & Att. & No compl. & Att. & No compl. \\
-\midrule
-""" + "\n".join(nocomp) + r"""
-\bottomrule
-\end{tabular}
-\end{table}
-"""
+    tex = ("% GENERATED by bench/case_table.py -- do not edit by hand.\n"
+           "% Rows for the per-case table (arm order: BARE, REQUIREMENT, LIBRARY).\n"
+           + "\n".join(body) + "\n")
+    nocomp_tex = ("% GENERATED by bench/case_table.py -- do not edit by hand.\n"
+                  "% Scored slots with no deck, by recorded cause.\n"
+                  + "\n".join(nocomp) + "\n")
+    Path(args.out).with_name("nocomp_rows.tex").write_text(nocomp_tex)
     dest = Path(args.out)
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(tex)

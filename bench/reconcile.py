@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import random
 import re
 import sys
@@ -110,8 +111,10 @@ def audit_of(r):
 
 
 def is_genuine(r):
-    """The paper's 'genuine part use': the manufacturer library is loaded and no
-    local subcircuit shadows the requested part. Matches analyze.py."""
+    """A vendor-library reference: a .lib/.include directive is present and no
+    local subcircuit shadows the requested part. This is the paper's "Ref."
+    count; whether the reference resolves is `resolution_of`'s question.
+    Matches analyze.py."""
     a = audit_of(r)
     return bool(a.get("has_library")) and not a.get("substituted")
 
@@ -149,6 +152,174 @@ def resolution_of(r, out_dir):
 def is_resolved_vendor(r, out_dir):
     res = resolution_of(r, out_dir)
     return bool(res and res.vendor_supplied)
+
+
+def no_completion_cause(r) -> str:
+    """Why a slot returned no netlist, read from the recorded error string.
+
+    The recorded status names what the router returned, not the upstream
+    policy behind it, so only `content_filter` finish reasons are called
+    filtering; billing and transport failures are reported as such.
+    """
+    err = (r.get("error") or "").lower()
+    if "content_filter" in err:
+        return "content_filter"
+    if "http 402" in err or "payment required" in err:
+        return "billing"
+    if any(s in err for s in ("connection", "timed out", "timeout", "reset")):
+        return "network"
+    return "other"
+
+
+def _finite(x) -> bool:
+    return isinstance(x, (int, float)) and math.isfinite(x)
+
+
+def review_macros(*, corpus_rows, corpus_scored, numeric_pass, netlist_rows,
+                  key_of, verdicts_full, is_fake, reverify, out_dir,
+                  pred_by_key) -> list[str]:
+    """Denominators, loss causes, coverage and sensitivity figures.
+
+    Every figure here is something a reader asked to see stated explicitly;
+    each is derived from the stored records and asserted where a count must
+    reconcile with another.
+    """
+    out: list[str] = []
+    tag = {"bare": "Bare", "requirement": "Req", "library": "Lib"}
+
+    def has_net(r):
+        return bool(r.get("netlist_file")) and (out_dir / r["netlist_file"]).exists()
+
+    # --- no-completion causes ------------------------------------------
+    causes_all = Counter(no_completion_cause(r) for r in corpus_rows if not has_net(r))
+    check(causes_all.get("other", 0) == 0,
+          f"unclassified no-completion cause(s): {causes_all}")
+    for scope, pool in (("Scored", corpus_scored), ("All", corpus_rows)):
+        for c in ("content_filter", "billing", "network"):
+            ctag = {"content_filter": "Filter", "billing": "Billing",
+                    "network": "Network"}[c]
+            n = sum(1 for r in pool if not has_net(r) and no_completion_cause(r) == c)
+            out.append(rf"\newcommand{{\NoComp{scope}{ctag}}}{{{n}}}")
+            for a, at in tag.items():
+                n = sum(1 for r in pool if arm(r) == a and not has_net(r)
+                        and no_completion_cause(r) == c)
+                out.append(rf"\newcommand{{\NoComp{scope}{ctag}{at}}}{{{n}}}")
+        out.append(rf"\newcommand{{\NoComp{scope}Total}}{{"
+                   rf"{sum(1 for r in pool if not has_net(r))}}}")
+    claude_filter = Counter(arm(r) for r in corpus_scored if not has_net(r)
+                            and no_completion_cause(r) == "content_filter"
+                            and "claude" in r["model"])
+    check(sum(claude_filter.values()) == sum(
+        1 for r in corpus_scored if not has_net(r)
+        and no_completion_cause(r) == "content_filter"),
+          "a content-filter return came from a model other than Claude")
+
+    # --- reference / resolution denominators ----------------------------
+    for a, at in tag.items():
+        att = [r for r in corpus_scored if arm(r) == a]
+        net = [r for r in att if has_net(r)]
+        ref = [r for r in net if is_genuine(r)]
+        res = [r for r in net if is_resolved_vendor(r, out_dir)]
+        check(set(map(key_of, res)) <= set(map(key_of, net)),
+              "a resolved row has no netlist")
+        out.append(rf"\newcommand{{\Res{at}OfRef}}{{"
+                   rf"{pct(sum(1 for r in ref if is_resolved_vendor(r, out_dir)), len(ref)):.0f}}}")
+        out.append(rf"\newcommand{{\Res{at}OfRefN}}{{"
+                   rf"{sum(1 for r in ref if is_resolved_vendor(r, out_dir))}}}")
+        out.append(rf"\newcommand{{\Ref{at}Att}}{{{pct(len(ref), len(att)):.0f}}}")
+        out.append(rf"\newcommand{{\Res{at}Att}}{{{pct(len(res), len(att)):.0f}}}")
+
+    # --- numeric misses with no finite measurement ----------------------
+    misses = [r for r in netlist_rows if r.get("converged") and not r.get("sim_pass")]
+    nomeas = [r for r in misses
+              if not any(_finite(rep.get("measured")) for rep in r.get("reports") or [])]
+    out.append(rf"\newcommand{{\NumericFailNoMeasure}}{{{len(nomeas)}}}")
+    out.append(rf"\newcommand{{\NumericFailFinite}}{{{len(misses) - len(nomeas)}}}")
+
+    # --- re-verification completeness and coverage ----------------------
+    qualified = [r for r in numeric_pass if is_resolved_vendor(r, out_dir)]
+    missing = [key_of(r) for r in qualified
+               if (reverify.get(key_of(r)) or {}).get("control") != "met"]
+    check(not missing,
+          f"{len(missing)} provenance-qualified pass(es) lack a passing "
+          f"re-verification record: {missing[:3]}")
+    recs = [reverify[key_of(r)] for r in qualified]
+    del_finite = sum(1 for d in recs if d.get("delete") == "lost"
+                     and _finite(d.get("delete_value")))
+    del_nan = sum(1 for d in recs if d.get("delete") == "lost"
+                  and not _finite(d.get("delete_value")))
+    del_other = sum(1 for d in recs if d.get("delete") not in ("lost",))
+    check(del_finite + del_nan + del_other == len(recs),
+          "deletion outcomes do not partition the re-verified passes")
+    lsq = [d["thd_lsq"] for d in recs if _finite(d.get("thd_lsq"))]
+    fft = [d["thd_fft"] for d in recs if _finite(d.get("thd_fft"))]
+    out += [rf"\newcommand{{\RevQualified}}{{{len(qualified)}}}",
+            rf"\newcommand{{\RevDeleteFinite}}{{{del_finite}}}",
+            rf"\newcommand{{\RevDeleteNaN}}{{{del_nan}}}",
+            rf"\newcommand{{\RevDeleteOther}}{{{del_other}}}",
+            rf"\newcommand{{\RevTHDLsqN}}{{{len(lsq)}}}",
+            rf"\newcommand{{\RevTHDFftN}}{{{len(fft)}}}",
+            rf"\newcommand{{\RevMaxTHDLsq}}{{{max(lsq, default=0):.4f}}}",
+            rf"\newcommand{{\RevMaxTHDFft}}{{{max(fft, default=0):.4f}}}"]
+
+    # --- grade history and grading basis --------------------------------
+    changed = [r for r in numeric_pass
+               if verdicts_full.get(key_of(r), {}).get("previous_verdict")]
+    for a, at in (("bare", "Bare"), ("library", "Lib")):
+        out.append(rf"\newcommand{{\Regraded{at}}}{{"
+                   rf"{sum(1 for r in changed if arm(r) == a)}}}")
+        prev_false = sum(1 for r in numeric_pass if arm(r) == a and (
+            is_fake(r) or verdicts_full.get(key_of(r), {}).get("previous_verdict") == "FAKE"))
+        out.append(rf"\newcommand{{\PrevFalse{at}}}{{{prev_false}}}")
+    out.append(rf"\newcommand{{\PrevFalseTotal}}{{"
+               rf"{sum(1 for r in numeric_pass if is_fake(r) or verdicts_full.get(key_of(r), {}).get('previous_verdict') == 'FAKE')}}}")
+    audit_notes = sum(1 for r in numeric_pass
+                      if "audit" in (verdicts_full.get(key_of(r), {}).get("note") or "").lower())
+    out.append(rf"\newcommand{{\GradeNotesAudit}}{{{audit_notes}}}")
+
+    # --- pin-role flags among numeric passes ----------------------------
+    flagged = [r for r in numeric_pass if pred_by_key[key_of(r)]["pin_role_mismatch"]]
+    local = sum(1 for r in flagged if pred_by_key[key_of(r)]["substituted"])
+    qual = [r for r in flagged if is_resolved_vendor(r, out_dir)]
+    check(local + len(qual) == len(flagged),
+          "a pin-role-flagged pass is neither a local substitute nor qualified")
+    out.append(rf"\newcommand{{\PinRolePassLocal}}{{{local}}}")
+    out.append(rf"\newcommand{{\PinRolePassQualified}}{{{len(qual)}}}")
+
+    # --- sensitivity ----------------------------------------------------
+    def false_share(pool):
+        return sum(1 for r in pool if is_fake(r)), len(pool)
+
+    bare_pass = [r for r in numeric_pass if arm(r) == "bare"]
+    lib_pass = [r for r in numeric_pass if arm(r) == "library"]
+    for name, pool in (("Bare", bare_pass), ("Lib", lib_pass)):
+        out.append(rf"\newcommand{{\CasesWithPass{name}}}{{"
+                   rf"{len({r['case_id'] for r in pool})}}}")
+    for risk in ("high", "medium"):
+        f, n = false_share([r for r in bare_pass if r.get("fake_risk") == risk])
+        rt = risk.capitalize()
+        out.append(rf"\newcommand{{\BareFalse{rt}}}{{{f}}}")
+        out.append(rf"\newcommand{{\BarePass{rt}}}{{{n}}}")
+    f, n = false_share([r for r in bare_pass if r["case_id"] != "C1"])
+    out.append(rf"\newcommand{{\BareFalseNoCOne}}{{{f}}}")
+    out.append(rf"\newcommand{{\BarePassNoCOne}}{{{n}}}")
+    lo, hi = clustered_bootstrap_ci(bare_pass, is_fake, lambda r: True,
+                                    cluster_key="part")
+    out.append(rf"\newcommand{{\BareFalsePartCILo}}{{{lo:.0f}}}")
+    out.append(rf"\newcommand{{\BareFalsePartCIHi}}{{{hi:.0f}}}")
+    lopo = []
+    for p in sorted({r["part"] for r in bare_pass}):
+        f, n = false_share([r for r in bare_pass if r["part"] != p])
+        lopo.append(pct(f, n))
+    out.append(rf"\newcommand{{\BareFalseLopoMin}}{{{min(lopo):.0f}}}")
+    out.append(rf"\newcommand{{\BareFalseLopoMax}}{{{max(lopo):.0f}}}")
+    for a, name in (("bare", "Bare"), ("library", "Lib")):
+        att = [r for r in corpus_scored if arm(r) == a and "claude" not in r["model"]]
+        good = sum(1 for r in numeric_pass if arm(r) == a
+                   and "claude" not in r["model"] and not is_fake(r))
+        out.append(rf"\newcommand{{\NoClaude{name}Valid}}{{{good}}}")
+        out.append(rf"\newcommand{{\NoClaude{name}Att}}{{{len(att)}}}")
+    return out
 
 
 def main() -> int:
@@ -314,8 +485,16 @@ def main() -> int:
                 "false_pass_rate": pct(len(m_false), len(m_pass)) if m_pass else None,
                 "genuine": sum(1 for r in m_net if is_genuine(r)),
                 "stub": sum(1 for r in m_net if audit_of(r).get("behavioral_stub")),
+                "local_subckt": sum(1 for r in m_net if audit_of(r).get("substituted")),
+                # Instantiated by name with neither a local definition nor any
+                # .lib/.include: detect.unresolvable_part, from the stored audit.
+                "unresolvable": sum(1 for r in m_net
+                                    if audit_of(r).get("instantiated")
+                                    and not audit_of(r).get("substituted")
+                                    and not audit_of(r).get("has_library")),
             }
         per_model[m] = entry
+    GEMINI = next(m for m in per_model if m.startswith("google/gemini"))
 
 
     linearity_path = out_dir / "linearity.jsonl"
@@ -516,6 +695,10 @@ def main() -> int:
 \\newcommand{{\\FlagPinRole}}{{{flag_counts['pin_role_mismatch']}}}
 \\newcommand{{\\PinCountMismatch}}{{{pin_count}}}
 \\newcommand{{\\PinRolePassing}}{{{pin_role_pass_total}}}
+\\newcommand{{\\PinRoleConverged}}{{{sum(v['converged'] for v in pin_role_by_arm.values())}}}
+\\newcommand{{\\GeminiBareNetlists}}{{{per_model[GEMINI]['bare']['netlists']}}}
+\\newcommand{{\\GeminiBareLocalSubckt}}{{{per_model[GEMINI]['bare']['local_subckt']}}}
+\\newcommand{{\\GeminiBareUnresolvable}}{{{per_model[GEMINI]['bare']['unresolvable']}}}
 \\newcommand{{\\PinRoleBarePassing}}{{{pin_role_by_arm['bare']['numeric_pass']}}}
 \\newcommand{{\\PinRoleLibPassing}}{{{pin_role_by_arm['library']['numeric_pass']}}}
 \\newcommand{{\\BareAttempted}}{{{b['attempted']}}}
@@ -838,7 +1021,7 @@ No completion returned      & @NOCOMP@ & provider-side filtering, no netlist \\
 \midrule
 Generations attempted         & @BATT@ & @LATT@ \\
 Netlists produced             & @BNET@ & @LNET@ \\
-Genuine part use              & @BGEN@ & @LGEN@ \\
+Vendor-library reference      & @BGEN@ & @LGEN@ \\
 \quad 95\% CI                 & [@BGLO@, @BGHI@]\% & [@LGLO@, @LGHI@]\% \\
 Numeric passes                & @BPASS@ & @LPASS@ \\
 False acceptance among passes & @BFALSE@ & @LFALSE@ \\
@@ -1216,7 +1399,21 @@ False passes / attempted      & @BFA@ & @LFA@ \\
         extra.append(rf"\newcommand{{\Solo{tag}FP}}{{{sc['fp']}}}")
         extra.append(rf"\newcommand{{\Solo{tag}Recall}}{{{sc['recall']:.0f}}}")
         extra.append(rf"\newcommand{{\Unique{tag}}}{{{loo[pred]['unique_tp']}}}")
-    ARM_TAG = {"bare": "Bare", "library": "Lib", "requirement": "Req"}
+    # The cumulative rungs built up from the instance check. These were once
+    # typed into the paper by hand and went stale when grades changed.
+    for sc in rungs:
+        act = sc["active"]
+        if not act or act[0] != "no_part" or len(act) == len(ablation.PREDICATES):
+            continue
+        tag = "".join(w.capitalize() for w in act[-1].split("_"))
+        check(sc["precision"] is not None,
+              f"ladder rung ending in {act[-1]} flags nothing")
+        extra.append(rf"\newcommand{{\Ladder{tag}Flagged}}{{{sc['flagged']}}}")
+        extra.append(rf"\newcommand{{\Ladder{tag}TP}}{{{sc['tp']}}}")
+        extra.append(rf"\newcommand{{\Ladder{tag}FP}}{{{sc['fp']}}}")
+        extra.append(rf"\newcommand{{\Ladder{tag}Precision}}{{{sc['precision']:.0f}}}")
+        extra.append(rf"\newcommand{{\Ladder{tag}Recall}}{{{sc['recall']:.0f}}}")
+    ARM_TAG ={"bare": "Bare", "library": "Lib", "requirement": "Req"}
     for a, atag in ARM_TAG.items():
         for name, ntag in (("numeric", "Numeric"), ("provenance", "Prov"),
                            ("full_protocol", "Full")):
@@ -1239,6 +1436,22 @@ False passes / attempted      & @BFA@ & @LFA@ \\
             lo, hi = red[f"pass_at_{kk}"]
             extra.append(
                 rf"\newcommand{{\PairedDrop{atag}K}}{{[{lo:.1f},{hi:.1f}]}}")
+        pa = passk["by_arm"][a]
+        extra.append(rf"\newcommand{{\Drop{atag}One}}{{"
+                     rf"{pa['numeric']['pass_at_1'] - pa['provenance']['pass_at_1']:.1f}}}")
+        extra.append(rf"\newcommand{{\Drop{atag}K}}{{"
+                     rf"{pa['numeric'][f'pass_at_{kk}'] - pa['provenance'][f'pass_at_{kk}']:.1f}}}")
+
+    extra.extend(review_macros(
+        corpus_rows=corpus_rows, corpus_scored=corpus_scored,
+        numeric_pass=numeric_pass, netlist_rows=netlists, key_of=key_of,
+        verdicts_full=verdicts_full, is_fake=_is_fake, reverify=reverify,
+        out_dir=out_dir, pred_by_key=pred_by_key))
+    if _failures:
+        print("INTEGRITY FAILURES:", file=sys.stderr)
+        for f in _failures:
+            print("  -", f, file=sys.stderr)
+        return 1
     (dest / "extra.tex").write_text("\n".join(extra) + "\n")
 
     # ------------------------------------------------------------ new tables

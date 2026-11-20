@@ -47,7 +47,7 @@ PREDICATE_LABEL = {
     "pin_role_mismatch": "pin role disagrees with reference",
 }
 
-# The ladder a reviewer asked for: each rung is the union of the predicates
+# The cumulative ladder: each rung is the union of the predicates
 # named, so a rung can only add detections to the one above it.
 LADDER = [
     ("numeric simulation alone", ()),
@@ -143,8 +143,8 @@ def leave_one_out(rows, preds_by_key, key_of, is_fake) -> dict:
 def minimal_sufficient(rows, preds_by_key, key_of, is_fake) -> dict:
     """Smallest predicate subset matching the full audit's recall.
 
-    Answers the reviewer's question directly rather than leaving it to be
-    inferred from the ladder.
+    States directly which predicates carry the detections, rather than
+    leaving it to be inferred from the ladder.
     """
     full = score(rows, preds_by_key, key_of, is_fake, PREDICATES)
     for size in range(1, len(PREDICATES) + 1):
@@ -166,7 +166,7 @@ def minimal_sufficient(rows, preds_by_key, key_of, is_fake) -> dict:
 def stage_matrix(rows, preds_by_key, key_of, is_fake, wave_rejects) -> list[dict]:
     """Acceptance, false acceptance and valid acceptance at each protocol stage.
 
-    A reviewer could not tell from separate tables whether the waveform check
+    Separate tables did not show whether the waveform check
     removes anything beyond provenance and interface, because both the
     per-stage counts and the population each stage operates on were implicit.
     Each row here is the *cumulative* gate: a candidate is accepted only if it

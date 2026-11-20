@@ -54,7 +54,7 @@ server = MCPServer(
         "names like N001, so check what exists before measuring.\n"
         "5. verify_spec(netlist, metrics) -- measure against targets.\n"
         "6. submit(...) -- acceptance requires that the targets are met AND "
-        "that the genuine part is instantiated.\n\n"
+        "that the part name binds to exactly one vendor-supplied definition.\n\n"
         "Defining a local .subckt for the requested part reproduces the target "
         "number while discarding the device behaviour the part was chosen for; "
         "audit_netlist reports this and submit refuses it."
@@ -102,8 +102,9 @@ def verify_spec(netlist: str, metrics: list[dict], in_node: str = "IN",
 
 
 @server.tool(
-    description="Check that the named part is genuinely instantiated from its "
-                "vendor library rather than replaced by a local subcircuit.")
+    description="Resolve which definition the requested part name binds to "
+                "(transitive .lib/.include resolution) and report the "
+                "substitution, stub, absence and pin-role diagnostics.")
 def audit_netlist(netlist: str, part: str, out_node: str = "OUT",
                   metrics: list[str] | None = None) -> dict:
     return tools.audit_netlist(netlist, part, out_node, metrics)
@@ -111,12 +112,13 @@ def audit_netlist(netlist: str, part: str, out_node: str = "OUT",
 
 @server.tool(
     description="Acceptance gate. Accepts only when the numeric targets are met "
-                "AND the genuine vendor part is instantiated. Returns a "
-                "hash-pinned record of the decision.")
-def submit(netlist: str, part: str, spec_text: str, metrics: list[dict],
+                "AND the part name binds to exactly one vendor-supplied "
+                "definition. Returns a hash-pinned evidence record for every "
+                "decision.")
+def submit(netlist: str, part: str, metrics: list[dict], spec_text: str = "",
            in_node: str = "IN", out_node: str = "OUT",
            freq_hz: float = 1000.0, timeout_s: int = 60) -> dict:
-    return tools.submit(netlist, part, spec_text, metrics, in_node, out_node,
+    return tools.submit(netlist, part, metrics, spec_text, in_node, out_node,
                         freq_hz, timeout_s)
 
 
