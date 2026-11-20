@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import logging
 import re
 import sys
@@ -51,8 +52,9 @@ from waveform import THD_LIMIT, _raw_after_run, _waveform_metrics  # noqa: E402
 # Input-side perturbations, by case. Each moves a DC input across the
 # threshold the specification defines and states which way the output must go.
 RESPONSE_TESTS = {
-    # Comparator with a 1.65 V threshold; the spec holds the input above it.
-    "D1": {"node": "IN", "value": 0.5, "min_swing_v": 2.0},
+    # Comparator with a 1.65 V threshold; the spec holds the input above it,
+    # so the output is low, and dropping the input below must drive it high.
+    "D1": {"node": "IN", "value": 0.5, "min_swing_v": 2.0, "direction": "up"},
 }
 
 
@@ -64,9 +66,27 @@ def score(netlist, case):
         return "no_sim", None
     reps = build_report(sim, Spec(metrics=[Metric(n, t, tol, "hit_target")
                                            for n, t, tol in case.metrics], testbench=""))
-    if not reps or any(r.measured is None for r in reps):
-        return "no_measure", None
+    if not reps or any(r.measured is None or not math.isfinite(float(r.measured))
+                       for r in reps):
+        diag = " ".join(sim.diagnostics).lower()
+        # A transient gain of log10(0): the output carries no signal at all.
+        return ("zero_output" if "math domain" in diag else "no_measure"), None
     return ("met" if all(r.passed for r in reps) else "lost"), float(reps[0].measured)
+
+
+def deletion_outcome(status: str) -> str:
+    """Explicit outcome of re-simulating with the part deleted."""
+    return {"met": "still_met", "lost": "finite_miss", "zero_output": "zero_output",
+            "no_measure": "no_measure", "no_sim": "no_sim"}[status]
+
+
+def _clean(x):
+    """JSON-safe: non-finite floats become null rather than NaN."""
+    if isinstance(x, float) and not math.isfinite(x):
+        return None
+    if isinstance(x, dict):
+        return {k: _clean(v) for k, v in x.items()}
+    return x
 
 
 def delete_part(netlist, part):
@@ -124,8 +144,10 @@ def respond(netlist, case, test):
     _, after = score(flipped, case)
     if before is None or after is None:
         return None
+    up = after > before
     return {"before": before, "after": after,
-            "responds": abs(after - before) >= test["min_swing_v"]}
+            "responds": abs(after - before) >= test["min_swing_v"],
+            "direction_ok": up if test.get("direction") == "up" else not up}
 
 
 def main() -> int:
@@ -137,7 +159,7 @@ def main() -> int:
     records = []
     for r in rows:
         arm = r.get("prompt_variant", "bare")
-        if arm not in ("bare", "library") or not r.get("sim_pass"):
+        if arm not in ("bare", "library", "requirement") or not r.get("sim_pass"):
             continue
         netlist = (out_dir / r["netlist_file"]).read_text(errors="ignore")
         if predicate_values(r, netlist)["resolved_binding"]:
@@ -149,6 +171,7 @@ def main() -> int:
         if rec["control"] == "met":
             ablated, rec["instances_removed"] = delete_part(netlist, case.part)
             rec["delete"], rec["delete_value"] = score(ablated, case)
+            rec["delete_outcome"] = deletion_outcome(rec["delete"])
             rec["part_necessary"] = rec["delete"] != "met"
             if case.metrics[0][0] == "gain_db":
                 rec["thd_fft"], rec["thd_lsq"] = thd_both(netlist, case)
@@ -161,7 +184,7 @@ def main() -> int:
               f" necessary={rec.get('part_necessary')} distorted={rec.get('distorted')}"
               f" responds={(rec.get('response') or {}).get('responds')}")
     dest = out_dir / "reverification.jsonl"
-    dest.write_text("\n".join(json.dumps(x) for x in records) + "\n")
+    dest.write_text("\n".join(json.dumps(_clean(x)) for x in records) + "\n")
     print(f"\nwrote {dest} ({len(records)} provenance-qualified passes)")
     return 0
 

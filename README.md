@@ -56,6 +56,12 @@ the 280 mutants in the seven classes whose label the simulator can observe.
 The resolution rules (`bench/provenance.py`) are stated in its docstring and
 covered by `tests/test_provenance.py`.
 
+Owning the test does not close the gap. Re-tested under evaluator-owned
+fixtures with properties fixed in advance (`bench/fixtures.py`), all 14
+fabricated passes in four cases still pass, alongside all 27 genuine ones, and
+11 genuine decks rebuilt on a sibling model from the same vendor library pass
+too (`bench/collateral.py`). Only the binding check rejects them.
+
 Every grade is backed by something re-runnable. The 70 false grades rest on a
 fact in the netlist file; the 30 valid grades are re-verified by deleting the
 part and re-simulating (no deletion still passes), by two independent
@@ -84,13 +90,15 @@ python bench/validate_cases.py                              # corpus preflight
 python bench/reverify.py 20260809T211634Z                   # mechanical grade checks (re-simulates)
 python bench/reconcile.py 20260809T211634Z --out generated  # every number and table
 python bench/mutants.py --parts 40 --simulate               # held-out mutants + LTspice oracle
+python bench/fixtures.py 20260809T211634Z                   # evaluator-owned functional fixtures
+python bench/collateral.py 20260809T211634Z                 # wrong variants, opaque exports, precedence
 python bench/case_table.py 20260809T211634Z                 # per-case and no-deck tables
 ```
 
 Recomputing tables needs no simulator; re-running the static audit needs an
 LTspice library, checked against `data/library_snapshot.json` (SHA-256 of every
-library file the corpus resolves to); `reverify.py` and `mutants.py --simulate`
-re-simulate and need LTspice 17.2.4. `bench/prompt_manifest.py` writes the exact
+library file the corpus resolves to); `reverify.py`, `mutants.py --simulate`,
+`fixtures.py` and `collateral.py` re-simulate and need LTspice 17.2.4. `bench/prompt_manifest.py` writes the exact
 prompt for every (case, arm) to `prompts.jsonl`.
 
 These commands write the paper's tables and macro definitions into

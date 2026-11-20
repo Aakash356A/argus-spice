@@ -171,6 +171,15 @@ def no_completion_cause(r) -> str:
     return "other"
 
 
+def missing_reverification(qualified_keys, reverify) -> list:
+    """Qualified keys with no re-verification record whose control passed.
+
+    Every provenance-qualified pass must be covered; a missing or failed
+    control is a build failure, not a skipped row."""
+    return [k for k in qualified_keys
+            if (reverify.get(k) or {}).get("control") != "met"]
+
+
 def _finite(x) -> bool:
     return isinstance(x, (int, float)) and math.isfinite(x)
 
@@ -238,19 +247,20 @@ def review_macros(*, corpus_rows, corpus_scored, numeric_pass, netlist_rows,
 
     # --- re-verification completeness and coverage ----------------------
     qualified = [r for r in numeric_pass if is_resolved_vendor(r, out_dir)]
-    missing = [key_of(r) for r in qualified
-               if (reverify.get(key_of(r)) or {}).get("control") != "met"]
+    missing = missing_reverification([key_of(r) for r in qualified], reverify)
     check(not missing,
           f"{len(missing)} provenance-qualified pass(es) lack a passing "
           f"re-verification record: {missing[:3]}")
     recs = [reverify[key_of(r)] for r in qualified]
-    del_finite = sum(1 for d in recs if d.get("delete") == "lost"
-                     and _finite(d.get("delete_value")))
-    del_nan = sum(1 for d in recs if d.get("delete") == "lost"
-                  and not _finite(d.get("delete_value")))
-    del_other = sum(1 for d in recs if d.get("delete") not in ("lost",))
-    check(del_finite + del_nan + del_other == len(recs),
-          "deletion outcomes do not partition the re-verified passes")
+    outcomes = Counter(d.get("delete_outcome") for d in recs)
+    check(set(outcomes) <= {"finite_miss", "zero_output", "no_measure",
+                            "no_sim", "still_met"},
+          f"unknown deletion outcome(s): {set(outcomes)}")
+    check(outcomes.get("still_met", 0) == 0,
+          "a qualified pass still meets its target with the part deleted")
+    del_finite = outcomes.get("finite_miss", 0)
+    del_nan = outcomes.get("zero_output", 0)
+    del_other = outcomes.get("no_measure", 0) + outcomes.get("no_sim", 0)
     lsq = [d["thd_lsq"] for d in recs if _finite(d.get("thd_lsq"))]
     fft = [d["thd_fft"] for d in recs if _finite(d.get("thd_fft"))]
     out += [rf"\newcommand{{\RevQualified}}{{{len(qualified)}}}",
@@ -276,6 +286,14 @@ def review_macros(*, corpus_rows, corpus_scored, numeric_pass, netlist_rows,
     audit_notes = sum(1 for r in numeric_pass
                       if "audit" in (verdicts_full.get(key_of(r), {}).get("note") or "").lower())
     out.append(rf"\newcommand{{\GradeNotesAudit}}{{{audit_notes}}}")
+
+    # --- REQUIREMENT grades (mechanical) -------------------------------
+    req_pass = [r for r in corpus_scored if arm(r) == "requirement" and r.get("sim_pass")]
+    req_graded = [r for r in req_pass if key_of(r) in verdicts_full]
+    check(len(req_graded) == len(req_pass), "a REQUIREMENT pass is ungraded")
+    out.append(rf"\newcommand{{\ReqPass}}{{{len(req_pass)}}}")
+    out.append(rf"\newcommand{{\ReqFalse}}{{"
+               rf"{sum(1 for r in req_graded if verdicts_full[key_of(r)].get('verdict') == 'FAKE')}}}")
 
     # --- pin-role flags among numeric passes ----------------------------
     flagged = [r for r in numeric_pass if pred_by_key[key_of(r)]["pin_role_mismatch"]]
@@ -319,6 +337,86 @@ def review_macros(*, corpus_rows, corpus_scored, numeric_pass, netlist_rows,
                    and "claude" not in r["model"] and not is_fake(r))
         out.append(rf"\newcommand{{\NoClaude{name}Valid}}{{{good}}}")
         out.append(rf"\newcommand{{\NoClaude{name}Att}}{{{len(att)}}}")
+    # --- scored denominators and Pass@3 cell counts ----------------------
+    gl = [r for r in corpus_scored if arm(r) in ("bare", "library")]
+    out.append(rf"\newcommand{{\ScoredBareLib}}{{{len(gl)}}}")
+    out.append(rf"\newcommand{{\DecksScored}}{{{sum(1 for r in corpus_scored if has_net(r))}}}")
+    for a, at in tag.items():
+        cells: dict = {}
+        for r in corpus_scored:
+            if arm(r) != a:
+                continue
+            c = cells.setdefault((r["model"], r["case_id"]), [False, False])
+            if r.get("sim_pass"):
+                c[0] = True
+                if is_resolved_vendor(r, out_dir):
+                    c[1] = True
+        out.append(rf"\newcommand{{\Cells{at}}}{{{len(cells)}}}")
+        out.append(rf"\newcommand{{\CellsNum{at}}}{{{sum(v[0] for v in cells.values())}}}")
+        out.append(rf"\newcommand{{\CellsQual{at}}}{{{sum(v[1] for v in cells.values())}}}")
+        att = sum(1 for r in corpus_scored if arm(r) == a)
+        num = sum(1 for r in corpus_scored if arm(r) == a and r.get("sim_pass"))
+        qual = sum(1 for r in corpus_scored if arm(r) == a and r.get("sim_pass")
+                   and is_resolved_vendor(r, out_dir))
+        out.append(rf"\newcommand{{\SlotsNum{at}}}{{{num}}}")
+        out.append(rf"\newcommand{{\SlotsQual{at}}}{{{qual}}}")
+        out.append(rf"\newcommand{{\SlotsAtt{at}}}{{{att}}}")
+
+    out.extend(experiment_macros())
+    return out
+
+
+def experiment_macros() -> list[str]:
+    """Macros for the fixture, collateral and timing experiments, read from
+    their stored outputs (bench/fixtures.py, bench/collateral.py)."""
+    runs = Path(__file__).resolve().parent / "runs"
+    out: list[str] = []
+    fx_path = runs / "fixtures" / "fixtures.jsonl"
+    if fx_path.exists():
+        fx = [json.loads(l) for l in fx_path.read_text().splitlines() if l.strip()]
+        fake = [r for r in fx if r["grade"] == "FAKE"]
+        real = [r for r in fx if r["grade"] == "REAL"]
+        ungr = [r for r in fx if r["grade"] not in ("FAKE", "REAL")]
+        check(all(r["status"] in ("ran", "unsupported", "no_sim") for r in fx),
+              "unknown fixture status")
+        out += [rf"\newcommand{{\FixN}}{{{len(fx)}}}",
+                rf"\newcommand{{\FixCases}}{{{len({r['case_id'] for r in fx})}}}",
+                rf"\newcommand{{\FixFakeN}}{{{len(fake)}}}",
+                rf"\newcommand{{\FixFakePass}}{{{sum(1 for r in fake if r.get('all'))}}}",
+                rf"\newcommand{{\FixRealN}}{{{len(real) + len(ungr)}}}",
+                rf"\newcommand{{\FixRealPass}}{{{sum(1 for r in real + ungr if r.get('all'))}}}",
+                rf"\newcommand{{\FixUnsupported}}{{{sum(1 for r in fx if r['status'] != 'ran')}}}",
+                rf"\newcommand{{\FixFakeQualified}}{{{sum(1 for r in fake if r['qualified'])}}}",
+                rf"\newcommand{{\FixRealQualified}}{{{sum(1 for r in real + ungr if r['qualified'])}}}"]
+        for cid in sorted({r["case_id"] for r in fx}):
+            sub = [r for r in fx if r["case_id"] == cid]
+            f = [r for r in sub if r["grade"] == "FAKE"]
+            g = [r for r in sub if r["grade"] != "FAKE"]
+            t = cid.replace("1", "One").replace("4", "Four")
+            out += [rf"\newcommand{{\Fix{t}Fake}}{{{sum(1 for r in f if r.get('all'))}/{len(f)}}}",
+                    rf"\newcommand{{\Fix{t}Real}}{{{sum(1 for r in g if r.get('all'))}/{len(g)}}}"]
+    col_path = runs / "collateral" / "summary.json"
+    if col_path.exists():
+        col = json.loads(col_path.read_text())
+        v = [json.loads(l) for l in (runs / "collateral" / "variants.jsonl").read_text().splitlines() if l.strip()]
+        same_file = [x for x in v if x["to"] in ("AD8091", "AD8552")]
+        other = [x for x in v if x["to"] not in ("AD8091", "AD8552")]
+        out += [rf"\newcommand{{\VarN}}{{{len(v)}}}",
+                rf"\newcommand{{\VarSameFileN}}{{{len(same_file)}}}",
+                rf"\newcommand{{\VarSameFilePass}}{{{sum(x['fixture_pass'] for x in same_file)}}}",
+                rf"\newcommand{{\VarSameFileRejected}}{{{sum(not x['argus_accepts'] for x in same_file)}}}",
+                rf"\newcommand{{\VarOtherN}}{{{len(other)}}}",
+                rf"\newcommand{{\VarOtherNoSim}}{{{sum(x['fixture']['status'] == 'no_sim' for x in other)}}}",
+                rf"\newcommand{{\VarOtherStemAccepts}}{{{sum(x['stem_check_accepts'] for x in other)}}}",
+                rf"\newcommand{{\VarArgusRejects}}{{{col['variants']['argus_rejects']}}}",
+                rf"\newcommand{{\OpaqueQualified}}{{{col['opaque']['qualified_passes']}}}",
+                rf"\newcommand{{\OpaqueBindings}}{{{col['opaque']['distinct_bindings']}}}",
+                rf"\newcommand{{\OpaqueExported}}{{{col['opaque']['exported']}}}",
+                rf"\newcommand{{\PrecBenignN}}{{{col['precedence']['n']}}}",
+                rf"\newcommand{{\PrecBenignAfter}}{{{col['precedence']['after_reproduces']}}}",
+                rf"\newcommand{{\PrecBenignBeforeChanges}}{{{col['precedence']['before_changes']}}}",
+                rf"\newcommand{{\PrecBenignIndist}}{{{len(col['precedence']['before_reproduces'])}}}",
+                rf"\newcommand{{\PrecBenignFails}}{{{col['precedence']['before_fails']}}}"]
     return out
 
 

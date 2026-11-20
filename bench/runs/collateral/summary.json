@@ -1,0 +1,33 @@
+{
+ "variants": {
+  "n": 16,
+  "fixture_pass": 11,
+  "argus_rejects": 16,
+  "stem_accepts": 5,
+  "by_swap": {
+   "AD8092->AD8091": 4,
+   "AD8551->AD8552": 7,
+   "ADR1399H->ADR1399E": 5
+  }
+ },
+ "opaque": {
+  "qualified_passes": 16,
+  "distinct_bindings": 2,
+  "exported": 2
+ },
+ "precedence": {
+  "n": 40,
+  "after_reproduces": 40,
+  "before_changes": 33,
+  "before_reproduces": [
+   "MAX40077",
+   "MAX9916",
+   "RH27C",
+   "LTC3441",
+   "ADG1312",
+   "ADGS1612"
+  ],
+  "before_fails": 1,
+  "after_fails": 0
+ }
+}
