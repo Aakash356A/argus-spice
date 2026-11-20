@@ -1,46 +1,46 @@
 {
   "parts": 40,
   "part_list": [
-    "LTC1871-1",
-    "LT1186F",
-    "LTC3850-1",
-    "LT3023",
-    "ADG919",
-    "AD8604",
-    "LTC3873-5",
-    "LT1619",
-    "LTM8051",
-    "LTC6409",
-    "LTC6101",
-    "LTC2955-1",
-    "LTC3546",
-    "LTC1157",
-    "LT6000",
-    "ADG741",
-    "LT1782",
-    "LT3469",
-    "LTC693",
-    "LTM8025",
-    "LTC7001",
-    "LTM8029",
-    "LT3027",
-    "LTC3802",
-    "LTC3608",
-    "LT1977",
-    "LT1213",
-    "LT1008",
-    "AD549",
-    "LT1501-3.3",
-    "LTC3260",
-    "MAX1522",
-    "LT3493-3",
-    "LT1354",
-    "LT1357",
-    "LT3050-3.3",
-    "LT1521-3.3",
-    "LTC3542-1",
-    "LTC6081",
-    "LTC4419"
+    "LT1055",
+    "LT1500-3",
+    "LT6233-10",
+    "ADP1851",
+    "ADuM4135",
+    "LTC3709",
+    "AD795",
+    "LTC3105",
+    "ADG751",
+    "LT3435",
+    "LTM4634",
+    "LTC7862",
+    "MAX40077",
+    "MAX9916",
+    "OP213",
+    "LT1787",
+    "AD8205",
+    "RH27C",
+    "LT1621",
+    "LTC3441",
+    "ADG1312",
+    "LT1190",
+    "LTC1445",
+    "LT3011",
+    "LTC3448",
+    "ADA4051",
+    "AD8669",
+    "AD8436",
+    "MAX38902B",
+    "LT1790-3",
+    "LTC3639",
+    "ADG602",
+    "LTC3895",
+    "MAX5976A",
+    "LTM4628",
+    "ADGS1612",
+    "LTC3622-2",
+    "LTC3549",
+    "LTM4639",
+    "LTC3807"
   ],
   "records": 360,
   "by_mutation": {
@@ -95,17 +95,17 @@
     "pin_permute": {
       "n": 40,
       "label": "invalid",
-      "flagged": 22,
-      "rate": 55.0
+      "flagged": 15,
+      "rate": 37.5
     }
   },
   "full": {
-    "tp": 262,
+    "tp": 255,
     "fp": 0,
-    "fn": 18,
+    "fn": 25,
     "tn": 80,
     "precision": 100.0,
-    "recall": 93.57142857142857
+    "recall": 91.07142857142857
   },
   "provenance_only": {
     "tp": 240,
@@ -114,5 +114,107 @@
     "tn": 80,
     "precision": 100.0,
     "recall": 85.71428571428571
+  },
+  "provenance_vs_naive": {
+    "destroying_n": 240,
+    "valid_n": 80,
+    "prov_caught": 240,
+    "prov_valid_flagged": 0,
+    "naive_caught": 160,
+    "naive_valid_flagged": 40,
+    "naive_missed_by_mutation": {
+      "substitute": 0,
+      "renamed_stub": 0,
+      "shadow": 0,
+      "drop_library": 40,
+      "remove_part": 0,
+      "alias_file": 40
+    }
+  },
+  "ltspice_oracle": {
+    "identity": {
+      "n": 40,
+      "status": {
+        "ran": 40
+      },
+      "stub_elaborated": 0,
+      "confirms": 40
+    },
+    "wrapper": {
+      "n": 40,
+      "status": {
+        "ran": 40
+      },
+      "stub_elaborated": 0,
+      "confirms": 40
+    },
+    "substitute": {
+      "n": 40,
+      "status": {
+        "ran": 19,
+        "error": 20,
+        "missing_model": 1
+      },
+      "stub_elaborated": 0,
+      "confirms": 39
+    },
+    "renamed_stub": {
+      "n": 40,
+      "status": {
+        "ran": 19,
+        "error": 20,
+        "missing_model": 1
+      },
+      "stub_elaborated": 0,
+      "confirms": 39
+    },
+    "shadow": {
+      "n": 40,
+      "status": {
+        "ran": 19,
+        "error": 21
+      },
+      "stub_elaborated": 0,
+      "confirms": 39
+    },
+    "drop_library": {
+      "n": 40,
+      "status": {
+        "missing_model": 40
+      },
+      "stub_elaborated": 0,
+      "confirms": 40
+    },
+    "remove_part": {
+      "n": 40,
+      "status": {
+        "ran": 39,
+        "error": 1
+      },
+      "stub_elaborated": 0,
+      "confirms": null
+    },
+    "alias_file": {
+      "n": 40,
+      "status": {
+        "missing_model": 40
+      },
+      "stub_elaborated": 0,
+      "confirms": 40
+    },
+    "pin_permute": {
+      "n": 40,
+      "status": {
+        "ran": 38,
+        "timeout": 2
+      },
+      "stub_elaborated": 0,
+      "confirms": null
+    }
+  },
+  "precedence": {
+    "n": 40,
+    "stub_after_lib_reproduces_vendor": 40,
+    "stub_before_lib_reproduces_vendor": 1
   }
 }

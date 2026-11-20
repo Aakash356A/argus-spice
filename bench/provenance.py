@@ -1,44 +1,50 @@
 """Which definition does a netlist actually bind the requested part name to?
 
 `detect.substituted` answers a weaker question -- is a same-named `.subckt`
-defined in this file -- and a reviewer is right that observing a `.lib`
-directive plus a matching instance name does not by itself establish which
-definition LTspice resolved. Duplicate definitions, local shadowing, wrappers,
-nested includes and modified library files all sit between "a directive is
-present" and "the manufacturer's model supplied the behaviour".
+defined in this file -- and observing a `.lib` directive plus a matching
+instance name does not by itself establish which definition the simulator
+used. Duplicate definitions, local shadowing, wrappers, nested includes and
+modified library files all sit between "a directive is present" and "the
+manufacturer's model is in the circuit".
 
-This module resolves that binding explicitly. It expands `.lib`/`.include`
-transitively through the same file-search LTspice is given by
-`app.simulation_runner.find_model` (so it resolves what the simulator
-resolved, not what the text says), collects every definition of the part
-reachable from the netlist, and reports which one wins under SPICE scoping
-together with the SHA-256 of the file it came from.
+This module resolves that binding statically, under rules stated here so they
+can be disagreed with:
 
-Resolution rule, stated so it can be disagreed with. A `.subckt` defined in
-the candidate file shadows any library definition of the *same name*, so an
-instance of that name binds locally. Provenance is therefore not a property
-of the top-level instance alone but of the elaborated hierarchy: the vendor
-model is in the circuit if some instance *anywhere* in the hierarchy names
-the part under a name that is not locally defined and that a resolved library
-file declares. That distinction is what separates two edits that look alike
-in the text -- replacing the part with a local stub of the same name (the
-vendor model is gone) and wrapping the genuine part in a local pass-through
-(the vendor model is still there, one level down). We resolve reachability
-explicitly rather than treating any local definition as disqualifying. No
-simulation is run; every output is a property of files on disk.
+1. Parsing. Lines are joined across SPICE `+` continuations, whole-line `*`
+   comments and trailing `;` comments are dropped. On an `X` line the callee
+   is the last token that is neither a `name=value` parameter nor follows a
+   `params:` keyword.
+2. Elaboration. Traversal starts at the *top-level* `X` instances and descends
+   only into locally defined subcircuits that are actually called, so an
+   instance inside a subcircuit nobody instantiates binds nothing.
+3. Names. Binding is by exact subcircuit name, case-insensitive (SPICE names
+   are). `LT3045` does not bind a request for `LT3045-1`. Variant-name
+   matching belongs to the substitution *diagnostics* in `detect.py`, never to
+   this predicate.
+4. Includes. `.lib`/`.include` are expanded transitively (depth <= 8) through
+   the same basename lookup the simulation runner uses
+   (`app.simulation_runner.find_model`); each resolved file is visited once.
+5. Shadowing. A local `.subckt` with the requested name disqualifies the
+   binding whether or not the simulator would prefer it or report an
+   ambiguity, because in neither case is the vendor model established.
+6. Counting. Vendor definitions are counted per definition, not per file, so
+   two `.subckt` blocks of the name in one file are a duplicate.
+7. Opaque files. Encrypted vendor binaries cannot be read; for those the
+   evidence is the filename stem (exact match to the requested name) and the
+   file's SHA-256. Such bindings are marked `opaque`.
+8. Trust root. When `data/library_snapshot.json` lists a resolved file, its
+   SHA-256 must match the pinned digest; a mismatch disqualifies the binding.
+   A file absent from the snapshot is reported as unpinned, not trusted.
 
-Encrypted models are the reason this cannot be a pure text check. Most vendor
-`.sub` files in this ecosystem ship as encrypted binaries (353 of the first
-400 in the installed LTspice `sub/` directory), so no reader -- ours or a
-sceptic's -- can grep them for a `.subckt` line. For those files the evidence
-we can produce is exactly: the directive resolved to *this* file, whose
-SHA-256 is *this*, and whose name declares *this* part. We record that as an
-opaque vendor binding and mark it `opaque` in the evidence record, rather
-than claiming to have read a definition we cannot read.
+No simulation is run; every output is a property of files on disk. This is a
+static approximation of what the simulator elaborates: it does not model
+`.param`-dependent subcircuit selection, `.lib <file> <section>` sections, or
+simulator-specific search-path precedence beyond the basename lookup.
 """
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 import sys
 from dataclasses import dataclass, field
@@ -46,9 +52,6 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-
-from detect import (_same_part, _significant_lines, _subckt_bodies,  # noqa: E402
-                    defined_subckt_names, instantiated_subckts)
 
 try:
     from app.simulation_runner import find_model
@@ -58,6 +61,8 @@ except Exception:                                          # noqa: BLE001
 
 
 MAX_DEPTH = 8
+SNAPSHOT_PATH = (Path(__file__).resolve().parent.parent / "data"
+                 / "library_snapshot.json")
 
 # Directory names that mark the start of the portable part of a library path.
 # Everything to their left is machine- and user-specific.
@@ -73,13 +78,14 @@ def _normalise_path(path: str) -> str:
             return "<LTspice>/" + unix[idx:]
     return "<resolved>/" + unix.rsplit("/", 1)[-1]
 
-# `.lib <path>` / `.include <path>` / `.inc <path>`, quoted or bare.
+
 _INCLUDE_RE = re.compile(
     r'^\s*\.(?:lib|inc(?:lude)?)\s+(?P<path>"[^"]+"|\S+)', re.IGNORECASE)
 
-# Libraries every netlist pulls in; they define no vendor macro-model and
-# carry no provenance information about the requested part.
+# Libraries every netlist pulls in; they define no vendor macro-model.
 _GENERIC = ("standard.", "cmp/standard")
+
+_ENCRYPTED_MARKER = b"<Binary File>"
 
 
 def _sha256(path: Path) -> str:
@@ -90,6 +96,115 @@ def _sha256(path: Path) -> str:
     return h.hexdigest()
 
 
+_snapshot_cache: dict | None = None
+
+
+def load_snapshot() -> dict:
+    """{library-relative path: sha256} for the pinned library snapshot."""
+    global _snapshot_cache
+    if _snapshot_cache is None:
+        try:
+            _snapshot_cache = json.loads(SNAPSHOT_PATH.read_text())["files"]
+        except (OSError, ValueError, KeyError):
+            _snapshot_cache = {}
+    return _snapshot_cache
+
+
+# ----------------------------------------------------------------- parsing
+def logical_lines(text: str) -> list[str]:
+    """Significant lines with `+` continuations joined and comments removed."""
+    out: list[str] = []
+    for raw in text.splitlines():
+        line = raw.split(";", 1)[0].strip()
+        if not line or line.startswith("*"):
+            continue
+        if line.startswith("+"):
+            if out:
+                out[-1] = out[-1] + " " + line[1:].strip()
+            continue
+        out.append(line)
+    return [" ".join(l.split()) for l in out]
+
+
+def callee_of(line: str) -> str | None:
+    """Subcircuit called by an X line, skipping trailing parameters."""
+    tokens = line.split()
+    if len(tokens) < 2 or tokens[0][:1].upper() != "X":
+        return None
+    kept = []
+    for tok in tokens[1:]:
+        if tok.lower() in ("params:", "param:"):
+            break
+        if "=" in tok:
+            break
+        kept.append(tok)
+    return kept[-1] if kept else None
+
+
+def split_hierarchy(text: str) -> tuple[list[str], dict[str, list[str]],
+                                         list[str]]:
+    """(top-level lines, {UPPER name: body lines}, local names as written)."""
+    top: list[str] = []
+    bodies: dict[str, list[str]] = {}
+    names: list[str] = []
+    stack: list[str] = []
+    for line in logical_lines(text):
+        low = line.lower()
+        if low.startswith(".subckt"):
+            tokens = line.split()
+            name = tokens[1] if len(tokens) >= 2 else "?"
+            names.append(name)
+            bodies.setdefault(name.upper(), [])
+            stack.append(name.upper())
+            continue
+        if low.startswith(".ends"):
+            if stack:
+                stack.pop()
+            continue
+        if stack:
+            bodies[stack[-1]].append(line)
+        else:
+            top.append(line)
+    return top, bodies, names
+
+
+def elaborated_instances(text: str) -> list[tuple[str, str]]:
+    """(instance line, callee) reachable from the top level."""
+    top, bodies, _ = split_hierarchy(text)
+    out: list[tuple[str, str]] = []
+    queue = [l for l in top if l[:1].upper() == "X"]
+    visited: set[str] = set()
+    while queue:
+        line = queue.pop(0)
+        callee = callee_of(line)
+        if callee is None:
+            continue
+        out.append((line, callee))
+        key = callee.upper()
+        if key in bodies and key not in visited:
+            visited.add(key)
+            queue.extend(l for l in bodies[key] if l[:1].upper() == "X")
+    return out
+
+
+def _subckt_names(text: str) -> list[str]:
+    return [l.split()[1] for l in logical_lines(text)
+            if l.lower().startswith(".subckt") and len(l.split()) >= 2]
+
+
+def _includes(text: str) -> list[tuple[str, str]]:
+    out = []
+    for line in logical_lines(text):
+        m = _INCLUDE_RE.match(line)
+        if not m:
+            continue
+        raw = m.group("path")
+        token = raw[1:-1] if raw.startswith('"') and raw.endswith('"') else raw
+        out.append((line, token))
+    return out
+
+
+# ---------------------------------------------------------------- results
 @dataclass
 class ResolvedFile:
     directive: str
@@ -97,78 +212,72 @@ class ResolvedFile:
     path: str | None          # None when the directive does not resolve
     sha256: str | None
     depth: int
-    defines_part: bool
-    # True when the file is an encrypted vendor binary, so `defines_part` rests
-    # on the filename and the hash rather than on a readable `.subckt` line.
+    definitions: int          # .subckt blocks of the requested name in it
     opaque: bool = False
+    pinned: bool | None = None  # digest matches snapshot / mismatch / unlisted
+
+    @property
+    def defines_part(self) -> bool:
+        return self.definitions > 0
 
 
 @dataclass
 class Resolution:
     """What the part name binds to, and on what evidence."""
     part: str
-    instantiated: bool                     # an X line calls the part
+    instantiated: bool                       # a reachable X line calls it
     local_definitions: list[str] = field(default_factory=list)
     files: list[ResolvedFile] = field(default_factory=list)
     vendor_files: list[ResolvedFile] = field(default_factory=list)
     unresolved_directives: list[str] = field(default_factory=list)
-
-    @property
-    def opaque(self) -> bool:
-        """The winning vendor definition is inside an encrypted binary."""
-        return bool(self.vendor_files) and all(f.opaque for f in self.vendor_files)
-
-    # Set by resolve(): does any instance in the elaborated hierarchy bind the
-    # part to a library definition rather than to a local one?
-    vendor_reachable: bool = False
-    # The instance line, if any, that carries that binding -- released so a
-    # reader can check the claim rather than take it.
     vendor_instance: str | None = None
 
     @property
+    def vendor_definitions(self) -> int:
+        return sum(f.definitions for f in self.vendor_files)
+
+    @property
+    def opaque(self) -> bool:
+        return bool(self.vendor_files) and all(f.opaque for f in self.vendor_files)
+
+    @property
     def shadowed(self) -> bool:
-        """A local definition and a library definition both claim the name."""
         return bool(self.local_definitions) and bool(self.vendor_files)
 
     @property
     def duplicate_vendor(self) -> bool:
-        """More than one resolved library file defines the part."""
-        return len({f.path for f in self.vendor_files}) > 1
+        return self.vendor_definitions > 1
+
+    @property
+    def digest_mismatch(self) -> bool:
+        return any(f.pinned is False for f in self.vendor_files)
+
+    @property
+    def vendor_reachable(self) -> bool:
+        return self.instantiated and self.vendor_instance is not None
 
     @property
     def binding(self) -> str:
-        """local | vendor | ambiguous | unresolved.
-
-        `vendor` requires that a library file declaring the part was resolved
-        *and* that some instance in the hierarchy actually binds to it. A
-        local definition of the same name is disqualifying only when it is
-        the definition the instance binds to.
-        """
+        """local | vendor | ambiguous | untrusted | unresolved."""
+        if self.local_definitions:
+            return "local"
         if not self.vendor_files:
-            return "local" if self.local_definitions else "unresolved"
+            return "unresolved"
         if self.duplicate_vendor:
             return "ambiguous"
-        if self.vendor_reachable:
-            return "vendor"
-        return "ambiguous" if self.local_definitions else "unresolved"
+        if self.digest_mismatch:
+            return "untrusted"
+        return "vendor"
 
     @property
     def vendor_supplied(self) -> bool:
-        """The strict predicate: the part is instantiated somewhere in the
-        elaborated hierarchy and that instance binds to a vendor definition."""
+        """The strict predicate: a reachable instance calls the requested name,
+        no local definition claims it, and exactly one vendor definition is
+        reachable through the includes (with a matching pinned digest where
+        the snapshot lists the file)."""
         return self.instantiated and self.binding == "vendor"
 
     def evidence(self, anonymise: bool = True) -> dict:
-        """The provenance half of the Layer-3 evidence record.
-
-        Resolved paths are normalised by default. An absolute path on the
-        machine that produced the record carries the operating user's home
-        directory, which would de-anonymise a double-blind submission the
-        moment the record is released; the file identity a reader needs is
-        carried by the SHA-256 and the library-relative name, not by the
-        prefix. Pass `anonymise=False` to keep machine paths for local
-        debugging.
-        """
         def path_of(f):
             if f.path is None:
                 return None
@@ -181,98 +290,35 @@ class Resolution:
             "binding": self.binding,
             "vendor_supplied": self.vendor_supplied,
             "shadowed": self.shadowed,
-            "duplicate_vendor_definitions": self.duplicate_vendor,
+            "vendor_definitions": self.vendor_definitions,
             "opaque_vendor_model": self.opaque,
             "local_definitions": self.local_definitions,
-            "vendor_reachable": self.vendor_reachable,
             "vendor_instance": self.vendor_instance,
             "resolved_model_path": path_of(winner) if winner else None,
             "resolved_model_sha256": winner.sha256 if winner else None,
+            "snapshot_pinned": winner.pinned if winner else None,
             "transitive_includes": [
                 {"directive": f.directive, "resolved": path_of(f),
                  "sha256": f.sha256, "depth": f.depth,
-                 "defines_part": f.defines_part}
+                 "definitions": f.definitions, "pinned": f.pinned}
                 for f in self.files
             ],
             "unresolved_directives": self.unresolved_directives,
         }
 
 
-def _includes(text: str) -> list[tuple[str, str]]:
-    """(whole directive, requested path) for each include-like line."""
-    out = []
-    for line in _significant_lines(text):
-        m = _INCLUDE_RE.match(line)
-        if not m:
-            continue
-        raw = m.group("path")
-        token = raw[1:-1] if raw.startswith('"') and raw.endswith('"') else raw
-        out.append((line, token))
-    return out
-
-
-_ENCRYPTED_MARKER = b"<Binary File>"
-
-
-def _is_encrypted(blob: bytes) -> bool:
-    """LTspice's encrypted-model container announces itself in the first bytes."""
-    return _ENCRYPTED_MARKER in blob[:256]
-
-
-def _file_defines_part(text: str, part: str) -> bool:
-    return any(_same_part(name, part) for name in defined_subckt_names(text))
-
-
-def _declares_part(path: Path, part: str) -> bool:
-    """Filename evidence, used only for encrypted models.
-
-    `ADR1399H.sub` declares ADR1399H the same way `LT3045-1.sub` declares
-    LT3045-1. This is weaker than reading a `.subckt` line and is never used
-    for a readable file; it is recorded as `opaque` wherever it applies.
-    """
-    return _same_part(path.stem, part)
-
-
-def _instances_in_hierarchy(netlist: str) -> list[tuple[str, str]]:
-    """(instance line, called subcircuit name) at top level and inside every
-    locally defined subcircuit body.
-
-    A wrapper hides its call to the genuine part one level down, so scanning
-    only top-level X lines cannot tell a pass-through from a replacement.
-    """
-    out = []
-    local_bodies = _subckt_bodies(netlist)
-    top = [l for l in _significant_lines(netlist)]
-    # `_subckt_bodies` already splits bodies out; top-level lines are whatever
-    # is not inside one, but re-deriving that is unnecessary -- scanning both
-    # the whole file and each body double-counts nothing that matters here,
-    # since we only ever ask whether *some* instance binds to the vendor.
-    for line in top:
-        if line[:1].upper() == "X":
-            tokens = line.split()
-            if len(tokens) >= 3:
-                out.append((line, tokens[-1]))
-    for body in local_bodies.values():
-        for line in body:
-            if line[:1].upper() == "X":
-                tokens = line.split()
-                if len(tokens) >= 3:
-                    out.append((line, tokens[-1]))
-    return out
-
-
-def resolve(netlist: str, part: str, max_depth: int = MAX_DEPTH) -> Resolution:
-    """Resolve `part` against `netlist` and everything it transitively includes.
-
-    Include order is followed and each resolved file is visited once, so a
-    diamond include does not double-count as a duplicate definition.
-    """
-    local_names = defined_subckt_names(netlist)
-    hierarchy = _instances_in_hierarchy(netlist)
+def resolve(netlist: str, part: str, max_depth: int = MAX_DEPTH,
+            snapshot: dict | None = None) -> Resolution:
+    """Resolve `part` against `netlist` and everything it transitively includes."""
+    want = part.strip().upper()
+    snapshot = load_snapshot() if snapshot is None else snapshot
+    _, _, local_names = split_hierarchy(netlist)
+    reachable = elaborated_instances(netlist)
+    calls = [(line, c) for line, c in reachable if c.upper() == want]
     res = Resolution(
         part=part,
-        instantiated=any(_same_part(n, part) for _, n in hierarchy),
-        local_definitions=[n for n in local_names if _same_part(n, part)],
+        instantiated=bool(calls),
+        local_definitions=[n for n in local_names if n.upper() == want],
     )
 
     seen: set[str] = set()
@@ -286,7 +332,7 @@ def resolve(netlist: str, part: str, max_depth: int = MAX_DEPTH) -> Resolution:
         resolved = find_model(token)
         if not resolved:
             res.unresolved_directives.append(directive)
-            res.files.append(ResolvedFile(directive, token, None, None, depth, False))
+            res.files.append(ResolvedFile(directive, token, None, None, depth, 0))
             continue
         if resolved in seen:
             continue
@@ -297,32 +343,25 @@ def resolve(netlist: str, part: str, max_depth: int = MAX_DEPTH) -> Resolution:
         except OSError:
             res.unresolved_directives.append(directive)
             continue
-        encrypted = _is_encrypted(blob)
+        encrypted = _ENCRYPTED_MARKER in blob[:256]
         text = "" if encrypted else blob.decode("utf-8", errors="ignore")
-        defines = (_declares_part(path, part) if encrypted
-                   else _file_defines_part(text, part))
-        entry = ResolvedFile(directive, token, resolved, _sha256(path), depth,
-                             defines, opaque=encrypted)
+        if encrypted:
+            defs = 1 if path.stem.strip().upper() == want else 0
+        else:
+            defs = sum(1 for n in _subckt_names(text) if n.upper() == want)
+        digest = _sha256(path)
+        rel = _normalise_path(resolved)
+        pinned = (snapshot[rel] == digest) if rel in snapshot else None
+        entry = ResolvedFile(directive, token, resolved, digest, depth, defs,
+                             opaque=encrypted, pinned=pinned)
         res.files.append(entry)
-        if defines:
+        if defs:
             res.vendor_files.append(entry)
-        # An encrypted container exposes no further directives to follow.
         for d2, t2 in _includes(text):
             frontier.append((d2, t2, depth + 1))
 
-    # Reachability: an instance binds to the vendor definition when the name it
-    # calls is stem-equal to the part and is *not* defined locally under that
-    # exact name. `_same_part` is stem-based, so a local `AD8237_WRAP` is
-    # stem-equal to AD8237 without shadowing it -- the exact-name comparison
-    # here is what keeps the two apart.
-    local_exact = {n.strip().upper() for n in local_names}
-    if res.vendor_files:
-        for line, called in hierarchy:
-            if _same_part(called, part) and called.strip().upper() not in local_exact:
-                res.vendor_reachable = True
-                res.vendor_instance = line
-                break
-
+    if res.vendor_files and not res.local_definitions and calls:
+        res.vendor_instance = calls[0][0]
     return res
 
 

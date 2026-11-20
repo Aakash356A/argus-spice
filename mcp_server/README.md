@@ -11,11 +11,12 @@ part it names. Both of these measure ~13.97 dB against a 13.98 dB target:
 
 | Netlist | Numeric gate | This protocol |
 |---|---|---|
-| Local `.subckt AD8092` built from an E-source | pass | **rejected** — `substituted`, `behavioral_stub` |
+| Local `.subckt AD8092` built from an E-source | pass | **rejected** — binding `local` (diagnostics: `substituted`, `behavioral_stub`) |
 | `.lib ADI.lib` + genuine `AD8092` instance | pass | **accepted** |
 
-`submit` accepts only when both hold: targets met **and** the genuine part
-instantiated.
+`submit` accepts only when both hold: targets met **and** the part name binds
+to exactly one vendor-supplied definition (`bench/provenance.py`). It returns a
+hash-pinned evidence record for every decision, accepted or not.
 
 ## Register with Claude Code / Claude Desktop
 
@@ -65,7 +66,7 @@ that is discarded afterwards.
 
 - Security boundary rejects absolute paths, traversal and separators; allows bare filenames.
 - `find_template` returns the correct per-part directive.
-- `audit_netlist` separates a fabricated stub (`suspect`) from the corpus reference (`clean`).
+- `audit_netlist` separates a fabricated stub (`not_qualified`) from the corpus reference (`qualified`).
 - `simulate` surfaces `Fatal Error: Port(pin) count mismatch …` verbatim.
 - `list_traces` returns 17 traces for the AD8092 reference, including `V(n001)`.
 - `submit` rejects a stub measuring 13.977 dB and accepts a genuine part measuring 13.969 dB.
