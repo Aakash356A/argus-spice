@@ -129,7 +129,11 @@ GROUP_C = [
         "High-speed amplifier configured for a gain of 2 V/V on +/-5 V "
         "supplies, driven by a 1 V amplitude sine at 10 MHz.",
         (("gain_db", 6.02, 1.0),), "high", "C", freq_hz=1e7,
-        notes="Deliberate slew-rate trap: a real part cannot track this; an ideal one can.",
+        notes="Case defect: +/-5 V (10 V span) exceeds the LTC6252's 2.5-5.25 V rated "
+              "supply range, and the original slew-rate rationale was wrong (a "
+              "2 V-peak, 10 MHz output needs ~126 V/us, below the typical "
+              "280 V/us). Kept frozen for comparability; reported as diagnostic "
+              "with a sensitivity analysis excluding it.",
     ),
     ProbeCase(
         "C2", "ADG5248F",
@@ -189,7 +193,9 @@ GROUP_D = [
         "supply amplifying a 20 mV amplitude differential sine at 1 kHz, "
         "with the reference pin at mid-supply.",
         (("gain_db", 20.0, 1.0),), "high", "D", freq_hz=1e3,
-        notes="Sheet case 14 (difference amplifier), bound to a real in-amp.",
+        notes="Sheet case 14 (difference amplifier), bound to a real in-amp. Known "
+              "measurement limitation: the drive is differential but the harness "
+              "measures gain against the single IN node.",
     ),
     ProbeCase(
         "D4", "LT6106",
@@ -207,7 +213,10 @@ GROUP_D = [
         "output voltage and an LTC6078 op amp buffers it as a low-impedance "
         "VREF output driving a 1 k load.",
         (("vout_dc", 7.05, 0.1),), "high", "D",
-        notes="Sheet case 24. Two-IC case: check BOTH parts are genuine, not just the first.",
+        notes="Sheet case 24. Two-IC case scored on the primary part only; the "
+              "LTC6078 buffer (2.7-5.5 V supply) cannot buffer 7.05 V from a "
+              "conventional rail, so the buffer requirement is not feasible as "
+              "written. Reported as primary-part-only.",
     ),
 ]
 

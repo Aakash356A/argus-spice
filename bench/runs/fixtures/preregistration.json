@@ -1,0 +1,42 @@
+{
+ "A4": {
+  "kind": "dc_line",
+  "supply": 15.0,
+  "step_to": 16.5,
+  "t_step": 0.05,
+  "t_end": 0.1,
+  "target": 7.05,
+  "tol": 0.05,
+  "settle_tol": 0.002,
+  "line_tol": 0.035
+ },
+ "B1": {
+  "kind": "gain",
+  "amp": 0.1,
+  "freq": 1000000.0,
+  "periods": 20,
+  "gain_db": 13.98,
+  "tol_db": 1.0,
+  "phase_tol_deg": 45.0,
+  "thd_max": 0.01
+ },
+ "B4": {
+  "kind": "gain",
+  "amp": 0.01,
+  "freq": 1000.0,
+  "periods": 20,
+  "gain_db": 40.0,
+  "tol_db": 1.0,
+  "phase_tol_deg": 45.0,
+  "thd_max": 0.01
+ },
+ "D1": {
+  "kind": "comparator",
+  "above": 2.5,
+  "below": 0.8,
+  "low_max": 0.3,
+  "high_min": 4.0,
+  "trip": 1.65,
+  "trip_tol": 0.15
+ }
+}
