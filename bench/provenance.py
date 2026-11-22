@@ -32,14 +32,23 @@ can be disagreed with:
 7. Opaque files. Encrypted vendor binaries cannot be read; for those the
    evidence is the filename stem (exact match to the requested name) and the
    file's SHA-256. Such bindings are marked `opaque`.
-8. Trust root. When `data/library_snapshot.json` lists a resolved file, its
-   SHA-256 must match the pinned digest; a mismatch disqualifies the binding.
-   A file absent from the snapshot is reported as unpinned, not trusted.
+8. Trust root. Every file in the binding's include closure -- the file that
+   defines the part and every file it pulls in -- must be listed in
+   `data/library_snapshot.json` with a matching SHA-256. A file absent from
+   the snapshot, or whose digest differs, makes the binding `untrusted`.
+9. End of deck. Text after `.end` is ignored, as LTspice ignores it.
+10. Library sections. LTspice 17.2.4 does not implement HSPICE-style
+   `.lib <file> <section>` loading: it reads the section name as part of the
+   file name, and treats a `.lib <name>` header inside a library as an
+   include. A directive naming a section, or a library file containing
+   `.lib`/`.endl` sections, therefore makes the binding `unsupported`
+   rather than resolved under another simulator's semantics.
 
 No simulation is run; every output is a property of files on disk. This is a
 static approximation of what the simulator elaborates: it does not model
-`.param`-dependent subcircuit selection, `.lib <file> <section>` sections, or
-simulator-specific search-path precedence beyond the basename lookup.
+`.param`-dependent subcircuit selection or simulator-specific search-path
+precedence beyond the basename lookup, and reports `unsupported` instead of
+guessing where a construct it cannot establish would decide the binding.
 """
 from __future__ import annotations
 
@@ -118,6 +127,8 @@ def logical_lines(text: str) -> list[str]:
         line = raw.split(";", 1)[0].strip()
         if not line or line.startswith("*"):
             continue
+        if re.match(r"(?i)^\.end\s*$", line):
+            break                      # LTspice ignores everything after .end
         if line.startswith("+"):
             if out:
                 out[-1] = out[-1] + " " + line[1:].strip()
@@ -192,7 +203,19 @@ def _subckt_names(text: str) -> list[str]:
             if l.lower().startswith(".subckt") and len(l.split()) >= 2]
 
 
-def _includes(text: str) -> list[tuple[str, str]]:
+def _section_names(text: str) -> set[str]:
+    """Names of `.lib <name> ... .endl <name>` sections defined in a file."""
+    return {l.split()[1].upper() for l in logical_lines(text)
+            if re.match(r"(?i)^\.endl\s+\S", l)}
+
+
+def _includes(text: str) -> list[tuple[str, str, str | None]]:
+    """(directive, requested path, requested section) for each include line.
+
+    In a sectioned library, `.lib <name>` opens a section rather than
+    including a file, so those header lines are skipped.
+    """
+    headers = _section_names(text)
     out = []
     for line in logical_lines(text):
         m = _INCLUDE_RE.match(line)
@@ -200,7 +223,11 @@ def _includes(text: str) -> list[tuple[str, str]]:
             continue
         raw = m.group("path")
         token = raw[1:-1] if raw.startswith('"') and raw.endswith('"') else raw
-        out.append((line, token))
+        rest = line[m.end():].split()
+        if line.lower().startswith(".lib") and not rest and token.upper() in headers:
+            continue
+        section = rest[0] if (line.lower().startswith(".lib") and rest) else None
+        out.append((line, token, section))
     return out
 
 
@@ -215,6 +242,8 @@ class ResolvedFile:
     definitions: int          # .subckt blocks of the requested name in it
     opaque: bool = False
     pinned: bool | None = None  # digest matches snapshot / mismatch / unlisted
+    parent: str | None = None   # resolved path of the including file
+    section: str | None = None  # requested .lib section, if any
 
     @property
     def defines_part(self) -> bool:
@@ -231,6 +260,7 @@ class Resolution:
     vendor_files: list[ResolvedFile] = field(default_factory=list)
     unresolved_directives: list[str] = field(default_factory=list)
     vendor_instance: str | None = None
+    unsupported: list[str] = field(default_factory=list)
 
     @property
     def vendor_definitions(self) -> int:
@@ -248,9 +278,22 @@ class Resolution:
     def duplicate_vendor(self) -> bool:
         return self.vendor_definitions > 1
 
+    def closure(self) -> list[ResolvedFile]:
+        """Vendor files plus every file they transitively include."""
+        roots = {f.path for f in self.vendor_files}
+        keep, changed = set(roots), True
+        while changed:
+            changed = False
+            for f in self.files:
+                if f.parent in keep and f.path and f.path not in keep:
+                    keep.add(f.path)
+                    changed = True
+        return [f for f in self.files if f.path in keep]
+
     @property
     def digest_mismatch(self) -> bool:
-        return any(f.pinned is False for f in self.vendor_files)
+        """Some file the binding depends on is not positively pinned."""
+        return any(f.pinned is not True for f in self.closure())
 
     @property
     def vendor_reachable(self) -> bool:
@@ -258,9 +301,11 @@ class Resolution:
 
     @property
     def binding(self) -> str:
-        """local | vendor | ambiguous | untrusted | unresolved."""
+        """local | vendor | ambiguous | untrusted | unsupported | unresolved."""
         if self.local_definitions:
             return "local"
+        if self.unsupported:
+            return "unsupported"
         if not self.vendor_files:
             return "unresolved"
         if self.duplicate_vendor:
@@ -299,11 +344,12 @@ class Resolution:
             "snapshot_pinned": winner.pinned if winner else None,
             "transitive_includes": [
                 {"directive": f.directive, "resolved": path_of(f),
-                 "sha256": f.sha256, "depth": f.depth,
+                 "sha256": f.sha256, "depth": f.depth, "section": f.section,
                  "definitions": f.definitions, "pinned": f.pinned}
                 for f in self.files
             ],
             "unresolved_directives": self.unresolved_directives,
+            "unsupported": self.unsupported,
         }
 
 
@@ -321,22 +367,24 @@ def resolve(netlist: str, part: str, max_depth: int = MAX_DEPTH,
         local_definitions=[n for n in local_names if n.upper() == want],
     )
 
-    seen: set[str] = set()
-    frontier = [(d, t, 1) for d, t in _includes(netlist)]
+    seen: set[tuple[str, str | None]] = set()
+    frontier = [(d, t, sec, 1, None) for d, t, sec in _includes(netlist)]
     while frontier:
-        directive, token, depth = frontier.pop(0)
+        directive, token, section, depth, parent = frontier.pop(0)
         if depth > max_depth:
+            res.unsupported.append(f"include depth exceeds {max_depth}: {directive}")
             continue
         if any(g in token.lower() for g in _GENERIC):
             continue
         resolved = find_model(token)
         if not resolved:
             res.unresolved_directives.append(directive)
-            res.files.append(ResolvedFile(directive, token, None, None, depth, 0))
+            res.files.append(ResolvedFile(directive, token, None, None, depth, 0,
+                                          parent=parent, section=section))
             continue
-        if resolved in seen:
+        if (resolved, section) in seen:
             continue
-        seen.add(resolved)
+        seen.add((resolved, section))
         path = Path(resolved)
         try:
             blob = path.read_bytes()
@@ -345,6 +393,12 @@ def resolve(netlist: str, part: str, max_depth: int = MAX_DEPTH,
             continue
         encrypted = _ENCRYPTED_MARKER in blob[:256]
         text = "" if encrypted else blob.decode("utf-8", errors="ignore")
+        if section is not None:
+            res.unsupported.append(f"library section requested (not supported "
+                                   f"by LTspice 17.2.4): {directive}")
+        elif not encrypted and _section_names(text):
+            res.unsupported.append(f"sectioned library (not supported by "
+                                   f"LTspice 17.2.4): {directive}")
         if encrypted:
             defs = 1 if path.stem.strip().upper() == want else 0
         else:
@@ -353,12 +407,13 @@ def resolve(netlist: str, part: str, max_depth: int = MAX_DEPTH,
         rel = _normalise_path(resolved)
         pinned = (snapshot[rel] == digest) if rel in snapshot else None
         entry = ResolvedFile(directive, token, resolved, digest, depth, defs,
-                             opaque=encrypted, pinned=pinned)
+                             opaque=encrypted, pinned=pinned, parent=parent,
+                             section=section)
         res.files.append(entry)
         if defs:
             res.vendor_files.append(entry)
-        for d2, t2 in _includes(text):
-            frontier.append((d2, t2, depth + 1))
+        for d2, t2, s2 in _includes(text):
+            frontier.append((d2, t2, s2, depth + 1, resolved))
 
     if res.vendor_files and not res.local_definitions and calls:
         res.vendor_instance = calls[0][0]

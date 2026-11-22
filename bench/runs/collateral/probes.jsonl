@@ -1,2 +1,2 @@
-{"file": "ADR1399H.sub", "name": "ADR1399H", "ports": 4, "status": "ran", "exported": true, "fatal": ""}
-{"file": "LT1720.sub", "name": "LT1720", "ports": 5, "status": "ran", "exported": true, "fatal": ""}
+{"file": "ADR1399H.sub", "sha256": "91677a86e9e4558cd807b95c3030e9d5dd941d8cb091188a6b8fcd1ef2a82632", "digest_matches": true, "name": "ADR1399H", "ports": 4, "status": "ran", "exported": true, "fatal": ""}
+{"file": "LT1720.sub", "sha256": "fd8bc3011812f05bfe4bb9d00d178262f86c69c9b9e674fa8914b9b478c8145b", "digest_matches": true, "name": "LT1720", "ports": 5, "status": "ran", "exported": true, "fatal": ""}

@@ -71,16 +71,22 @@ def run_fixture(deck: str, case_id: str) -> dict:
     return {"status": "ran", **score(case_id, wave)}
 
 
-def probe_export(lib_file: str, name: str, nports: int) -> dict:
+def probe_export(lib_file: str, name: str, nports: int, sha256: str) -> dict:
+    """Load only `lib_file`, instantiate `name` with `nports` ports, and
+    require a completed run. The probe is tied to the digest of the file the
+    resolver bound, and fails if the file on disk no longer has that digest."""
+    from app.simulation_runner import find_model
+    from provenance import _sha256
+    found = find_model(lib_file)
+    same_bytes = bool(found) and _sha256(Path(found)) == sha256
     nodes = " ".join(f"p{i}" for i in range(nports))
     loads = "\n".join(f"R{i} p{i} 0 1G" for i in range(nports))
     deck = f"* export probe\n.lib {lib_file}\nX1 {nodes} {name}\n{loads}\n.op\n.end\n"
     sim = _simulate(deck)
-    fatal = sim["fatal"].lower()
-    exported = not ("unknown subcircuit" in fatal or "count mismatch" in fatal
-                    or "could not open" in fatal)
-    return {"file": lib_file, "name": name, "ports": nports,
-            "status": sim["status"], "exported": exported, "fatal": sim["fatal"]}
+    exported = same_bytes and sim["status"] == "ran"
+    return {"file": lib_file, "sha256": sha256, "digest_matches": same_bytes,
+            "name": name, "ports": nports, "status": sim["status"],
+            "exported": exported, "fatal": sim["fatal"]}
 
 
 def benign_stub(name: str, n: int) -> str:
@@ -146,7 +152,7 @@ def main() -> int:
         qualified_opaque += 1
         f = res.vendor_files[0]
         nports = len((res.vendor_instance or "").split()) - 2
-        key = (Path(f.path).name, part.upper(), nports)
+        key = (Path(f.path).name, part.upper(), nports, f.sha256)
         if key in seen:
             continue
         seen.add(key)

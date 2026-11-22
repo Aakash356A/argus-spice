@@ -20,6 +20,16 @@
   "phase_tol_deg": 45.0,
   "thd_max": 0.01
  },
+ "B3": {
+  "kind": "gain",
+  "amp": 0.1,
+  "freq": 1000.0,
+  "periods": 20,
+  "gain_db": 0.0,
+  "tol_db": 0.5,
+  "phase_tol_deg": 45.0,
+  "thd_max": 0.01
+ },
  "B4": {
   "kind": "gain",
   "amp": 0.01,
@@ -37,6 +47,8 @@
   "low_max": 0.3,
   "high_min": 4.0,
   "trip": 1.65,
-  "trip_tol": 0.15
+  "trip_tol": 0.15,
+  "release_probe_ohm": 100.0,
+  "release_max_ma": 5.0
  }
 }

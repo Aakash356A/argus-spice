@@ -1,0 +1,40 @@
+{
+ "chosen": {
+  "B1": "AD8648",
+  "B4": "AD8091"
+ },
+ "sweep": {
+  "B1": {
+   "alternatives": 38,
+   "pass": 1,
+   "pass_and_differ": 1
+  },
+  "B4": {
+   "alternatives": 37,
+   "pass": 30,
+   "pass_and_differ": 27
+  }
+ },
+ "transitive": {
+  "n": 11,
+  "fixture_pass": 11,
+  "simulator_bound_substitute": 11,
+  "baseline_accepts": 11,
+  "strict_baseline_accepts": 0,
+  "argus_rejects": 11,
+  "bindings": [
+   "ambiguous"
+  ]
+ },
+ "path": {
+  "n": 11,
+  "fixture_pass": 11,
+  "simulator_bound_substitute": 11,
+  "baseline_accepts": 11,
+  "strict_baseline_accepts": 9,
+  "argus_rejects": 11,
+  "bindings": [
+   "untrusted"
+  ]
+ }
+}

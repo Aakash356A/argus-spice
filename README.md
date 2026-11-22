@@ -56,11 +56,14 @@ the 280 mutants in the seven classes whose label the simulator can observe.
 The resolution rules (`bench/provenance.py`) are stated in its docstring and
 covered by `tests/test_provenance.py`.
 
-Owning the test does not close the gap. Re-tested under evaluator-owned
-fixtures with properties fixed in advance (`bench/fixtures.py`), all 14
-fabricated passes in four cases still pass, alongside all 27 genuine ones, and
-11 genuine decks rebuilt on a sibling model from the same vendor library pass
-too (`bench/collateral.py`). Only the binding check rejects them.
+Owning the test does not close the gap. Replayed under evaluator-owned
+fixtures with properties fixed in advance (`bench/fixtures.py`), every
+fabricated pass in the five cases that have both fabricated and genuine passes
+still passes, alongside every genuine one. And a name check is not enough:
+decks that keep the exact part name and the approved library, but bind a
+different model through an earlier include or a library earlier on the search
+path, pass the same fixtures and an exact-name-plus-approved-include check;
+only full resolution rejects them (`bench/samename.py`).
 
 Every grade is backed by something re-runnable. The 70 false grades rest on a
 fact in the netlist file; the 30 valid grades are re-verified by deleting the
@@ -92,13 +95,15 @@ python bench/reconcile.py 20260809T211634Z --out generated  # every number and t
 python bench/mutants.py --parts 40 --simulate               # held-out mutants + LTspice oracle
 python bench/fixtures.py 20260809T211634Z                   # evaluator-owned functional fixtures
 python bench/collateral.py 20260809T211634Z                 # wrong variants, opaque exports, precedence
+python bench/samename.py 20260809T211634Z                   # same name, different binding vs baselines
 python bench/case_table.py 20260809T211634Z                 # per-case and no-deck tables
 ```
 
 Recomputing tables needs no simulator; re-running the static audit needs an
 LTspice library, checked against `data/library_snapshot.json` (SHA-256 of every
 library file the corpus resolves to); `reverify.py`, `mutants.py --simulate`,
-`fixtures.py` and `collateral.py` re-simulate and need LTspice 17.2.4. `bench/prompt_manifest.py` writes the exact
+`fixtures.py`, `collateral.py` and `samename.py` re-simulate and need LTspice
+17.2.4. `bench/prompt_manifest.py` writes the exact
 prompt for every (case, arm) to `prompts.jsonl`.
 
 These commands write the paper's tables and macro definitions into

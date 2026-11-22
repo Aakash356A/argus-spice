@@ -21,21 +21,36 @@ R1 IN OUT 1
 """
 
 
+FILES: dict[str, str] = {}
+
+
 @pytest.fixture
 def lib(tmp_path, monkeypatch):
-    files = {}
+    FILES.clear()
 
     def add(name, text):
         p = tmp_path / name
         p.write_text(text)
-        files[name] = str(p)
+        FILES[name] = str(p)
 
-    monkeypatch.setattr(provenance, "find_model", lambda tok: files.get(Path(tok).name))
+    monkeypatch.setattr(provenance, "find_model", lambda tok: FILES.get(Path(tok).name))
     return add
 
 
-def r(netlist, part=PART):
-    return resolve(netlist, part, snapshot={})
+def pinned(exclude=(), corrupt=()):
+    """A snapshot pinning every fixture file, optionally leaving some out or
+    recording a wrong digest for them."""
+    snap = {}
+    for name, path in FILES.items():
+        if name in exclude:
+            continue
+        digest = provenance._sha256(Path(path))
+        snap[provenance._normalise_path(path)] = "0" * 64 if name in corrupt else digest
+    return snap
+
+
+def r(netlist, part=PART, **kw):
+    return resolve(netlist, part, snapshot=pinned(**kw))
 
 
 def test_genuine_binds(lib):
@@ -96,9 +111,47 @@ def test_wrong_file_does_not_bind(lib):
     assert res.binding == "unresolved"
 
 
-def test_digest_mismatch_is_untrusted(lib, tmp_path):
+def test_digest_mismatch_is_untrusted(lib):
     lib("LT3045-1.sub", VENDOR)
     net = f".lib LT3045-1.sub\nXU1 IN OUT SET 0 IN {PART}\n.end\n"
-    key = provenance._normalise_path(str(tmp_path / "LT3045-1.sub"))
-    res = resolve(net, PART, snapshot={key: "0" * 64})
+    res = r(net, corrupt=("LT3045-1.sub",))
+    assert res.binding == "untrusted" and not res.vendor_supplied
+
+
+# ---- regression tests for the trust-boundary review ----------------------
+def test_file_absent_from_snapshot_is_untrusted(lib):
+    lib("LT3045-1.sub", VENDOR)
+    res = r(f".lib LT3045-1.sub\nXU1 IN OUT SET 0 IN {PART}\n.end\n",
+            exclude=("LT3045-1.sub",))
+    assert res.binding == "untrusted" and not res.vendor_supplied
+
+
+def test_instance_after_end_is_ignored(lib):
+    lib("LT3045-1.sub", VENDOR)
+    res = r(f".lib LT3045-1.sub\nR9 IN 0 1\n.end\nXU1 IN OUT SET 0 IN {PART}\n")
+    assert not res.instantiated and not res.vendor_supplied
+
+
+def test_section_request_is_unsupported(lib):
+    """LTspice 17.2.4 has no .lib sections; a definition that exists only
+    inside one must not qualify."""
+    lib("S.lib", ".lib typ\n.subckt OTHER a b\nR a b 1\n.ends OTHER\n.endl typ\n"
+                 ".lib slow\n" + VENDOR + ".endl slow\n")
+    for sec in ("typ", "slow"):
+        res = r(f".lib S.lib {sec}\nXU1 IN OUT SET 0 IN {PART}\n.end\n")
+        assert res.binding == "unsupported" and not res.vendor_supplied
+
+
+def test_sectioned_library_without_section_is_unsupported(lib):
+    lib("S.lib", ".lib slow\n" + VENDOR + ".endl slow\n")
+    res = r(f".lib S.lib\nXU1 IN OUT SET 0 IN {PART}\n.end\n")
+    assert res.binding == "unsupported" and not res.vendor_supplied
+
+
+def test_helper_with_mismatched_digest_is_untrusted(lib):
+    lib("HELP.sub", ".subckt HELP a b\nR a b 1\n.ends HELP\n")
+    lib("LT3045-1.sub", ".inc HELP.sub\n" + VENDOR)
+    net = f".lib LT3045-1.sub\nXU1 IN OUT SET 0 IN {PART}\n.end\n"
+    assert r(net).vendor_supplied
+    res = r(net, corrupt=("HELP.sub",))
     assert res.binding == "untrusted" and not res.vendor_supplied

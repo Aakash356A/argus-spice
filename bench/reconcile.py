@@ -291,6 +291,14 @@ def review_macros(*, corpus_rows, corpus_scored, numeric_pass, netlist_rows,
     req_pass = [r for r in corpus_scored if arm(r) == "requirement" and r.get("sim_pass")]
     req_graded = [r for r in req_pass if key_of(r) in verdicts_full]
     check(len(req_graded) == len(req_pass), "a REQUIREMENT pass is ungraded")
+    req_missing = missing_reverification(
+        [key_of(r) for r in req_pass if is_resolved_vendor(r, out_dir)], reverify)
+    check(not req_missing,
+          f"{len(req_missing)} qualified REQUIREMENT pass(es) lack a passing "
+          f"re-verification record: {req_missing[:3]}")
+    out.append(rf"\newcommand{{\CasesWithPassReq}}{{{len({r['case_id'] for r in req_pass})}}}")
+    out.append(rf"\newcommand{{\RevAllQualified}}{{"
+               rf"{sum(1 for r in corpus_scored if r.get('sim_pass') and is_resolved_vendor(r, out_dir))}}}")
     out.append(rf"\newcommand{{\ReqPass}}{{{len(req_pass)}}}")
     out.append(rf"\newcommand{{\ReqFalse}}{{"
                rf"{sum(1 for r in req_graded if verdicts_full[key_of(r)].get('verdict') == 'FAKE')}}}")
@@ -321,6 +329,19 @@ def review_macros(*, corpus_rows, corpus_scored, numeric_pass, netlist_rows,
     f, n = false_share([r for r in bare_pass if r["case_id"] != "C1"])
     out.append(rf"\newcommand{{\BareFalseNoCOne}}{{{f}}}")
     out.append(rf"\newcommand{{\BarePassNoCOne}}{{{n}}}")
+    # The three cases with known definition defects (C1 supply, D3
+    # single-node gain, D5 infeasible buffer) excluded together.
+    defects = {"C1", "D3", "D5"}
+    f, n = false_share([r for r in bare_pass if r["case_id"] not in defects])
+    slots = [r for r in corpus_scored if arm(r) == "bare" and r["case_id"] not in defects]
+    num = sum(1 for r in slots if r.get("sim_pass"))
+    qual = sum(1 for r in slots if r.get("sim_pass") and is_resolved_vendor(r, out_dir))
+    out += [rf"\newcommand{{\BareFalseNoDefect}}{{{f}}}",
+            rf"\newcommand{{\BarePassNoDefect}}{{{n}}}",
+            rf"\newcommand{{\BareSlotsNoDefect}}{{{len(slots)}}}",
+            rf"\newcommand{{\BareNumNoDefect}}{{{num}}}",
+            rf"\newcommand{{\BareQualNoDefect}}{{{qual}}}",
+            rf"\newcommand{{\BareDropNoDefect}}{{{pct(num - qual, len(slots)):.1f}}}"]
     lo, hi = clustered_bootstrap_ci(bare_pass, is_fake, lambda r: True,
                                     cluster_key="part")
     out.append(rf"\newcommand{{\BareFalsePartCILo}}{{{lo:.0f}}}")
@@ -388,11 +409,19 @@ def experiment_macros() -> list[str]:
                 rf"\newcommand{{\FixUnsupported}}{{{sum(1 for r in fx if r['status'] != 'ran')}}}",
                 rf"\newcommand{{\FixFakeQualified}}{{{sum(1 for r in fake if r['qualified'])}}}",
                 rf"\newcommand{{\FixRealQualified}}{{{sum(1 for r in real + ungr if r['qualified'])}}}"]
+        d1 = [r for r in fx if r["case_id"] == "D1" and r.get("release_status") == "ran"]
+        def stage(sub):
+            return f"{sum(1 for r in sub if r.get('stage_ok'))}/{len(sub)}"
+        out += [rf"\newcommand{{\StageFake}}{{{stage([r for r in d1 if r['grade'] == 'FAKE'])}}}",
+                rf"\newcommand{{\StageLib}}{{{stage([r for r in d1 if r['grade'] != 'FAKE' and r['arm'] == 'library'])}}}",
+                rf"\newcommand{{\StageReq}}{{{stage([r for r in d1 if r['arm'] == 'requirement'])}}}",
+                rf"\newcommand{{\StageFakeSurvive}}{{{sum(1 for r in d1 if r['grade'] == 'FAKE' and r.get('stage_ok'))}}}"]
         for cid in sorted({r["case_id"] for r in fx}):
             sub = [r for r in fx if r["case_id"] == cid]
             f = [r for r in sub if r["grade"] == "FAKE"]
             g = [r for r in sub if r["grade"] != "FAKE"]
-            t = cid.replace("1", "One").replace("4", "Four")
+            t = (cid.replace("1", "One").replace("3", "Three")
+                 .replace("4", "Four"))
             out += [rf"\newcommand{{\Fix{t}Fake}}{{{sum(1 for r in f if r.get('all'))}/{len(f)}}}",
                     rf"\newcommand{{\Fix{t}Real}}{{{sum(1 for r in g if r.get('all'))}/{len(g)}}}"]
     col_path = runs / "collateral" / "summary.json"
@@ -417,6 +446,23 @@ def experiment_macros() -> list[str]:
                 rf"\newcommand{{\PrecBenignBeforeChanges}}{{{col['precedence']['before_changes']}}}",
                 rf"\newcommand{{\PrecBenignIndist}}{{{len(col['precedence']['before_reproduces'])}}}",
                 rf"\newcommand{{\PrecBenignFails}}{{{col['precedence']['before_fails']}}}"]
+    sn_path = runs / "samename" / "summary.json"
+    if sn_path.exists():
+        sn = json.loads(sn_path.read_text())
+        for kind, tag in (("transitive", "Trans"), ("path", "Path")):
+            v = sn[kind]
+            out += [rf"\newcommand{{\SN{tag}N}}{{{v['n']}}}",
+                    rf"\newcommand{{\SN{tag}Fixture}}{{{v['fixture_pass']}}}",
+                    rf"\newcommand{{\SN{tag}Bound}}{{{v['simulator_bound_substitute']}}}",
+                    rf"\newcommand{{\SN{tag}Base}}{{{v['baseline_accepts']}}}",
+                    rf"\newcommand{{\SN{tag}Strict}}{{{v['strict_baseline_accepts']}}}",
+                    rf"\newcommand{{\SN{tag}Argus}}{{{v['argus_rejects']}}}"]
+        for cid in ("B1", "B4"):
+            w = sn["sweep"][cid]
+            t = cid.replace("1", "One").replace("4", "Four")
+            out += [rf"\newcommand{{\SNSweep{t}N}}{{{w['alternatives']}}}",
+                    rf"\newcommand{{\SNSweep{t}Pass}}{{{w['pass_and_differ']}}}",
+                    rf"\newcommand{{\SNAlt{t}}}{{{sn['chosen'][cid]}}}"]
     return out
 
 

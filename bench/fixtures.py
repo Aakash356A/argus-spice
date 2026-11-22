@@ -56,6 +56,11 @@ FIXTURES = {
         "kind": "gain", "amp": 0.1, "freq": 1e6, "periods": 20,
         "gain_db": 13.98, "tol_db": 1.0, "phase_tol_deg": 45.0, "thd_max": 0.01,
     },
+    "B3": {  # LTC6078 unity-gain follower, 100 mV at 1 kHz (added 2026-11-21,
+             # thresholds fixed before any B3 deck was run)
+        "kind": "gain", "amp": 0.1, "freq": 1e3, "periods": 20,
+        "gain_db": 0.0, "tol_db": 0.5, "phase_tol_deg": 45.0, "thd_max": 0.01,
+    },
     "B4": {  # AD8551, gain 100 V/V non-inverting, 10 mV at 1 kHz
         "kind": "gain", "amp": 0.01, "freq": 1e3, "periods": 20,
         "gain_db": 40.0, "tol_db": 1.0, "phase_tol_deg": 45.0, "thd_max": 0.01,
@@ -63,6 +68,11 @@ FIXTURES = {
     "D1": {  # LT1720 comparator, 1.65 V threshold, output low above it
         "kind": "comparator", "above": 2.5, "below": 0.8,
         "low_max": 0.3, "high_min": 4.0, "trip": 1.65, "trip_tol": 0.15,
+        # Output-stage check (added 2026-11-21, fixed before it was run): in
+        # the released state a 100 ohm pull-down is applied to OUT; an
+        # open-drain-style stage sources only pull-up current, so the output
+        # may source at most 5 mA (a pull-up of at least 1 kohm).
+        "release_probe_ohm": 100.0, "release_max_ma": 5.0,
     },
 }
 
@@ -142,6 +152,21 @@ def stimulus(case_id: str, offset: float) -> str:
         return (f"VFIX IN 0 PWL(0 {a} 200u {a} 201u {b} 400u {b} 1400u {a})\n"
                 f".tran 0 1400u 0 0.2u\n")
     raise ValueError(case_id)
+
+
+def release_test(body: str, case_id: str) -> dict:
+    """D1 output stage: source current into a 100 ohm pull-down when released."""
+    f = FIXTURES[case_id]
+    deck = (body.rstrip() + "\n.options plotwinsize=0\n"
+            f"VFIX IN 0 {f['below']}\nRPROBE OUT 0 {f['release_probe_ohm']}\n"
+            ".tran 0 200u 0 0.2u\n.end\n")
+    wave, err = simulate(deck)
+    if wave is None:
+        return {"release_status": "no_sim", "release_reason": err}
+    t, _, vout = wave
+    i_ma = 1e3 * _mean(t, vout, 150e-6, 200e-6) / f["release_probe_ohm"]
+    return {"release_status": "ran", "release_current_ma": i_ma,
+            "stage_ok": i_ma <= f["release_max_ma"]}
 
 
 def simulate(deck: str, timeout_s: int = 180):
@@ -261,6 +286,8 @@ def main() -> int:
             rec.update(status="no_sim", reason=err)
         else:
             rec.update(status="ran", **score(cid, wave))
+            if FIXTURES[cid]["kind"] == "comparator":
+                rec.update(release_test(body, cid))
         records.append(rec)
         print(f"{cid} {arm:<11} {r['model'][:14]:<14} k{r['sample']} "
               f"{rec['grade']:<8} {rec['binding']:<10} {rec['status']:<11} "
