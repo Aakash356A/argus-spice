@@ -26,7 +26,7 @@ everything scores perfect recall, so the test set has to contain cases that
 must *not* be flagged, including one (`wrapper`) specifically constructed to
 look like a substitution while preserving provenance.
 
-No simulation and no API calls; every mutation is a text edit over files
+No API calls; every mutation is a text edit over files
 already on disk.
 """
 from __future__ import annotations
@@ -44,7 +44,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from cases import ALL_CASES                                    # noqa: E402
 from detect import (_part_stem, _same_part, _significant_lines,  # noqa: E402
                     instantiates_part, substituted)
-from provenance import callee_of, resolve                      # noqa: E402
+from baselines import BASELINES, verdicts as baseline_verdicts  # noqa: E402
+from provenance import callee_of, load_snapshot, resolve       # noqa: E402
 
 try:
     from app.simulation_runner import find_model                # noqa: E402
@@ -430,6 +431,8 @@ def main() -> int:
                 "flagged": bool(flags["provenance_fail"] or flags["pin_role_fail"]),
                 "flagged_provenance_only": bool(flags["provenance_fail"]),
             }
+            base_v = baseline_verdicts(mutated, part, load_snapshot())
+            rec.update({f"baseline_{b}": base_v[b] for b in BASELINES})
             if args.simulate:
                 rec["sim"] = _simulate(mutated)
             records.append(rec)
@@ -478,48 +481,39 @@ def main() -> int:
             k: sum(1 for r in destroy if r["mutation"] == k and not r["naive_fail"])
             for k in FAKE_MUTATIONS if k not in INTERFACE_MUTATIONS},
     }
+    summary["baselines"] = {
+        b: {"invalid_accepted": sum(r[f"baseline_{b}"] for r in destroy),
+            "invalid_accepted_by_mutation": {
+                k: n for k in FAKE_MUTATIONS if k not in INTERFACE_MUTATIONS
+                if (n := sum(r[f"baseline_{b}"] for r in destroy if r["mutation"] == k))},
+            "valid_accepted": sum(r[f"baseline_{b}"] for r in valid)}
+        for b in BASELINES}
     if args.simulate:
-        # What LTspice itself reports, per mutation class. `confirms` is the
-        # simulator-side evidence for the label: the vendor model loads for
-        # the valid classes, the local stub is elaborated for the stub
-        # classes, and the model is missing for the dropped/retargeted ones.
+        # What LTspice itself reports, per mutation class. A run that does not
+        # complete is counted as that and nothing more: it shows neither which
+        # definition was used nor that the label is right. Identity is not an
+        # oracle row, because parts were selected by that run succeeding.
         ident = {r["part"]: r["sim"] for r in records if r["mutation"] == "identity"}
 
-        def confirms(r):
+        def outcome(r):
             sim = r["sim"]
-            k = r["mutation"]
-            base = ident.get(r["part"], {})
-            if k == "identity":
-                return sim["status"] == "ran"
-            if k == "wrapper":
-                # Same circuit, one level of hierarchy added: LTspice must run
-                # it and land on the reference's node voltages.
-                return (sim["status"] == "ran"
-                        and _same_response(sim["final"], base.get("final", {})))
-            if k in ("substitute", "renamed_stub", "shadow"):
-                # The simulated response departs from the vendor reference,
-                # or the simulator rejects the circuit: either way the vendor
-                # model is not what produced it.
-                return (sim["status"] != "ran"
-                        or not _same_response(sim["final"], base.get("final", {})))
-            if k in ("drop_library", "alias_file"):
-                return sim["status"] == "missing_model"
-            return None
+            if sim["status"] == "missing_model":
+                return "missing_model"
+            if sim["status"] != "ran":
+                return "did_not_run"
+            same = _same_response(sim["final"],
+                                  ident.get(r["part"], {}).get("final", {}))
+            return "same" if same else "changed"
+
         oracle = {}
         for kind in VALID_MUTATIONS + FAKE_MUTATIONS:
             sub = [r for r in records if r["mutation"] == kind]
             if not sub:
                 continue
-            statuses = {}
+            counts = {}
             for r in sub:
-                statuses[r["sim"]["status"]] = statuses.get(r["sim"]["status"], 0) + 1
-            conf = [confirms(r) for r in sub]
-            oracle[kind] = {
-                "n": len(sub), "status": statuses,
-                "stub_elaborated": sum(r["sim"]["stub_elaborated"] for r in sub),
-                "confirms": (sum(1 for c in conf if c) if conf[0] is not None
-                             else None),
-            }
+                counts[outcome(r)] = counts.get(outcome(r), 0) + 1
+            oracle[kind] = {"n": len(sub), "outcome": counts}
         summary["ltspice_oracle"] = oracle
         # Precedence probe: the shadow stub placed after the directive instead
         # of before it. Does the simulator still reproduce the reference?
@@ -532,7 +526,7 @@ def main() -> int:
             sim = _simulate(m)
             after.append(sim["status"] == "ran"
                          and _same_response(sim["final"], ident[part]["final"]))
-        before = [not confirms(r) for r in records if r["mutation"] == "shadow"]
+        before = [outcome(r) == "same" for r in records if r["mutation"] == "shadow"]
         summary["precedence"] = {
             "n": len(after),
             "stub_after_lib_reproduces_vendor": sum(after),
@@ -572,6 +566,11 @@ def main() -> int:
                      ("naive_caught", "NaiveCaught"),
                      ("naive_valid_flagged", "NaiveValidFlagged")):
         lines.append(rf"\newcommand{{\Mut{tag}}}{{{pvn[key]}}}")
+    for b, tag in (("name_include", "BaseName"), ("strict_names", "BaseStrict"),
+                   ("direct_digest", "BaseDigest")):
+        v = summary["baselines"][b]
+        lines.append(rf"\newcommand{{\Mut{tag}Missed}}{{{v['invalid_accepted']}}}")
+        lines.append(rf"\newcommand{{\Mut{tag}ValidKept}}{{{v['valid_accepted']}}}")
     prec = summary.get("precedence")
     if prec:
         lines.append(rf"\newcommand{{\PrecN}}{{{prec['n']}}}")
@@ -579,8 +578,9 @@ def main() -> int:
         lines.append(rf"\newcommand{{\PrecBeforeVendor}}{{{prec['stub_before_lib_reproduces_vendor']}}}")
     for kind, v in summary.get("ltspice_oracle", {}).items():
         tag = "".join(w.capitalize() for w in kind.split("_"))
-        if v["confirms"] is not None:
-            lines.append(rf"\newcommand{{\Oracle{tag}}}{{{v['confirms']}}}")
+        for key, name in (("same", "Same"), ("changed", "Changed"),
+                          ("missing_model", "Missing"), ("did_not_run", "NoRun")):
+            lines.append(rf"\newcommand{{\Oracle{tag}{name}}}{{{v['outcome'].get(key, 0)}}}")
     for kind, v in summary["by_mutation"].items():
         tag = "".join(w.capitalize() for w in kind.split("_"))
         lines.append(rf"\newcommand{{\Mut{tag}N}}{{{v['n']}}}")

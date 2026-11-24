@@ -88,7 +88,7 @@ def find_model(fullname):
             pass
     return None
 
-def replace_lib_paths(net_text):
+def replace_lib_paths(net_text, find=None):
     """
     Replace each .lib/.inc/.include line's path with the absolute path to the
     found file. Handles quoted and unquoted paths.
@@ -114,7 +114,7 @@ def replace_lib_paths(net_text):
         # strip quotes if present
         path_token = raw[1:-1] if raw.startswith('"') and raw.endswith('"') else raw
         # basename is what we search for
-        target = find_model(path_token)
+        target = (find or find_model)(path_token)
         if target:
             return f'{prefix}"{target}"'
         # if not found, keep original
@@ -253,6 +253,40 @@ def build_ltspice_command(exe: str, netlist_path: Path, batch: bool = True) -> L
     
     logger.info(f"Command: {' '.join(cmd)}")
     return cmd
+
+_VERSION_LINE = re.compile(r"^\s*(LTspice\s+\d\S*(?:\s+for\s+\S+)?)", re.MULTILINE)
+
+
+def version_in_log(log_text: str) -> Optional[str]:
+    """Simulator version as LTspice prints it in its own log, or None."""
+    m = _VERSION_LINE.search(log_text.replace("\x00", ""))
+    return m.group(1) if m else None
+
+
+_version_cache: Dict[str, Optional[str]] = {}
+
+
+def simulator_version() -> Optional[str]:
+    """Version of the installed LTspice, read from the log of a one-resistor
+    run. Cached per executable and modification time."""
+    import tempfile
+    runner = SimulationRunner()
+    if not runner.exe:
+        return None
+    try:
+        key = f"{runner.exe}:{os.stat(runner.exe).st_mtime_ns}"
+    except OSError:
+        key = runner.exe
+    if key not in _version_cache:
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "version.net"
+            path.write_text("* version probe\nV1 a 0 1\nR1 a 0 1k\n.op\n.end\n")
+            res = runner.run_batch(path, timeout=60)
+            log = res.get("log_path")
+            _version_cache[key] = version_in_log(
+                Path(log).read_text(errors="ignore")) if log else None
+    return _version_cache[key]
+
 
 class SimulationRunner:
     """Manages LTspice simulation execution."""

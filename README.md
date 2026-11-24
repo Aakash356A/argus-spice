@@ -41,7 +41,7 @@ Across **316 netlists** from three frontier models on a 20-case vendor-IC suite 
 | | |
 |---|---|
 | Numeric passes | 100 |
-| False acceptances (manually graded) | **70 / 100** |
+| False acceptances (final grades) | **70 / 100** |
 | BARE prompt (part named, no directive, no ban) | 70 / 73 |
 | LIBRARY prompt (installed-model statement + exact directive) | 0 / 27 |
 | BARE Pass@1, numeric gate → vendor binding required | **42.7% → 1.8%** |
@@ -51,34 +51,39 @@ vendor-supplied definition?* — agrees with **all 100** final grades, from the
 netlist and a hash-pinned library snapshot alone. No generation trace, no LLM
 judgement. On 360 constructed mutants of 40 parts used in no case here, it
 rejects all 240 provenance edits and accepts all 80 valid controls.
-Simulating every mutant in LTspice independently confirms the label for 277 of
-the 280 mutants in the seven classes whose label the simulator can observe.
+LTspice, run on every mutant, reproduces the reference for all 40 wrappers and
+reports a missing model for all 80 dropped or retargeted directives. Of the 120
+stub mutants, 54 ran with a changed response, 3 ran unchanged and 63 did not
+run, which is no evidence either way.
 The resolution rules (`bench/provenance.py`) are stated in its docstring and
 covered by `tests/test_provenance.py`.
 
-Owning the test does not close the gap. Replayed under evaluator-owned
-fixtures with properties fixed in advance (`bench/fixtures.py`), every
+Owning the test does not close the gap. Replayed under basic evaluator-owned
+fixtures (`bench/fixtures.py`), every
 fabricated pass in the five cases that have both fabricated and genuine passes
 still passes, alongside every genuine one. And a name check is not enough:
-decks that keep the exact part name and the approved library, but bind a
-different model through an earlier include or a library earlier on the search
-path, pass the same fixtures and an exact-name-plus-approved-include check;
-only full resolution rejects them (`bench/samename.py`).
+decks that keep the exact part name and the approved library directive can run a
+different model through an earlier include, a library earlier on the search
+path, or a changed nested helper, and still pass the same fixtures. Approved
+file names miss the last two, and pinning every directly included file misses
+the last; full resolution rejects all 33 and accepts their matched controls
+(`bench/samename.py`, `bench/baselines.py`).
 
-Every grade is backed by something re-runnable. The 70 false grades rest on a
+Every final grade is backed by something re-runnable. The 70 false grades rest on a
 fact in the netlist file; the 30 valid grades are re-verified by deleting the
 part and re-simulating (no deletion still passes), by two independent
 distortion estimates, and by driving comparators across their threshold
 (`bench/reverify.py`). `reconcile.py` refuses to build if a grade ever
-contradicts that re-verification. Grading was done by one author, not blind
-to the audit; the mutation suite supplies labels by construction.
+contradicts that re-verification. Grading was not blind to the audit,
+and each record in `verdicts.jsonl` states the basis it was assigned on; the
+mutation suite supplies labels by construction.
 
 Qualification is not correctness. Each case is scored on one scalar, so
 requirements outside it go unchecked: three qualified comparators use the
 genuine part correctly but omit the open-drain-style output stage their
 specification asks for.
 
-## Reproducing every number in the paper
+## Reproducing the results
 
 Needs LTspice and the vendor libraries (both free downloads). No API access, no GPU.
 The analysis re-audits every stored netlist from disk, so changing a detector
@@ -91,17 +96,19 @@ pip install -r requirements.txt
 ```bash
 python bench/validate_cases.py                              # corpus preflight
 python bench/reverify.py 20260809T211634Z                   # mechanical grade checks (re-simulates)
-python bench/reconcile.py 20260809T211634Z --out generated  # every number and table
 python bench/mutants.py --parts 40 --simulate               # held-out mutants + LTspice oracle
 python bench/fixtures.py 20260809T211634Z                   # evaluator-owned functional fixtures
 python bench/collateral.py 20260809T211634Z                 # wrong variants, opaque exports, precedence
 python bench/samename.py 20260809T211634Z                   # same name, different binding vs baselines
+python bench/timing.py 20260809T211634Z                     # resolver timing
+python bench/reconcile.py 20260809T211634Z --out generated  # result counts, rates and tables
 python bench/case_table.py 20260809T211634Z                 # per-case and no-deck tables
 ```
 
 Recomputing tables needs no simulator; re-running the static audit needs an
 LTspice library, checked against `data/library_snapshot.json` (SHA-256 of every
-library file the corpus resolves to); `reverify.py`, `mutants.py --simulate`,
+library file the corpus resolves to on one installation; not vendor-published
+values); `reverify.py`, `mutants.py --simulate`,
 `fixtures.py`, `collateral.py` and `samename.py` re-simulate and need LTspice
 17.2.4. `bench/prompt_manifest.py` writes the exact
 prompt for every (case, arm) to `prompts.jsonl`.
@@ -125,14 +132,14 @@ bench/
   mutants.py        held-out mutation suite (shadowing, aliasing, wrappers, …)
   reverify.py       re-tests every valid grade: part deletion, distortion, response
   analyze.py        re-audits every stored netlist from disk
-  reconcile.py      single source of truth for every number in the paper
+  reconcile.py      result counts, rates and tables, integrity-checked
   probe.py          generation sweep (needs API access; not required to reproduce)
   runs/20260809T211634Z/
       results.jsonl     540 generation records
       prompts.jsonl     exact prompt text and SHA-256 per (case, arm)
       netlists/         every simulated netlist
       raw/              every raw model response
-      verdicts.jsonl    manual grades for all 100 numeric passes
+      verdicts.jsonl    grades for the numeric passes, with the basis of each
       reverification.jsonl   mechanical evidence behind every valid grade
 
 mcp_server/         the audit as callable tools (find_template, simulate,

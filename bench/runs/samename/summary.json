@@ -17,24 +17,78 @@
  },
  "transitive": {
   "n": 11,
+  "control_fixture_pass": 11,
   "fixture_pass": 11,
-  "simulator_bound_substitute": 11,
-  "baseline_accepts": 11,
-  "strict_baseline_accepts": 0,
-  "argus_rejects": 11,
+  "differs_from_control": 11,
+  "matches_reference": 11,
+  "direct_files_identical": 11,
+  "control_accepts": {
+   "name_include": 11,
+   "strict_names": 0,
+   "direct_digest": 0,
+   "argus": 11
+  },
+  "altered_accepts": {
+   "name_include": 11,
+   "strict_names": 0,
+   "direct_digest": 0,
+   "argus": 0
+  },
   "bindings": [
    "ambiguous"
   ]
  },
  "path": {
   "n": 11,
+  "control_fixture_pass": 11,
   "fixture_pass": 11,
-  "simulator_bound_substitute": 11,
-  "baseline_accepts": 11,
-  "strict_baseline_accepts": 9,
-  "argus_rejects": 11,
+  "differs_from_control": 11,
+  "matches_reference": 11,
+  "direct_files_identical": 0,
+  "control_accepts": {
+   "name_include": 11,
+   "strict_names": 11,
+   "direct_digest": 11,
+   "argus": 11
+  },
+  "altered_accepts": {
+   "name_include": 11,
+   "strict_names": 11,
+   "direct_digest": 0,
+   "argus": 0
+  },
   "bindings": [
    "untrusted"
   ]
+ },
+ "nested": {
+  "n": 11,
+  "control_fixture_pass": 11,
+  "fixture_pass": 11,
+  "differs_from_control": 11,
+  "matches_reference": 11,
+  "direct_files_identical": 11,
+  "control_accepts": {
+   "name_include": 11,
+   "strict_names": 11,
+   "direct_digest": 11,
+   "argus": 11
+  },
+  "altered_accepts": {
+   "name_include": 11,
+   "strict_names": 11,
+   "direct_digest": 11,
+   "argus": 0
+  },
+  "bindings": [
+   "untrusted"
+  ]
+ },
+ "original_accepts": {
+  "n": 11,
+  "name_include": 11,
+  "strict_names": 11,
+  "direct_digest": 11,
+  "argus": 11
  }
 }

@@ -64,12 +64,14 @@ that is discarded afterwards.
 
 ## Verified behaviour
 
+Last re-run 2026-11-23 on LTspice 17.2.4 for macOS.
+
 - Security boundary rejects absolute paths, traversal and separators; allows bare filenames.
 - `find_template` returns the correct per-part directive.
 - `audit_netlist` separates a fabricated stub (`not_qualified`) from the corpus reference (`qualified`).
 - `simulate` surfaces `Fatal Error: Port(pin) count mismatch …` verbatim.
 - `list_traces` returns 17 traces for the AD8092 reference, including `V(n001)`.
-- `submit` rejects a stub measuring 13.977 dB and accepts a genuine part measuring 13.969 dB.
+- `submit` rejects a stub measuring 13.977 dB and accepts a genuine corpus deck measuring 13.949 dB.
 - MCP handshake, `tools/list` (7 tools) and `tools/call` all succeed over stdio.
 
 Note results arrive in `content[0].text` as a JSON string.

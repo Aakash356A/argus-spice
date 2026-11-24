@@ -4,11 +4,16 @@
     python bench/snapshot_library.py 20260809T211634Z
 
 Writes `data/library_snapshot.json`: the library-relative path and SHA-256 of
-every vendor file that a corpus netlist or a reference template resolves to on
-this machine. `provenance.resolve` then treats a resolved file whose digest
-differs from the pinned one as untrusted, so a reader with a different LTspice
-library sees a hash mismatch instead of a silent disagreement. The models
+every library file that a corpus netlist or a reference template resolves to on
+this machine, and the simulator version LTspice reports for itself. The models
 themselves are not redistributed; only their digests are.
+
+What this establishes: a reader with a different library sees a digest mismatch
+instead of a silent disagreement, and a deck that binds a file changed after
+the snapshot is caught. What it does not: the digests are of one installation
+as downloaded from the vendor, not values the vendor publishes, and because the
+corpus itself is an input, no unmodified corpus deck can fail the match. A
+production deployment would pin the approved release instead.
 """
 from __future__ import annotations
 
@@ -21,10 +26,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import provenance  # noqa: E402
+from app.simulation_runner import simulator_version  # noqa: E402
 from provenance import _normalise_path, resolve  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-LTSPICE_VERSION = "LTspice 17.2.4 (macOS)"
 
 
 def main() -> int:
@@ -45,7 +50,7 @@ def main() -> int:
                 files[_normalise_path(f.path)] = f.sha256
 
     out = ROOT / "data" / "library_snapshot.json"
-    out.write_text(json.dumps({"simulator": LTSPICE_VERSION,
+    out.write_text(json.dumps({"simulator": simulator_version() or "unknown",
                                "files": dict(sorted(files.items()))},
                               indent=1) + "\n")
     print(f"pinned {len(files)} library files -> {out.relative_to(ROOT)}")

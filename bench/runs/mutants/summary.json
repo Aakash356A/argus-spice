@@ -131,85 +131,98 @@
       "alias_file": 40
     }
   },
+  "baselines": {
+    "name_include": {
+      "invalid_accepted": 50,
+      "invalid_accepted_by_mutation": {
+        "drop_library": 10,
+        "alias_file": 40
+      },
+      "valid_accepted": 80
+    },
+    "strict_names": {
+      "invalid_accepted": 50,
+      "invalid_accepted_by_mutation": {
+        "drop_library": 10,
+        "alias_file": 40
+      },
+      "valid_accepted": 80
+    },
+    "direct_digest": {
+      "invalid_accepted": 50,
+      "invalid_accepted_by_mutation": {
+        "drop_library": 10,
+        "alias_file": 40
+      },
+      "valid_accepted": 80
+    }
+  },
   "ltspice_oracle": {
     "identity": {
       "n": 40,
-      "status": {
-        "ran": 40
-      },
-      "stub_elaborated": 0,
-      "confirms": 40
+      "outcome": {
+        "same": 40
+      }
     },
     "wrapper": {
       "n": 40,
-      "status": {
-        "ran": 40
-      },
-      "stub_elaborated": 0,
-      "confirms": 40
+      "outcome": {
+        "same": 40
+      }
     },
     "substitute": {
       "n": 40,
-      "status": {
-        "ran": 19,
-        "error": 20,
-        "missing_model": 1
-      },
-      "stub_elaborated": 0,
-      "confirms": 39
+      "outcome": {
+        "changed": 18,
+        "did_not_run": 20,
+        "missing_model": 1,
+        "same": 1
+      }
     },
     "renamed_stub": {
       "n": 40,
-      "status": {
-        "ran": 19,
-        "error": 20,
-        "missing_model": 1
-      },
-      "stub_elaborated": 0,
-      "confirms": 39
+      "outcome": {
+        "changed": 18,
+        "did_not_run": 20,
+        "missing_model": 1,
+        "same": 1
+      }
     },
     "shadow": {
       "n": 40,
-      "status": {
-        "ran": 19,
-        "error": 21
-      },
-      "stub_elaborated": 0,
-      "confirms": 39
+      "outcome": {
+        "changed": 18,
+        "did_not_run": 21,
+        "same": 1
+      }
     },
     "drop_library": {
       "n": 40,
-      "status": {
+      "outcome": {
         "missing_model": 40
-      },
-      "stub_elaborated": 0,
-      "confirms": 40
+      }
     },
     "remove_part": {
       "n": 40,
-      "status": {
-        "ran": 39,
-        "error": 1
-      },
-      "stub_elaborated": 0,
-      "confirms": null
+      "outcome": {
+        "changed": 31,
+        "same": 8,
+        "did_not_run": 1
+      }
     },
     "alias_file": {
       "n": 40,
-      "status": {
+      "outcome": {
         "missing_model": 40
-      },
-      "stub_elaborated": 0,
-      "confirms": 40
+      }
     },
     "pin_permute": {
       "n": 40,
-      "status": {
-        "ran": 38,
-        "timeout": 2
-      },
-      "stub_elaborated": 0,
-      "confirms": null
+      "outcome": {
+        "changed": 30,
+        "did_not_run": 2,
+        "same": 8
+      }
     }
   },
   "precedence": {

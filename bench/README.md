@@ -28,12 +28,16 @@ nothing here requires API access unless you generate a new corpus.
 | `probe.py` | generation sweep (API access required; not needed to reproduce) |
 | `detect.py` | syntactic audit signals |
 | `provenance.py` | transitive `.lib`/`.include` resolution |
+| `baselines.py` | name, include and direct-digest baselines |
+| `samename.py` | same name, different model: three mechanisms with matched controls |
+| `fixtures.py`, `collateral.py` | evaluator-owned fixtures; variants, exports, precedence |
+| `timing.py` | resolver timing |
 | `ablation.py` | acceptance ladder, leave-one-out, Pass@k |
 | `mutants.py` | held-out mutation suite |
 | `analyze.py` | re-audit and per-case tables |
-| `reconcile.py` | every number in the paper, integrity-checked |
+| `reconcile.py` | result counts, rates and tables, integrity-checked |
 | `waveform.py` | THD/clipping linearity measurement |
-| `grade.py` | interactive grading tool that produced `verdicts.jsonl` |
+| `grade.py` | interactive grading tool; each record in `verdicts.jsonl` states its own `basis` |
 | `reverify.py` | mechanical re-verification of every valid grade |
 | `purge.py` | drops invalid rows so `probe.py` regenerates them on resume |
 | `validate_cases.py` | preflight: every case's part has an installed library |

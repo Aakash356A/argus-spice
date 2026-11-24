@@ -21,14 +21,22 @@ can be disagreed with:
    are). `LT3045` does not bind a request for `LT3045-1`. Variant-name
    matching belongs to the substitution *diagnostics* in `detect.py`, never to
    this predicate.
-4. Includes. `.lib`/`.include` are expanded transitively (depth <= 8) through
-   the same basename lookup the simulation runner uses
-   (`app.simulation_runner.find_model`); each resolved file is visited once.
+4. Includes. The deck is first put through the simulation runner's own include
+   rewriting (`app.simulation_runner.replace_lib_paths`) and title-line rule, so
+   top-level directives name the files the runner hands to LTspice. Nested
+   directives are not rewritten by the runner; LTspice 17.2.4 takes an absolute
+   nested path as written and a relative one from the including file's
+   directory first, and those are the only two forms followed. Each file is
+   parsed once, but every include edge is kept. If any directive does not
+   resolve under these rules the binding is `unresolved`: an unread file could
+   define anything.
 5. Shadowing. A local `.subckt` with the requested name disqualifies the
    binding whether or not the simulator would prefer it or report an
    ambiguity, because in neither case is the vendor model established.
 6. Counting. Vendor definitions are counted per definition, not per file, so
-   two `.subckt` blocks of the name in one file are a duplicate.
+   two `.subckt` blocks of the name in one file are a duplicate. The rule also
+   applies to the subcircuits the model calls: if one of them is defined more
+   than once across the deck and its libraries, the binding is `ambiguous`.
 7. Opaque files. Encrypted vendor binaries cannot be read; for those the
    evidence is the filename stem (exact match to the requested name) and the
    file's SHA-256. Such bindings are marked `opaque`.
@@ -37,18 +45,17 @@ can be disagreed with:
    `data/library_snapshot.json` with a matching SHA-256. A file absent from
    the snapshot, or whose digest differs, makes the binding `untrusted`.
 9. End of deck. Text after `.end` is ignored, as LTspice ignores it.
-10. Library sections. LTspice 17.2.4 does not implement HSPICE-style
-   `.lib <file> <section>` loading: it reads the section name as part of the
-   file name, and treats a `.lib <name>` header inside a library as an
-   include. A directive naming a section, or a library file containing
-   `.lib`/`.endl` sections, therefore makes the binding `unsupported`
-   rather than resolved under another simulator's semantics.
+10. Library sections. `.lib <file> <section>` loading and libraries that
+   contain `.endl` (with or without a name) are outside the supported subset
+   and make the binding `unsupported`. LTspice 17.2.4 on macOS does load
+   sections in at least one syntax (`.lib 'file' NAME`, single quotes), so this
+   is a restriction of the resolver, not a property of the simulator.
 
 No simulation is run; every output is a property of files on disk. This is a
-static approximation of what the simulator elaborates: it does not model
-`.param`-dependent subcircuit selection or simulator-specific search-path
-precedence beyond the basename lookup, and reports `unsupported` instead of
-guessing where a construct it cannot establish would decide the binding.
+static approximation of what the simulator elaborates. It does not model
+`.param`-dependent subcircuit selection, and it checks subcircuit names only:
+`.model`, `.param` and `.func` names that a deck shares with a vendor model,
+and parameters overridden on the instance line, are not compared.
 """
 from __future__ import annotations
 
@@ -62,11 +69,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-try:
-    from app.simulation_runner import find_model
-except Exception:                                          # noqa: BLE001
-    def find_model(fullname):                              # type: ignore[misc]
-        return None
+from app.simulation_runner import (ensure_title_line, find_model,  # noqa: E402
+                                   replace_lib_paths)
 
 
 MAX_DEPTH = 8
@@ -89,10 +93,8 @@ def _normalise_path(path: str) -> str:
 
 
 _INCLUDE_RE = re.compile(
-    r'^\s*\.(?:lib|inc(?:lude)?)\s+(?P<path>"[^"]+"|\S+)', re.IGNORECASE)
-
-# Libraries every netlist pulls in; they define no vendor macro-model.
-_GENERIC = ("standard.", "cmp/standard")
+    r"""^\s*\.(?:lib|inc(?:lude)?)\s*(?P<path>"[^"]+"|'[^']+'|\S+)""",
+    re.IGNORECASE)
 
 _ENCRYPTED_MARKER = b"<Binary File>"
 
@@ -155,16 +157,22 @@ def callee_of(line: str) -> str | None:
 def split_hierarchy(text: str) -> tuple[list[str], dict[str, list[str]],
                                          list[str]]:
     """(top-level lines, {UPPER name: body lines}, local names as written)."""
+    top, bodies, defs = _hierarchy(text)
+    return top, bodies, [name for name, _ in defs]
+
+
+def _hierarchy(text: str):
+    """As `split_hierarchy`, with each definition's enclosing subcircuit."""
     top: list[str] = []
     bodies: dict[str, list[str]] = {}
-    names: list[str] = []
+    defs: list[tuple[str, str | None]] = []
     stack: list[str] = []
     for line in logical_lines(text):
         low = line.lower()
         if low.startswith(".subckt"):
             tokens = line.split()
             name = tokens[1] if len(tokens) >= 2 else "?"
-            names.append(name)
+            defs.append((name, stack[-1] if stack else None))
             bodies.setdefault(name.upper(), [])
             stack.append(name.upper())
             continue
@@ -176,7 +184,7 @@ def split_hierarchy(text: str) -> tuple[list[str], dict[str, list[str]],
             bodies[stack[-1]].append(line)
         else:
             top.append(line)
-    return top, bodies, names
+    return top, bodies, defs
 
 
 def elaborated_instances(text: str) -> list[tuple[str, str]]:
@@ -198,37 +206,96 @@ def elaborated_instances(text: str) -> list[tuple[str, str]]:
     return out
 
 
-def _subckt_names(text: str) -> list[str]:
-    return [l.split()[1] for l in logical_lines(text)
-            if l.lower().startswith(".subckt") and len(l.split()) >= 2]
-
-
-def _section_names(text: str) -> set[str]:
-    """Names of `.lib <name> ... .endl <name>` sections defined in a file."""
-    return {l.split()[1].upper() for l in logical_lines(text)
-            if re.match(r"(?i)^\.endl\s+\S", l)}
+def has_sections(text: str) -> bool:
+    """Does the text contain `.lib ... .endl` sections (named or bare)?"""
+    return any(re.match(r"(?i)^\.endl\b", l) for l in logical_lines(text))
 
 
 def _includes(text: str) -> list[tuple[str, str, str | None]]:
-    """(directive, requested path, requested section) for each include line.
-
-    In a sectioned library, `.lib <name>` opens a section rather than
-    including a file, so those header lines are skipped.
-    """
-    headers = _section_names(text)
+    """(directive, requested path, requested section) for each include line."""
     out = []
     for line in logical_lines(text):
         m = _INCLUDE_RE.match(line)
         if not m:
             continue
         raw = m.group("path")
-        token = raw[1:-1] if raw.startswith('"') and raw.endswith('"') else raw
+        token = raw[1:-1] if raw[:1] in "\"'" and raw[-1:] == raw[:1] else raw
         rest = line[m.end():].split()
-        if line.lower().startswith(".lib") and not rest and token.upper() in headers:
-            continue
         section = rest[0] if (line.lower().startswith(".lib") and rest) else None
         out.append((line, token, section))
     return out
+
+
+def _decode(blob: bytes) -> str:
+    """Library text, including the UTF-16 files LTspice itself can read."""
+    if blob[:2] in (b"\xff\xfe", b"\xfe\xff"):
+        return blob.decode("utf-16", errors="ignore")
+    if blob[:512].count(0) > len(blob[:512]) // 4:
+        return blob.decode("utf-16-le", errors="ignore")
+    return blob.decode("utf-8", errors="ignore")
+
+
+@dataclass
+class _Library:
+    """One parsed library file (cached by path, size and modification time)."""
+    sha256: str
+    encrypted: bool
+    sectioned: bool = False
+    includes: list = field(default_factory=list)
+    bodies: dict = field(default_factory=dict)
+    defs: list = field(default_factory=list)
+
+
+_library_cache: dict[tuple, _Library] = {}
+
+
+def _load_library(path: Path) -> _Library:
+    st = path.stat()
+    key = (str(path), st.st_size, st.st_mtime_ns)
+    if key not in _library_cache:
+        blob = path.read_bytes()
+        digest = hashlib.sha256(blob).hexdigest()
+        if _ENCRYPTED_MARKER in blob[:256]:
+            lib = _Library(digest, True)
+        else:
+            text = _decode(blob)
+            _, bodies, defs = _hierarchy(text)
+            lib = _Library(digest, False, has_sections(text), _includes(text),
+                           bodies, defs)
+        _library_cache[key] = lib
+    return _library_cache[key]
+
+
+def effective_includes(netlist: str) -> list[tuple[str, str | None, str, str | None]]:
+    """(directive as written, file handed to LTspice or None, token, section).
+
+    The file is what the simulation runner's own rewriting puts in the deck.
+    A directive the runner leaves as written has no established target.
+    """
+    written = _includes(netlist)
+    rewritten = _includes(replace_lib_paths(netlist, find=find_model))
+    if len(written) != len(rewritten):
+        return [(d, None, t, s) for d, t, s in written]
+    out = []
+    for (d, token, section), (_, target, _) in zip(written, rewritten):
+        same = target == token and not Path(target).is_file()
+        found = None if same or not Path(target).is_absolute() else target
+        if found is not None and not Path(found).is_file():
+            found = None
+        out.append((d, found, token, section))
+    return out
+
+
+def effective_body(netlist: str) -> str:
+    """Deck text LTspice parses: the runner's title rule, minus line 1."""
+    return ensure_title_line(netlist).partition("\n")[2]
+
+
+def _nested_target(token: str, parent: str) -> str | None:
+    """File a nested directive loads, under the two forms that are supported."""
+    tok = token.replace("\\", "/")
+    path = Path(tok) if Path(tok).is_absolute() else Path(parent).parent / tok
+    return str(path.resolve()) if path.is_file() else None
 
 
 # ---------------------------------------------------------------- results
@@ -242,7 +309,7 @@ class ResolvedFile:
     definitions: int          # .subckt blocks of the requested name in it
     opaque: bool = False
     pinned: bool | None = None  # digest matches snapshot / mismatch / unlisted
-    parent: str | None = None   # resolved path of the including file
+    parent: str | None = None   # resolved path of the first including file
     section: str | None = None  # requested .lib section, if any
 
     @property
@@ -261,6 +328,8 @@ class Resolution:
     unresolved_directives: list[str] = field(default_factory=list)
     vendor_instance: str | None = None
     unsupported: list[str] = field(default_factory=list)
+    edges: list[tuple[str | None, str]] = field(default_factory=list)
+    captured: list[str] = field(default_factory=list)  # helper names defined twice
 
     @property
     def vendor_definitions(self) -> int:
@@ -280,14 +349,14 @@ class Resolution:
 
     def closure(self) -> list[ResolvedFile]:
         """Vendor files plus every file they transitively include."""
-        roots = {f.path for f in self.vendor_files}
-        keep, changed = set(roots), True
-        while changed:
-            changed = False
-            for f in self.files:
-                if f.parent in keep and f.path and f.path not in keep:
-                    keep.add(f.path)
-                    changed = True
+        keep = {f.path for f in self.vendor_files}
+        frontier = list(keep)
+        while frontier:
+            at = frontier.pop()
+            for parent, child in self.edges:
+                if parent == at and child not in keep:
+                    keep.add(child)
+                    frontier.append(child)
         return [f for f in self.files if f.path in keep]
 
     @property
@@ -306,9 +375,9 @@ class Resolution:
             return "local"
         if self.unsupported:
             return "unsupported"
-        if not self.vendor_files:
+        if not self.vendor_files or self.unresolved_directives:
             return "unresolved"
-        if self.duplicate_vendor:
+        if self.duplicate_vendor or self.captured:
             return "ambiguous"
         if self.digest_mismatch:
             return "untrusted"
@@ -317,9 +386,9 @@ class Resolution:
     @property
     def vendor_supplied(self) -> bool:
         """The strict predicate: a reachable instance calls the requested name,
-        no local definition claims it, and exactly one vendor definition is
-        reachable through the includes (with a matching pinned digest where
-        the snapshot lists the file)."""
+        no local definition claims it, every include resolves, exactly one
+        vendor definition is reachable, no subcircuit it calls is defined
+        twice, and every file in its include closure matches the snapshot."""
         return self.instantiated and self.binding == "vendor"
 
     def evidence(self, anonymise: bool = True) -> dict:
@@ -348,6 +417,10 @@ class Resolution:
                  "definitions": f.definitions, "pinned": f.pinned}
                 for f in self.files
             ],
+            "include_edges": [[_normalise_path(a) if a and anonymise else a,
+                               _normalise_path(b) if anonymise else b]
+                              for a, b in self.edges],
+            "captured_helpers": self.captured,
             "unresolved_directives": self.unresolved_directives,
             "unsupported": self.unsupported,
         }
@@ -358,66 +431,96 @@ def resolve(netlist: str, part: str, max_depth: int = MAX_DEPTH,
     """Resolve `part` against `netlist` and everything it transitively includes."""
     want = part.strip().upper()
     snapshot = load_snapshot() if snapshot is None else snapshot
-    _, _, local_names = split_hierarchy(netlist)
-    reachable = elaborated_instances(netlist)
-    calls = [(line, c) for line, c in reachable if c.upper() == want]
+    body = effective_body(netlist)
+    _, deck_bodies, deck_defs = _hierarchy(body)
+    calls = [(line, c) for line, c in elaborated_instances(body)
+             if c.upper() == want]
     res = Resolution(
         part=part,
         instantiated=bool(calls),
-        local_definitions=[n for n in local_names if n.upper() == want],
+        local_definitions=[n for n, _ in deck_defs if n.upper() == want],
     )
+    if has_sections(netlist):
+        res.unsupported.append("library section inside the deck")
 
-    seen: set[tuple[str, str | None]] = set()
-    frontier = [(d, t, sec, 1, None) for d, t, sec in _includes(netlist)]
+    loaded: dict[str, _Library] = {}
+    frontier = [(d, target, tok, sec, 1, None)
+                for d, target, tok, sec in effective_includes(netlist)]
     while frontier:
-        directive, token, section, depth, parent = frontier.pop(0)
-        if depth > max_depth:
-            res.unsupported.append(f"include depth exceeds {max_depth}: {directive}")
-            continue
-        if any(g in token.lower() for g in _GENERIC):
-            continue
-        resolved = find_model(token)
-        if not resolved:
+        directive, target, token, section, depth, parent = frontier.pop(0)
+        if section is not None:
+            res.unsupported.append(f"library section requested: {directive}")
+        if target is None:
             res.unresolved_directives.append(directive)
             res.files.append(ResolvedFile(directive, token, None, None, depth, 0,
                                           parent=parent, section=section))
             continue
-        if (resolved, section) in seen:
+        path = Path(target).resolve()
+        resolved = str(path)
+        res.edges.append((parent, resolved))     # every edge, even to a seen file
+        if resolved in loaded:
             continue
-        seen.add((resolved, section))
-        path = Path(resolved)
+        if depth > max_depth:
+            res.unsupported.append(f"include depth exceeds {max_depth}: {directive}")
+            continue
         try:
-            blob = path.read_bytes()
+            lib = _load_library(path)
         except OSError:
             res.unresolved_directives.append(directive)
             continue
-        encrypted = _ENCRYPTED_MARKER in blob[:256]
-        text = "" if encrypted else blob.decode("utf-8", errors="ignore")
-        if section is not None:
-            res.unsupported.append(f"library section requested (not supported "
-                                   f"by LTspice 17.2.4): {directive}")
-        elif not encrypted and _section_names(text):
-            res.unsupported.append(f"sectioned library (not supported by "
-                                   f"LTspice 17.2.4): {directive}")
-        if encrypted:
+        loaded[resolved] = lib
+        if lib.sectioned:
+            res.unsupported.append(f"sectioned library: {directive}")
+        if lib.encrypted:
             defs = 1 if path.stem.strip().upper() == want else 0
         else:
-            defs = sum(1 for n in _subckt_names(text) if n.upper() == want)
-        digest = _sha256(path)
+            defs = sum(1 for n, _ in lib.defs if n.upper() == want)
         rel = _normalise_path(resolved)
-        pinned = (snapshot[rel] == digest) if rel in snapshot else None
-        entry = ResolvedFile(directive, token, resolved, digest, depth, defs,
-                             opaque=encrypted, pinned=pinned, parent=parent,
+        pinned = (snapshot[rel] == lib.sha256) if rel in snapshot else None
+        entry = ResolvedFile(directive, token, resolved, lib.sha256, depth, defs,
+                             opaque=lib.encrypted, pinned=pinned, parent=parent,
                              section=section)
         res.files.append(entry)
         if defs:
             res.vendor_files.append(entry)
-        for d2, t2, s2 in _includes(text):
-            frontier.append((d2, t2, s2, depth + 1, resolved))
+        for d2, t2, s2 in lib.includes:
+            frontier.append((d2, _nested_target(t2, resolved), t2, s2,
+                             depth + 1, resolved))
 
+    if len(res.vendor_files) == 1 and not res.vendor_files[0].opaque:
+        res.captured = _captured(want, deck_bodies, deck_defs, loaded,
+                                 res.vendor_files[0].path)
     if res.vendor_files and not res.local_definitions and calls:
         res.vendor_instance = calls[0][0]
     return res
+
+
+def _captured(want, deck_bodies, deck_defs, loaded, vendor_path) -> list[str]:
+    """Subcircuits the vendor model calls, directly or not, whose name has more
+    than one global definition across the deck and every loaded library."""
+    count: dict[str, int] = {}
+    for defs in [deck_defs] + [lib.defs for lib in loaded.values()]:
+        for name, enclosing in defs:
+            if enclosing is None:
+                count[name.upper()] = count.get(name.upper(), 0) + 1
+    home = loaded[vendor_path]
+    twice, queue, seen = [], [(want, home)], {want}
+    while queue:
+        name, lib = queue.pop()
+        nested = {n.upper() for n, enclosing in lib.defs if enclosing == name}
+        for line in lib.bodies.get(name, []):
+            callee = callee_of(line)
+            if callee is None or callee.upper() in seen:
+                continue
+            key = callee.upper()
+            seen.add(key)
+            if key not in nested and count.get(key, 0) > 1:
+                twice.append(callee)
+            owner = lib if key in lib.bodies else next(
+                (l for l in loaded.values() if key in l.bodies), None)
+            if owner is not None:
+                queue.append((key, owner))
+    return twice
 
 
 def vendor_supplied(netlist: str, part: str) -> bool:

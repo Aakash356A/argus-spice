@@ -383,6 +383,28 @@ def review_macros(*, corpus_rows, corpus_scored, numeric_pass, netlist_rows,
         out.append(rf"\newcommand{{\SlotsQual{at}}}{{{qual}}}")
         out.append(rf"\newcommand{{\SlotsAtt{at}}}{{{att}}}")
 
+    # --- per-model passes, false passes and stubs; recorded grade bases --
+    mtag = {"anthropic/claude-opus-5": "Claude", "openai/gpt-5.6-sol": "Gpt",
+            "google/gemini-3.1-pro-preview": "Gemini"}
+    for m, mt in mtag.items():
+        for a, at in (("bare", "Bare"), ("library", "Library")):
+            sub = [r for r in numeric_pass if r["model"] == m and arm(r) == a]
+            stub = sum(1 for r in corpus_scored if r["model"] == m and arm(r) == a
+                       and has_net(r) and audit_of(r).get("behavioral_stub"))
+            out += [rf"\newcommand{{\Fact{at}{mt}Pass}}{{{len(sub)}}}",
+                    rf"\newcommand{{\Fact{at}{mt}False}}{{{sum(1 for r in sub if is_fake(r))}}}",
+                    rf"\newcommand{{\Fact{at}{mt}Stub}}{{{stub}}}"]
+    bases = Counter(verdicts_full[key_of(r)].get("basis") or "none" for r in numeric_pass)
+    for b, bt in (("author review (mechanical)", "Template"), ("none", "Hand"),
+                  ("distortion measurement", "Distortion"),
+                  ("mechanical re-verification", "Reverified")):
+        out.append(rf"\newcommand{{\Basis{bt}}}{{{bases.get(b, 0)}}}")
+    check(sum(bases.values()) == len(numeric_pass) and len(bases) == 4,
+          f"unexpected grade bases: {bases}")
+    scored = {r["case_id"]: r.get("fake_risk") for r in corpus_scored}
+    out += [rf"\newcommand{{\CasesScored}}{{{len(scored)}}}",
+            rf"\newcommand{{\CasesHigh}}{{{sum(v == 'high' for v in scored.values())}}}"]
+
     out.extend(experiment_macros())
     return out
 
@@ -446,17 +468,60 @@ def experiment_macros() -> list[str]:
                 rf"\newcommand{{\PrecBenignBeforeChanges}}{{{col['precedence']['before_changes']}}}",
                 rf"\newcommand{{\PrecBenignIndist}}{{{len(col['precedence']['before_reproduces'])}}}",
                 rf"\newcommand{{\PrecBenignFails}}{{{col['precedence']['before_fails']}}}"]
+    # Measured ranges quoted in the text.
+    if fx_path.exists():
+        def span(cid, fakes, key, scale, digits):
+            v = [scale * r[key] for r in fx if r["case_id"] == cid
+                 and (r["grade"] == "FAKE") == fakes and r.get(key) is not None]
+            return f"{min(v):.{digits}f}", f"{max(v):.{digits}f}"
+        for fakes, tag in ((True, "Fake"), (False, "Real")):
+            lo, hi = span("D1", fakes, "trip_v", 1, 3)
+            out += [rf"\newcommand{{\Trip{tag}Lo}}{{{lo}}}", rf"\newcommand{{\Trip{tag}Hi}}{{{hi}}}"]
+            lo, hi = span("A4", fakes, "vout", 1, 3)
+            out += [rf"\newcommand{{\RefV{tag}Lo}}{{{lo}}}", rf"\newcommand{{\RefV{tag}Hi}}{{{hi}}}"]
+            v = [1e3 * abs(r["line_delta"]) for r in fx if r["case_id"] == "A4"
+                 and (r["grade"] == "FAKE") == fakes]
+            out.append(rf"\newcommand{{\Line{tag}Max}}{{{max(v):.2f}}}")
+        stage_ok = lambda r: r.get("all") and r.get("stage_ok", True)
+        out += [rf"\newcommand{{\FixFakePassExt}}{{{sum(1 for r in fake if stage_ok(r))}}}",
+                rf"\newcommand{{\FixRealPassExt}}{{{sum(1 for r in real + ungr if stage_ok(r))}}}"]
+    tm_path = runs / "timing.json"
+    if tm_path.exists():
+        tm = json.loads(tm_path.read_text())
+        out += [rf"\newcommand{{\TimeMedian}}{{{tm['median_ms']:.1f}}}",
+                rf"\newcommand{{\TimeTail}}{{{tm['p95_ms']:.0f}}}",
+                rf"\newcommand{{\TimeTotal}}{{{tm['total_s']:.1f}}}"]
+    tests = (runs.parent.parent / "tests" / "test_provenance.py").read_text()
+    out.append(rf"\newcommand{{\ResolverTests}}{{{tests.count(chr(10) + 'def test_')}}}")
+    snap = json.loads((runs.parent.parent / "data" / "library_snapshot.json").read_text())
+    out.append(rf"\newcommand{{\SnapshotFiles}}{{{len(snap['files'])}}}")
     sn_path = runs / "samename" / "summary.json"
     if sn_path.exists():
         sn = json.loads(sn_path.read_text())
-        for kind, tag in (("transitive", "Trans"), ("path", "Path")):
+        total = {"n": 0, "argus": 0}
+        for kind, tag in (("transitive", "Trans"), ("path", "Path"), ("nested", "Nest")):
             v = sn[kind]
+            check(v["control_fixture_pass"] == v["n"] == v["fixture_pass"],
+                  f"same-name {kind}: a control or altered deck fails its fixture")
+            check(v["matches_reference"] == v["n"] == v["differs_from_control"],
+                  f"same-name {kind}: an altered deck is not identified by measurement")
+            total["n"] += v["n"]
+            total["argus"] += v["altered_accepts"]["argus"]
             out += [rf"\newcommand{{\SN{tag}N}}{{{v['n']}}}",
                     rf"\newcommand{{\SN{tag}Fixture}}{{{v['fixture_pass']}}}",
-                    rf"\newcommand{{\SN{tag}Bound}}{{{v['simulator_bound_substitute']}}}",
-                    rf"\newcommand{{\SN{tag}Base}}{{{v['baseline_accepts']}}}",
-                    rf"\newcommand{{\SN{tag}Strict}}{{{v['strict_baseline_accepts']}}}",
-                    rf"\newcommand{{\SN{tag}Argus}}{{{v['argus_rejects']}}}"]
+                    rf"\newcommand{{\SN{tag}Ran}}{{{v['matches_reference']}}}",
+                    rf"\newcommand{{\SN{tag}FilesSame}}{{{v['direct_files_identical']}}}"]
+            for b, bt in (("name_include", "Name"), ("strict_names", "Strict"),
+                          ("direct_digest", "Digest"), ("argus", "Argus")):
+                out += [rf"\newcommand{{\SN{tag}Ctl{bt}}}{{{v['control_accepts'][b]}}}",
+                        rf"\newcommand{{\SN{tag}Alt{bt}}}{{{v['altered_accepts'][b]}}}"]
+        orig = sn["original_accepts"]
+        check(all(orig[b] == orig["n"] for b in ("name_include", "strict_names",
+                                                 "direct_digest", "argus")),
+              "a check rejects an unmodified same-name source deck")
+        out += [rf"\newcommand{{\SNTotal}}{{{total['n']}}}",
+                rf"\newcommand{{\SNArgusRejects}}{{{total['n'] - total['argus']}}}",
+                rf"\newcommand{{\SNSource}}{{{orig['n']}}}"]
         for cid in ("B1", "B4"):
             w = sn["sweep"][cid]
             t = cid.replace("1", "One").replace("4", "Four")

@@ -9,8 +9,9 @@ wrote. Here the evaluator takes over the input: the deck's own source on
 stimulus, analysis, observation window and measurement are imposed. Every
 other element of the deck -- the circuit, its supplies, loads and any local
 subcircuit -- is left exactly as generated. Each case adds properties beyond
-the original scalar, chosen and thresholded before any deck was run
-(`FIXTURES` below is the pre-registration).
+the original scalar. Thresholds (`FIXTURES` below) were written before any deck
+was run under the fixture and not tuned afterwards; nothing external timestamps
+that.
 
 The question is whether a functional test the evaluator controls separates
 decks that use the vendor model from decks that substitute a local
@@ -42,8 +43,7 @@ from analyze import load                                  # noqa: E402
 from cases import BY_ID                                   # noqa: E402
 from provenance import resolve                            # noqa: E402
 
-# ---------------------------------------------------------------- pre-registration
-# Thresholds are fixed here, before any deck is simulated, and are not tuned.
+# ---------------------------------------------------------------- thresholds
 FIXTURES = {
     "A4": {  # ADR1399H reference from a 15 V supply
         "kind": "dc_line",
@@ -68,7 +68,8 @@ FIXTURES = {
     "D1": {  # LT1720 comparator, 1.65 V threshold, output low above it
         "kind": "comparator", "above": 2.5, "below": 0.8,
         "low_max": 0.3, "high_min": 4.0, "trip": 1.65, "trip_tol": 0.15,
-        # Output-stage check (added 2026-11-21, fixed before it was run): in
+        # Output-stage check (added 2026-11-21, after we knew that some
+        # qualified decks omit the stage, and before it was run): in
         # the released state a 100 ohm pull-down is applied to OUT; an
         # open-drain-style stage sources only pull-up current, so the output
         # may source at most 5 mA (a pull-up of at least 1 kohm).
@@ -304,7 +305,7 @@ def main() -> int:
         return x
     (dest / "fixtures.jsonl").write_text("\n".join(
         json.dumps({k: clean(v) for k, v in rec.items()}) for rec in records) + "\n")
-    (dest / "preregistration.json").write_text(json.dumps(FIXTURES, indent=1))
+    (dest / "thresholds.json").write_text(json.dumps(FIXTURES, indent=1))
     print(f"wrote {len(records)} records -> {dest}")
     return 0
 

@@ -1,6 +1,10 @@
 {
- "simulator": "LTspice 17.2.4 (macOS)",
+ "simulator": "LTspice 17.2.4 for MacOS",
  "files": {
+  "<LTspice>/lib/cmp/standard.bjt": "15e7c7fa149dbdc97bb647f77681999a38fb4c324928beb4f1fa2a589288f587",
+  "<LTspice>/lib/cmp/standard.dio": "696d34dfe538966c80cfe1da259c1043f408777be79f59e4f1c47d82f3af320a",
+  "<LTspice>/lib/cmp/standard.jft": "93ae8433a9412e96e81071b65d521b7f31dcb2c2f3fce714456b73586230bea0",
+  "<LTspice>/lib/cmp/standard.mos": "adfdcda82e1b6186f907df2dc3905659a2ea2be2a0887a016d1fd9f1b3b1b40e",
   "<LTspice>/lib/sub/4N25.sub": "c97120393d2aafd4f1b9cf7a18f4c2a7dcc3e05810c8820c6f9247ce9a752341",
   "<LTspice>/lib/sub/AD3541R.sub": "d414bb208507834f5a5cb6f96554c41baf2c01edfd7cace5dd1d8e94ce235884",
   "<LTspice>/lib/sub/AD3542R.sub": "0f91da01f351f8951282468eb1a3cb1911bd7a6b1f5dab97fbf17af214f7c74b",

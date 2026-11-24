@@ -24,6 +24,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from app.simulation_runner import simulator_version             # noqa: E402
 from bench.detect import audit as _audit                      # noqa: E402
 from bench.provenance import resolve as _resolve              # noqa: E402
 from sim_harness import Metric, Spec, parses_as_spice, run_spice  # noqa: E402
@@ -31,7 +32,6 @@ from spec_report import report as _report                     # noqa: E402
 from template_index import find_template as _find_template    # noqa: E402
 
 SUPPORTED_METRICS = ("gain_db", "bandwidth_hz", "vout_dc")
-SIMULATOR = "LTspice 17.2.4"
 
 # A library directive may name a file, never a path. LTspice resolves a bare
 # filename against its own library directories, which is what every netlist in
@@ -247,7 +247,7 @@ def submit(netlist: str, part: str, metrics: list[dict],
             "part": part,
             "spec": spec_text,
             "netlist_sha256": _sha256(netlist),
-            "simulator": SIMULATOR,
+            "simulator": simulator_version(),
             "numeric_pass": numeric,
             "reports": verification.get("reports", []),
             "provenance": audit["provenance"],
