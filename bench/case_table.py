@@ -1,4 +1,4 @@
-"""Per-case appendix table: definition, tolerance and per-arm outcome.
+"""Per-case table: definition, tolerance and per-arm outcome.
 
 Lists the cases a reader needs in order to judge whether
 the suite is adversarial in the way the paper says it is, and to locate any
@@ -58,6 +58,11 @@ def main() -> int:
     order = ("bare", "requirement", "library")
     body, nocomp = [], []
     totals = {a: [0, 0, 0, 0] for a in order}   # net, att, pass, false
+    # The table's caption states these two facts instead of spending a column.
+    for case in ALL_CASES:
+        want = "medium" if case.case_id.startswith("B") else "high"
+        if case.fake_risk != want:
+            raise SystemExit(f"{case.case_id}: caption says {want}-risk")
     for case in ALL_CASES:
         sub = [r for r in rows if r["case_id"] == case.case_id]
         scored = bool(case.metrics)
@@ -80,20 +85,24 @@ def main() -> int:
                 t[0] += len(net); t[1] += len(arm_rows); t[2] += npass
                 t[3] += nfalse
             p_cell = str(npass) if scored else "---"
-            if a == "requirement":
-                cells.append(rf"{len(net)}/{len(arm_rows)} & {p_cell}")
+            if len(arm_rows) != 9:
+                raise SystemExit(f"{case.case_id} {a}: caption says nine slots")
+            if a == "library" and (nfalse or (scored and len(graded) != npass)):
+                raise SystemExit(f"{case.case_id}: caption says no false library pass")
+            if a != "bare":
+                cells.append(rf"{len(net)} & {p_cell}")
                 continue
             # `---` means no numeric pass to grade, never zero false ones.
             f_cell = (str(nfalse) if scored and npass and len(graded) == npass
                       else "---")
-            cells.append(rf"{len(net)}/{len(arm_rows)} & {p_cell} & {f_cell}")
-        body.append(rf"{case.case_id} & {part} & {case.fake_risk} & {target} & "
+            cells.append(rf"{len(net)} & {p_cell} & {f_cell}")
+        body.append(rf"{case.case_id} & {part} & {target} & "
                     + " & ".join(cells) + r" \\")
     tb, tr, tl = totals["bare"], totals["requirement"], totals["library"]
     body.append(r"\midrule")
-    body.append(rf"\multicolumn{{4}}{{@{{}}l}}{{\emph{{Scored total (19 cases)}}}} & "
-                rf"{tb[0]}/{tb[1]} & {tb[2]} & {tb[3]} & {tr[0]}/{tr[1]} & {tr[2]} & "
-                rf"{tl[0]}/{tl[1]} & {tl[2]} & {tl[3]} \\")
+    body.append(rf"\multicolumn{{3}}{{@{{}}l}}{{\emph{{Scored total (19 cases)}}}} & "
+                rf"{tb[0]} & {tb[2]} & {tb[3]} & {tr[0]} & {tr[2]} & "
+                rf"{tl[0]} & {tl[2]} \\")
 
     short = {"anthropic/claude-opus-5": "Claude Opus 5",
              "openai/gpt-5.6-sol": "GPT-5.6 Sol",
