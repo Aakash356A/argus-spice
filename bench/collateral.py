@@ -14,10 +14,10 @@
    the requested name with the candidate's port count. Running without an
    unknown-subcircuit or port-count error is the simulator's own evidence
    that the file exports that name with that arity.
-3. Precedence. For each frozen held-out part, a benign stub (every port tied
-   to ground through 1 GOhm, so it always simulates) of the part's name is
-   placed before and after the library directive; the run is compared with
-   the unmodified reference.
+3. Precedence. For each frozen held-out part, a benign stub (each port
+   shunted to ground through 1 GOhm) of the part's name is placed before and
+   after the library directive; the run is compared with the unmodified
+   reference.
 """
 from __future__ import annotations
 
