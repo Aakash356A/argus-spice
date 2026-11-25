@@ -7,7 +7,7 @@ from typing import Dict, List, Optional
 from dotenv import load_dotenv
 # LocalGemmaGen (the optional fine-tuned specialist) is imported lazily inside
 # UnifiedAgent.__init__ so the chat agent works with just an LLM endpoint
-# (AMD MI300X or OpenRouter) and no local torch model.
+# (OpenRouter or any OpenAI-compatible server) and no local torch model.
 
 load_dotenv()  # loads OPENROUTER_API_KEY (and friends) from a local .env file, if present
 

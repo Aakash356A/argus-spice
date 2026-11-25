@@ -47,10 +47,12 @@ nothing here requires API access unless you generate a new corpus.
 ```bash
 python bench/validate_cases.py
 python bench/reconcile.py 20260809T211634Z --out generated
-python bench/mutants.py --parts 40
+python bench/mutants.py --parts 40 --simulate
 python bench/case_table.py 20260809T211634Z
 ```
 
 `reconcile.py` recomputes static resolution, so it needs the LTspice library
 pinned in `data/library_snapshot.json` installed and refuses to start without
-it; it runs no simulation. `reverify.py` also needs LTspice 17.2.4.
+it; it runs no simulation. `reverify.py` and `mutants.py --simulate` also need
+LTspice 17.2.4. Without `--simulate`, `mutants.py` rewrites its ledger without
+the simulator verdicts.

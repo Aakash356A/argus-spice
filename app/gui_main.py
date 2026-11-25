@@ -73,7 +73,7 @@ class SPICEEditorGUI:
         elif not (local_agent_enabled or api_configured):
             self.agent_error = (
                 "No LLM backend configured. In .env set LLM_BASE_URL + LLM_API_KEY "
-                "(AMD MI300X endpoint — see notebooks/amd_serve_and_tunnel.ipynb) or "
+                "(any OpenAI-compatible endpoint) or "
                 "OPENROUTER_API_KEY. Optionally set SPICE_WIZARD_ENABLE_LOCAL_AGENT=1 "
                 "for the local Gemma specialist after `git lfs pull`."
             )
@@ -531,7 +531,7 @@ class SPICEEditorGUI:
         ttk.Label(
             arena_frame,
             text=(
-                "Import multiple AMD/local LLM responses. Each candidate must preserve the current "
+                "Import multiple LLM responses. Each candidate must preserve the current "
                 "editor template, then LTspice ranks it by measured specifications."
             ),
             wraplength=720,
@@ -553,12 +553,12 @@ class SPICEEditorGUI:
         ttk.Label(arena_controls, text="Candidate source:").pack(side=tk.LEFT)
         self.arena_source_combo = ttk.Combobox(
             arena_controls,
-            values=["amd_mi300x_manual", "local_fine_tune", "openai_compatible", "other"],
+            values=["manual_import", "local_fine_tune", "openai_compatible", "other"],
             state="readonly",
             width=22,
         )
         self.arena_source_combo.pack(side=tk.LEFT, padx=(4, 10))
-        self.arena_source_combo.set("amd_mi300x_manual")
+        self.arena_source_combo.set("manual_import")
         self.arena_run_btn = ttk.Button(
             arena_controls,
             text="Run Candidate Arena",

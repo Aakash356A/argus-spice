@@ -142,6 +142,11 @@ bench/
       raw/              every raw model response
       verdicts.jsonl    grades for the numeric passes, with the basis of each
       reverification.jsonl   mechanical evidence behind every valid grade
+  runs/mutants/       360 held-out mutants with static and LTspice verdicts
+  runs/fixtures/      passes replayed under evaluator-owned fixtures
+  runs/samename/      same name, different model: matched pairs and baselines
+  runs/collateral/    wrong variants, opaque exports, definition precedence
+  runs/timing.json    resolver timing
 
 mcp_server/         the audit as callable tools (find_template, simulate,
                     audit_netlist, verify_spec, submit) over stdio MCP
@@ -149,8 +154,11 @@ mcp_server/         the audit as callable tools (find_template, simulate,
 sim_harness.py             run_spice(): the entry point every simulation path uses
 measure_raw.py             waveform measurement (gain_db, bandwidth_hz, vout_dc)
 app/simulation_runner.py   LTspice invocation; the chokepoint all paths funnel through
-data/templates/            reference netlists exported from LTspice examples (manifest: data/templates_manifest.json)
-data/library_snapshot.json SHA-256 of every vendor library file the corpus resolves to
+data/templates/            the 59 reference netlists the cases and held-out parts use,
+                           exported from LTspice examples (manifest of the full
+                           local export: data/templates_manifest.json)
+data/library_snapshot.json SHA-256 of every vendor library file the corpus and the full
+                           template export resolve to
 data/heldout_parts.json    the frozen held-out part list for the mutation suite
 ```
 

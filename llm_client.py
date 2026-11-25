@@ -8,7 +8,7 @@ backend is a pure env-var swap:
     OpenRouter (today):   LLM_BASE_URL=https://openrouter.ai/api/v1
                           LLM_API_KEY=<or reuse OPENROUTER_API_KEY>
                           LLM_MODEL=openai/gpt-5
-    vLLM on AMD (target): LLM_BASE_URL=http://<mi300x-host>:8000/v1
+    vLLM (self-hosted):   LLM_BASE_URL=http://<host>:8000/v1
                           LLM_API_KEY=anything-nonempty
                           LLM_MODEL=Qwen/Qwen2.5-Coder-32B-Instruct
 

@@ -5,7 +5,7 @@ matplotlib>=3.8,<4
 PyLTSpice==5.4.3
 
 # Optional local-model backend (ft_mac.py). Install a platform-appropriate
-# PyTorch build first when using AMD ROCm.
+# PyTorch build first.
 torch>=2.2,<3
 transformers>=4.45,<5
 peft>=0.13,<1

@@ -3,8 +3,7 @@
 The Candidate Arena makes best-of-N generation auditable: every candidate is
 checked against the original template invariants, simulated under the same test
 conditions, ranked by measured results, and optionally exported as a compact
-JSON evidence bundle. Generation can happen on AMD hardware, locally, or via
-any API; the acceptance decision always remains local and reproducible.
+JSON evidence bundle. Generation can happen locally or via any API; the acceptance decision always remains local and reproducible.
 """
 
 from __future__ import annotations

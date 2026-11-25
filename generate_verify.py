@@ -155,7 +155,7 @@ def verify_candidate(
     verbose: bool = True,
 ):
     """Verify a netlist obtained outside the API loop (for example, copied
-    manually from Qwen running on the AMD MI300X).
+    manually from another model session).
 
     The candidate can be a raw netlist or the full chat response; extraction
     removes code fences and surrounding prose. A passing candidate is logged

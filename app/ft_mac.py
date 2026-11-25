@@ -1,7 +1,7 @@
 """Optional local Gemma LoRA generator.
 
-The primary hackathon path is Qwen inference on AMD followed by local LTspice
-verification. This module is deliberately optional and is loaded only when the
+The primary path is a hosted or self-hosted LLM endpoint followed by local
+LTspice verification. This module is deliberately optional and is loaded only when the
 GUI's `SPICE_WIZARD_ENABLE_LOCAL_AGENT` flag is enabled.
 """
 

@@ -57,7 +57,7 @@ XU1 IN 0 OUT VCC VEE AD8092
     def test_evidence_bundle_serializes_non_finite_measurements_as_null(self):
         outcome = CandidateOutcome(
             "candidate-a",
-            "amd_mi300x_manual",
+            "manual_import",
             "abc123",
             "FAIL",
             "* netlist\n.end\n",

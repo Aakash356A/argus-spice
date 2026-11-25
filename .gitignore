@@ -1,9 +1,9 @@
-# Secrets
+# --- Secrets ---------------------------------------------------------------
 .env
 .env.*
 !.env.example
 
-# Python environments, caches, and build output
+# --- Python ----------------------------------------------------------------
 __pycache__/
 *.py[cod]
 *.egg-info/
@@ -13,7 +13,7 @@ __pycache__/
 venv/
 env/
 
-# Editors and operating systems
+# --- Editors and operating systems -----------------------------------------
 .vscode/
 .idea/
 .claude/
@@ -21,9 +21,8 @@ env/
 .DS_Store
 Thumbs.db
 
-# LTspice and GUI-generated artifacts
+# --- LTspice and GUI output ------------------------------------------------
 *.raw
-*.op.raw
 *.log
 *.plt
 *_edited_*.cir
@@ -32,66 +31,39 @@ outputs_archive/
 tmp/
 temp/
 
-# Generated datasets and local training state
-training/datasets/
-training/runs/
-training/checkpoints/
-training/unsloth_compiled_cache/
-training/offload/
-
-# Checkpoints and duplicated training-resume artifacts.
-# The single published runtime adapter remains tracked through Git LFS.
-models/**/checkpoint-*/
-models/**/*.pt
-models/**/*.pth
-models/**/optimizer.*
-models/**/scheduler.*
-models/**/rng_state.*
-models/**/trainer_state.*
-models/**/training_args.*
-
-# Keep curated source templates, but never commit generated non-.net data files.
-data/**/*.raw
-data/**/*.op.raw
-data/**/*.log
-data/**/*.cir
-data/generated/
-
-# Local Candidate Arena inputs and reproducible-but-run-specific evidence.
-# The curated verified_pairs.jsonl remains versioned.
-data/candidate_inputs/
-data/evidence/
-*_candidate_arena.json
-
-# ---------------------------------------------------------------------------
-# Kept locally, not published.
-#
-# This repository publishes the paper's artifact and the desktop GUI. The
-# following are working material or superseded work: they remain in the
-# working tree and are simply not tracked.
-# ---------------------------------------------------------------------------
-
-# Internal working notes and the superseded ACM draft of the paper.
-HANDOFF.md
-ACM_Journals_Primary_Article_Template/
-Neurips/
-IEEE_TCAD/
-message.txt
-requirements-training.txt
-requirements-amd.txt
-report_netlist.py
-# Discarded fine-tuning line: the LoRA adapter, its training scripts, the
-# serving notebooks, and the RL/data scaffolding that was never wired in.
+# --- Local models and training state ---------------------------------------
 models/
 training/
-netgen/
-notebooks/
 
-# Documentation for the earlier system, superseded by README.md.
-docs/
+# --- Data ------------------------------------------------------------------
+# Only the reference netlists that a case or a frozen held-out part uses are
+# published (59 files, already tracked). Keep any larger local export of the
+# LTspice examples next to them; add a new reference with `git add -f`.
+data/templates/*
+data/**/*.cir
+data/generated/
+data/candidate_inputs/
+data/evidence/
+data/verified_pairs.jsonl
+*_candidate_arena.json
 
 # Local IC shortlist used by the GUI's suggestion feature (see app/README.md).
 app/available_ics.txt
+
+# --- Benchmark -------------------------------------------------------------
+# Published: every record the paper's numbers are computed from (completions,
+# extracted decks, grades, and the mutant, fixture, collateral and same-name
+# ledgers under bench/runs/).
+#
+# Not published: build output and per-run worksheets.
+generated/
+netlists_to_grade_*.md
+bench/runs/tools-interactive/
+bench/probe_tools.py
+bench/multimetric.py
+bench/runs/*/multimetric.jsonl
+bench/runs/*/grading.csv
+bench/runs/*/summary.csv
 
 # The `strict` pilot arm is outside the paper's three-arm design. The published
 # results.jsonl and config.json carry the 540 generations the paper reports;
@@ -101,21 +73,6 @@ bench/runs/*/config.with-strict.json
 bench/runs/*/netlists/*_strict_k*
 bench/runs/*/raw/*_strict_k*
 
-# Tables and macros emitted by bench/reconcile.py; build output, not source.
-generated/
-
-# Internal working material: grading worksheets, exploratory drivers and
-# analyses that are not part of the paper, and per-run CSVs that analyze.py
-# rewrites on every invocation.
-netlists_to_grade_*.md
-bench/runs/tools-interactive/
-bench/probe_tools.py
-bench/multimetric.py
-bench/runs/*/multimetric.jsonl
-bench/runs/*/grading.csv
-bench/runs/*/summary.csv
-
-
-# Point-in-time backups made before editing corpus records; the corpus itself
-# is versioned.
+# Point-in-time backups and history bundles.
 *.bak-*
+*.bundle
