@@ -105,10 +105,11 @@ python bench/reconcile.py 20260809T211634Z --out generated  # result counts, rat
 python bench/case_table.py 20260809T211634Z                 # per-case and no-deck tables
 ```
 
-Recomputing tables needs no simulator; re-running the static audit needs an
-LTspice library, checked against `data/library_snapshot.json` (SHA-256 of every
+`reconcile.py` needs no simulator run, but it recomputes static resolution, so it
+needs the installed LTspice library, and it refuses to start if that library
+differs from `data/library_snapshot.json` (SHA-256 of every
 library file the corpus resolves to on one installation; not vendor-published
-values); `reverify.py`, `mutants.py --simulate`,
+values). `reverify.py`, `mutants.py --simulate`,
 `fixtures.py`, `collateral.py` and `samename.py` re-simulate and need LTspice
 17.2.4. `bench/prompt_manifest.py` writes the exact
 prompt for every (case, arm) to `prompts.jsonl`.

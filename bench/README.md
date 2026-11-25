@@ -50,3 +50,7 @@ python bench/reconcile.py 20260809T211634Z --out generated
 python bench/mutants.py --parts 40
 python bench/case_table.py 20260809T211634Z
 ```
+
+`reconcile.py` recomputes static resolution, so it needs the LTspice library
+pinned in `data/library_snapshot.json` installed and refuses to start without
+it; it runs no simulation. `reverify.py` also needs LTspice 17.2.4.

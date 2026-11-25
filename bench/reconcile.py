@@ -12,6 +12,10 @@ must sum exactly, computes clustered bootstrap confidence intervals, and writes:
     tables.tex    the generated LaTeX tables
     reconcile.json machine-readable dump of everything
 
+Needs the pinned LTspice library (static resolution is recomputed against it),
+not the simulator; refuses to start if a library file is missing or differs
+from data/library_snapshot.json.
+
 Fails loudly (SystemExit non-zero) if any integrity assertion breaks: totals not
 summing to 360, a zero denominator, a duplicate generation id, a reported
 numeric pass with no simulator artifact, or conflicting grading labels.
@@ -35,6 +39,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from analyze import load  # noqa: E402  (re-audits netlists from disk)
 import ablation  # noqa: E402  (ladder, leave-one-out, Pass@k)
 from cases import BY_ID  # noqa: E402
+import provenance  # noqa: E402
+from app.simulation_runner import find_model  # noqa: E402
 from provenance import resolve  # noqa: E402  (transitive include resolution)
 
 BOOTSTRAP_ITERS = 10000
@@ -169,6 +175,46 @@ def no_completion_cause(r) -> str:
     if any(s in err for s in ("connection", "timed out", "timeout", "reset")):
         return "network"
     return "other"
+
+
+def library_drift(snapshot, find=find_model) -> list[str]:
+    """Pinned library files that are absent here or differ from their digest.
+
+    The resolution counts below are recomputed against the local library, so a
+    different installation would change them; it has to stop the build."""
+    out = []
+    for rel, digest in sorted(snapshot.items()):
+        path = find(rel.rsplit("/", 1)[-1])
+        if path is None or provenance._load_library(Path(path)).sha256 != digest:
+            out.append(rel)
+    return out
+
+
+def outside_helpers(snapshot, find=find_model) -> tuple[int, int, int]:
+    """(readable files, subcircuits in them, subcircuits calling one that no
+    file in their own include closure defines)."""
+    files = defs = outside = 0
+    for rel in sorted(snapshot):
+        path = find(rel.rsplit("/", 1)[-1])
+        lib = provenance._load_library(Path(path))
+        if lib.encrypted:
+            continue
+        files += 1
+        seen, queue, names = {path}, [path], set()
+        while queue:
+            at = queue.pop()
+            here = provenance._load_library(Path(at))
+            names |= set(here.bodies)
+            for _, token, _ in here.includes:
+                nxt = provenance._nested_target(token, at)
+                if nxt and nxt not in seen:
+                    seen.add(nxt)
+                    queue.append(nxt)
+        for body in lib.bodies.values():
+            defs += 1
+            called = {c.upper() for c in map(provenance.callee_of, body) if c}
+            outside += bool(called - names)
+    return files, defs, outside
 
 
 def missing_reverification(qualified_keys, reverify) -> list:
@@ -495,6 +541,10 @@ def experiment_macros() -> list[str]:
     out.append(rf"\newcommand{{\ResolverTests}}{{{tests.count(chr(10) + 'def test_')}}}")
     snap = json.loads((runs.parent.parent / "data" / "library_snapshot.json").read_text())
     out.append(rf"\newcommand{{\SnapshotFiles}}{{{len(snap['files'])}}}")
+    n_read, n_defs, n_outside = outside_helpers(snap["files"])
+    check(n_outside == 0, "a pinned model calls a subcircuit outside its closure")
+    out += [rf"\newcommand{{\SnapReadable}}{{{n_read}}}",
+            rf"\newcommand{{\SnapDefs}}{{{n_defs}}}"]
     sn_path = runs / "samename" / "summary.json"
     if sn_path.exists():
         sn = json.loads(sn_path.read_text())
@@ -538,6 +588,15 @@ def main() -> int:
                     help="directory for numbers.tex/tables.tex "
                          "(default: <run>/paper)")
     args = ap.parse_args()
+
+    drift = library_drift(provenance.load_snapshot())
+    if drift:
+        print(f"REFUSED: {len(drift)} of {len(provenance.load_snapshot())} pinned "
+              f"library files are missing or differ from data/library_snapshot.json "
+              f"(first: {drift[0]}). Static resolution is recomputed here, so the "
+              f"pinned LTspice library must be installed; no simulator run is needed.",
+              file=sys.stderr)
+        return 2
 
     out_dir, rows = load(args.run_id)
     dest = Path(args.out) if args.out else (out_dir / "paper")

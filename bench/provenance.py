@@ -43,7 +43,11 @@ can be disagreed with:
 8. Trust root. Every file in the binding's include closure -- the file that
    defines the part and every file it pulls in -- must be listed in
    `data/library_snapshot.json` with a matching SHA-256. A file absent from
-   the snapshot, or whose digest differs, makes the binding `untrusted`.
+   the snapshot, or whose digest differs, makes the binding `untrusted`. The
+   closure follows include edges only: a subcircuit the model calls but that no
+   file in its closure defines, so that the deck or a sibling library supplies
+   it, is not digest-checked. No readable definition in the pinned snapshot
+   calls one (`reconcile.outside_helpers`).
 9. End of deck. Text after `.end` is ignored, as LTspice ignores it.
 10. Library sections. `.lib <file> <section>` loading and libraries that
    contain `.endl` (with or without a name) are outside the supported subset
@@ -361,7 +365,7 @@ class Resolution:
 
     @property
     def digest_mismatch(self) -> bool:
-        """Some file the binding depends on is not positively pinned."""
+        """Some file in the include closure is not positively pinned."""
         return any(f.pinned is not True for f in self.closure())
 
     @property
